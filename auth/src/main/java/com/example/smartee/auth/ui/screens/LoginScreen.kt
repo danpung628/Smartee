@@ -1,6 +1,6 @@
 package com.example.smartee.auth.ui.screens
 
-import android.widget.Button
+import android.R.attr.password
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
@@ -10,18 +10,18 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import org.w3c.dom.Text
 
 @Composable
 public fun LoginScreen(
     onLoginClick: (String, String) -> Unit,
-    onRegisterClick: () -> Unit
+    onRegisterClick: () -> Unit,
+    modifier: Modifier = Modifier
 ) {
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
 
     Column(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxSize()
             .padding(horizontal = 24.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
