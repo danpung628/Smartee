@@ -1,4 +1,4 @@
-package com.example.feature_studylist.uicomponents
+package com.example.feature_studylist.uicomponents.studylist
 
 import android.util.Log
 import androidx.compose.foundation.layout.Column
@@ -11,14 +11,16 @@ import com.example.feature_studylist.model.StudyData
 fun StudyListContent(
     modifier: Modifier = Modifier,
     studyList: MutableList<StudyData>,
-    keyword: String
+    keyword: String,
+    onStudyDetailNavigate:(String) -> Unit
 ) {
     Column {
         studyList.forEach {//스터디 아이템
             Log.d("StudyID", "studyId = ${it.studyId}")
             if (it.title.contains(keyword))
                 StudyListItem(
-                    item = it
+                    item = it,
+                    onClick = onStudyDetailNavigate
                 )
         }
     }

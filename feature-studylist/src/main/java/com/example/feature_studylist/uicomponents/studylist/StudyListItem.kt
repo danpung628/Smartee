@@ -1,9 +1,11 @@
-package com.example.feature_studylist.uicomponents
+package com.example.feature_studylist.uicomponents.studylist
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Comment
 import androidx.compose.material.icons.filled.Favorite
@@ -11,7 +13,8 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import com.example.feature_studylist.model.StudyData
 import java.time.Duration
@@ -20,12 +23,18 @@ import java.time.LocalDateTime
 @Composable
 fun StudyListItem(
     modifier: Modifier = Modifier,
-    item:StudyData,
+    item: StudyData,
+    onClick: (String) -> Unit
 ) {
-    Row {
+    Row(
+        modifier.clickable{
+            onClick(item.studyId)
+        }
+    ) {
         AsyncImage(
-            model = "https://i.namu.wiki/i/16b-ElplD3LJ2DxvVcmW89cqxkOh0rqykfKgdIep8yy9eOriyEIDARUKvBeaXk6Lo_qduMkx3_IR4cfrZaqNtJjPY5cCpDywbdBEISz0jckcmNP-vdrwLAPHKzyo4pIvTVMpKcVXAnKGEDhuV0sGtWEsjXUI4R08kX4GPhiPj1w.webp",
+            model = item.thumbnailModel,
             contentDescription = "Study Thumbnail",
+            modifier = Modifier.size(100.dp),
         )
 
         Column {

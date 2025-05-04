@@ -1,4 +1,4 @@
-package com.example.feature_studylist.uicomponents
+package com.example.feature_studylist.uicomponents.topbar
 
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.KeyboardArrowDown

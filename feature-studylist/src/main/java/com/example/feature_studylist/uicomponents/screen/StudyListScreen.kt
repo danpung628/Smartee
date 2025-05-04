@@ -1,13 +1,11 @@
 package com.example.smartee.ui.study
 
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.key
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.example.feature_studylist.uicomponents.StudyListContent
-import com.example.feature_studylist.uicomponents.StudyListTopBar
+import com.example.feature_studylist.uicomponents.studylist.StudyListContent
+import com.example.feature_studylist.uicomponents.topbar.StudyListTopBar
 import com.example.feature_studylist.viewmodel.StudyViewModel
 import com.google.accompanist.swiperefresh.SwipeRefresh
 import com.google.accompanist.swiperefresh.rememberSwipeRefreshState
@@ -15,13 +13,14 @@ import com.google.accompanist.swiperefresh.rememberSwipeRefreshState
 @Composable
 fun StudyListScreen(
     studyViewModel: StudyViewModel = viewModel(),
-    keyword:String,
+    keyword: String,
+    onStudyDetailNavigate: (String) -> Unit,
     onSearchNavigate: () -> Unit
 ) {
     val studyList = studyViewModel.studyList
 
     val isRefreshing = studyViewModel.isRefreshing
-    val swipeState = rememberSwipeRefreshState(isRefreshing)
+    val swipeState = rememberSwipeRefreshState(isRefreshing)//새로고침 기능
 
     SwipeRefresh(
         state = swipeState,
@@ -36,7 +35,8 @@ fun StudyListScreen(
             item {
                 StudyListContent(
                     studyList = studyList,
-                    keyword = keyword
+                    keyword = keyword,
+                    onStudyDetailNavigate = onStudyDetailNavigate
                 )
             }
         }
@@ -46,7 +46,7 @@ fun StudyListScreen(
 @Preview
 @Composable
 private fun StudyListScreenPreview() {
-    StudyListScreen(keyword = "") {
-
-    }
+//    StudyListScreen(keyword = "") {
+//
+//    }
 }

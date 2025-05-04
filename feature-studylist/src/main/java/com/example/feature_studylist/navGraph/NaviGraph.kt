@@ -8,7 +8,8 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
 import com.example.feature_studylist.model.Routes
-import com.example.feature_studylist.uicomponents.StudySearchScreen
+import com.example.feature_studylist.uicomponents.screen.StudyDetailScreen
+import com.example.feature_studylist.uicomponents.screen.StudySearchScreen
 import com.example.smartee.ui.study.StudyListScreen
 
 @Composable
@@ -26,14 +27,34 @@ fun NaviGraph(
                 }
             )
         ) {
-            StudyListScreen(keyword = it.arguments!!.getString("keyword")!!) {
-                navController.navigate(Routes.Search.route)
-            }
+            StudyListScreen(
+                keyword = it.arguments!!.getString("keyword")!!,
+                onStudyDetailNavigate = {
+                    navController.navigate(Routes.Detail.route + "?studyID=$it")
+                },
+                onSearchNavigate = {
+                    navController.navigate(Routes.Search.route)
+                }
+            )
         }
+
         composable(route = Routes.Search.route) {
             StudySearchScreen { keyword ->
                 navController.navigate(Routes.List.route + "?keyword=$keyword")
             }
+        }
+
+        composable(
+            route = Routes.Detail.route + "?studyID={ID}",
+            arguments = listOf(
+                navArgument("ID") {
+                    type = NavType.StringType
+                }
+            )
+        ) {
+            StudyDetailScreen(
+                studyId = it.arguments!!.getString("ID")!!
+            )
         }
     }
 }
