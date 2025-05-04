@@ -23,8 +23,8 @@ fun LoginScreen(navController: NavController) {
         Button(onClick = { navController.navigate(Screen.Profile.route) }) {
             Text("Go to Profile")
         }
-        Button(onClick = { navController.navigate(Screen.Register.route) }) {
-            Text("Go to Register")
+        Button(onClick = { navController.navigate(Screen.SignUp.route) }) {
+            Text("Go to Sign Up")
         }
         Button(onClick = { navController.navigate(Screen.StudyCreate.route) }) {
             Text("Go to Study Create")
