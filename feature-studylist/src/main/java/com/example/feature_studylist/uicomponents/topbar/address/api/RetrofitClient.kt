@@ -1,14 +1,15 @@
 package com.example.feature_studylist.uicomponents.topbar.address.api
 
+import android.util.Log
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
-import kotlin.jvm.java
 
 object RetrofitClient {
-    private const val BASE_URL = "https://www.juso.go.kr/addrlink/addrLinkApi.do/"
+    // BASE_URL 수정 - 마지막 슬래시와 경로 수정
+    private const val BASE_URL = "https://www.juso.go.kr/addrlink/"
     internal const val API_KEY = "devU01TX0FVVEgyMDI1MDUwNTAwMDY1MzExNTcxOTI="
 
-    // API_KEY를 반환하는 함수 추가
+    // API_KEY를 반환하는 함수
     fun getApiKey(): String = API_KEY
 
     val addressService: AddressService by lazy {
