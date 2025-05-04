@@ -7,13 +7,14 @@ import androidx.navigation.compose.composable
 import com.example.smartee.ui.attendance.AttendanceScreen
 import com.example.smartee.ui.login.LoginScreen
 import com.example.smartee.ui.profile.ProfileScreen
+import com.example.smartee.ui.signup.FillProfileScreen
 import com.example.smartee.ui.signup.SignUpScreen
 import com.example.smartee.ui.study.StudyCreateScreen
 import com.example.smartee.ui.study.StudyListScreen
 
 @Composable
 fun SmarteeNavGraph(navController: NavHostController) {
-    NavHost(navController, startDestination = Screen.Login.route) {
+    NavHost(navController, startDestination = Screen.SignUp.route) {
         composable(Screen.Login.route) {
             LoginScreen(navController)
         }
@@ -22,6 +23,9 @@ fun SmarteeNavGraph(navController: NavHostController) {
         }
         composable(Screen.SignUp.route) {
             SignUpScreen(navController)
+        }
+        composable(Screen.FillProfile.route) {
+            FillProfileScreen(navController)
         }
         composable(Screen.StudyCreate.route) {
             StudyCreateScreen(navController)
