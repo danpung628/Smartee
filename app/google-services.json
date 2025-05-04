@@ -12,7 +12,20 @@
           "package_name": "com.example.smartee"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "963084791042-cr73nmo05vglfj8ugj69okean4umg0kd.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.smartee",
+            "certificate_hash": "22236d659479fb0ec3c5d8a64204ffa06c63cd21"
+          }
+        },
+        {
+          "client_id": "963084791042-fmshmd5g0fi3870cmurqkemkor6cfrm0.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyA6hEUTR46e5WIXIiNMdltdddRz25pt0wQ"
@@ -20,7 +33,12 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "963084791042-fmshmd5g0fi3870cmurqkemkor6cfrm0.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
         }
       }
     }
