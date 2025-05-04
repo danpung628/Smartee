@@ -16,32 +16,50 @@ class AddressViewModel : ViewModel() {
     val addresses: StateFlow<List<String>> = _addresses
 
     // 시/도 목록 가져오기 (테스트용 더미 데이터 포함)
+    // 시/도 목록 가져오기
     fun fetchSidoList() {
         viewModelScope.launch {
             try {
-                // API 호출 시도
+                // API 호출 시도 - 구체적인 검색어로 많은 결과가 나오도록 설정
                 val response = RetrofitClient.addressService.getAddressList(
-                    confmKey = RetrofitClient.getApiKey()
+                    confmKey = RetrofitClient.getApiKey(),
+                    keyword = "서울특별시 종로구 세종로", // 구체적인 주소 사용
+                    countPerPage = 100 // 결과 수 증가
                 )
 
-                // 응답에서 시/도 추출 시도
-                try {
-                    val sidoList = response.results.juso.map { it.siNm }.distinct()
-                    if (sidoList.isNotEmpty()) {
-                        _addresses.value = sidoList
-                        Log.d("AddressViewModel", "Sido list fetched: $sidoList")
-                    } else {
-                        // API에서 데이터가 없는 경우 더미 데이터 사용
+                // 응답 상태 로깅
+                val common = response.results.common
+                Log.d("AddressViewModel", "API Response: common=$common")
+
+                // 성공 응답인 경우에만 처리
+                if (common.errorCode == "0") {
+                    try {
+                        val juso = response.results.juso
+                        if (juso != null && juso.isNotEmpty()) {
+                            // 검색 결과에서 모든 응답의 시도명만 추출하고 중복 제거
+                            val sidoList = juso.map { it.siNm }.distinct()
+                            if (sidoList.isNotEmpty()) {
+                                _addresses.value = sidoList
+                                Log.d("AddressViewModel", "Sido list extracted: $sidoList")
+                            } else {
+                                Log.d("AddressViewModel", "No sido names found in results")
+                                setDummyAddresses()
+                            }
+                        } else {
+                            Log.d("AddressViewModel", "Empty juso list in response")
+                            setDummyAddresses()
+                        }
+                    } catch (e: Exception) {
+                        Log.e("AddressViewModel", "Error processing juso data: ${e.message}")
                         setDummyAddresses()
                     }
-                } catch (e: Exception) {
-                    Log.e("AddressViewModel", "Error processing response: ${e.message}")
-                    // 응답 처리 실패 시 더미 데이터 사용
+                } else {
+                    // API 에러 처리
+                    Log.e("AddressViewModel", "API Error: ${common.errorCode} - ${common.errorMessage}")
                     setDummyAddresses()
                 }
             } catch (e: Exception) {
                 Log.e("AddressViewModel", "Error fetching address: ${e.message}")
-                // API 호출 실패 시 더미 데이터 사용
                 setDummyAddresses()
             }
         }
