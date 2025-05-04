@@ -56,6 +56,10 @@ dependencies {
     implementation(libs.firebase.firestore.ktx)
     implementation(libs.androidx.material.icons.extended)
     implementation(libs.accompanist.swiperefresh)
+
+    implementation("com.squareup.retrofit2:retrofit:2.9.0")
+    implementation("com.squareup.retrofit2:converter-gson:2.9.0")
+
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
