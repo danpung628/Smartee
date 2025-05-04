@@ -5,24 +5,34 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.viewmodel.compose.viewModel
-import androidx.navigation.NavController
-import androidx.navigation.compose.rememberNavController
 import com.example.feature_studylist.uicomponents.StudyList
 import com.example.feature_studylist.viewmodel.StudyViewModel
+import com.google.accompanist.swiperefresh.SwipeRefresh
+import com.google.accompanist.swiperefresh.rememberSwipeRefreshState
 
 @Composable
 fun StudyListScreen(
     studyViewModel: StudyViewModel = viewModel()
 ) {
     val studyList = studyViewModel.studyList
-    LazyColumn {
-        item {
-            Text("Study List Screen")
-        }
-        item {
-            StudyList(
-                studyList = studyList
-            )
+
+    val isRefreshing = studyViewModel.isRefreshing
+    val swipeState = rememberSwipeRefreshState(isRefreshing)
+
+
+    SwipeRefresh(
+        state = swipeState,
+        onRefresh = { studyViewModel.refreshStudyList() }
+    ) {
+        LazyColumn {
+            item {
+                Text("Study List Screen")
+            }
+            item {
+                StudyList(
+                    studyList = studyList
+                )
+            }
         }
     }
 }

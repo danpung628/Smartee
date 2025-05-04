@@ -5,9 +5,12 @@ import java.time.LocalTime
 import java.time.format.DateTimeFormatter
 
 data class StudyData(
+    val studyId:String = "",
+    val date: LocalDateTime = LocalDateTime.now(),
     var title:String,
     var address:String,
-    val date: LocalDateTime = LocalDateTime.now(),
     var currentMemberCount:Int = 0,
-    var maxMemberCount:Int
+    var maxMemberCount:Int,
+    var commentCount:Int = 0,
+    var likeCount:Int = 0
 )
