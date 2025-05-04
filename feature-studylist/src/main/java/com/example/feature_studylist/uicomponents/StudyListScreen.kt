@@ -3,9 +3,10 @@ package com.example.smartee.ui.study
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.key
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.example.feature_studylist.uicomponents.StudyList
+import com.example.feature_studylist.uicomponents.StudyListContent
 import com.example.feature_studylist.uicomponents.StudyListTopBar
 import com.example.feature_studylist.viewmodel.StudyViewModel
 import com.google.accompanist.swiperefresh.SwipeRefresh
@@ -14,6 +15,7 @@ import com.google.accompanist.swiperefresh.rememberSwipeRefreshState
 @Composable
 fun StudyListScreen(
     studyViewModel: StudyViewModel = viewModel(),
+    keyword:String,
     onSearchNavigate: () -> Unit
 ) {
     val studyList = studyViewModel.studyList
@@ -32,8 +34,9 @@ fun StudyListScreen(
                 )
             }
             item {
-                StudyList(
-                    studyList = studyList
+                StudyListContent(
+                    studyList = studyList,
+                    keyword = keyword
                 )
             }
         }
@@ -43,7 +46,7 @@ fun StudyListScreen(
 @Preview
 @Composable
 private fun StudyListScreenPreview() {
-    StudyListScreen {
+    StudyListScreen(keyword = "") {
 
     }
 }

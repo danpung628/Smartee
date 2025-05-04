@@ -2,9 +2,6 @@ package com.example.feature_studylist.navGraph
 
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.navigation.NavArgument
-import androidx.navigation.NavController
-import androidx.navigation.NavHost
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -25,16 +22,17 @@ fun NaviGraph(
             arguments = listOf(
                 navArgument("keyword") {
                     type = NavType.StringType
+                    defaultValue = ""
                 }
             )
         ) {
-            StudyListScreen {
+            StudyListScreen(keyword = it.arguments!!.getString("keyword")!!) {
                 navController.navigate(Routes.Search.route)
             }
         }
         composable(route = Routes.Search.route) {
             StudySearchScreen { keyword ->
-                navController.navigate(Routes.List.route + keyword)
+                navController.navigate(Routes.List.route + "?keyword=$keyword")
             }
         }
     }

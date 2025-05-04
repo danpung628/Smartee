@@ -8,14 +8,18 @@ import androidx.compose.ui.tooling.preview.Preview
 import com.example.feature_studylist.model.StudyData
 
 @Composable
-fun StudyList(
+fun StudyListContent(
     modifier: Modifier = Modifier,
-    studyList: MutableList<StudyData>
+    studyList: MutableList<StudyData>,
+    keyword: String
 ) {
     Column {
         studyList.forEach {//스터디 아이템
             Log.d("StudyID", "studyId = ${it.studyId}")
-            StudyListItem(item = it)
+            if (it.title.contains(keyword))
+                StudyListItem(
+                    item = it
+                )
         }
     }
 }

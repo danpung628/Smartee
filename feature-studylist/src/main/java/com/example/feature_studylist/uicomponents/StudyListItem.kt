@@ -20,7 +20,7 @@ import java.time.LocalDateTime
 @Composable
 fun StudyListItem(
     modifier: Modifier = Modifier,
-    item:StudyData
+    item:StudyData,
 ) {
     Row {
         AsyncImage(
