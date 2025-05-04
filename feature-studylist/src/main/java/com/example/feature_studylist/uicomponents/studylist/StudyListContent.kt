@@ -12,12 +12,13 @@ fun StudyListContent(
     modifier: Modifier = Modifier,
     studyList: MutableList<StudyData>,
     keyword: String,
+    selectedAddress: String,
     onStudyDetailNavigate:(String) -> Unit
 ) {
     Column {
         studyList.forEach {//스터디 아이템
             Log.d("StudyID", "studyId = ${it.studyId}")
-            if (it.title.contains(keyword))
+            if (it.title.contains(keyword) && it.address.contains(selectedAddress))
                 StudyListItem(
                     item = it,
                     onClick = onStudyDetailNavigate

@@ -2,6 +2,10 @@ package com.example.smartee.ui.study
 
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.feature_studylist.uicomponents.studylist.StudyListContent
@@ -22,6 +26,8 @@ fun StudyListScreen(
     val isRefreshing = studyViewModel.isRefreshing
     val swipeState = rememberSwipeRefreshState(isRefreshing)//새로고침 기능
 
+    var selectedAddress by remember { mutableStateOf("") }
+
     SwipeRefresh(
         state = swipeState,
         onRefresh = { studyViewModel.refreshStudyList() }
@@ -29,14 +35,18 @@ fun StudyListScreen(
         LazyColumn {
             item {
                 StudyListTopBar(
-                    onSearchNavigate = onSearchNavigate
+                    onSearchNavigate = onSearchNavigate,
+                    onSelectAddress =  {
+                        selectedAddress = it
+                    }
                 )
             }
             item {
                 StudyListContent(
                     studyList = studyList,
                     keyword = keyword,
-                    onStudyDetailNavigate = onStudyDetailNavigate
+                    onStudyDetailNavigate = onStudyDetailNavigate,
+                    selectedAddress = selectedAddress
                 )
             }
         }

@@ -16,6 +16,7 @@ import com.example.feature_studylist.uicomponents.topbar.address.AddressList
 @Composable
 fun StudyListTopBar(
     modifier: Modifier = Modifier,
+    onSelectAddress:(String)->Unit,
     onSearchNavigate: () -> Unit
 ) {
     Row(
@@ -23,7 +24,9 @@ fun StudyListTopBar(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
-        AddressList()
+        AddressList(
+            onSelectAddress = onSelectAddress
+        )
         Icon(
             imageVector = Icons.Default.Search,
             contentDescription = "Search",
@@ -37,7 +40,7 @@ fun StudyListTopBar(
 @Preview
 @Composable
 private fun StudyListTopBarPreview() {
-    StudyListTopBar{
-
-    }
+//    StudyListTopBar{
+//
+//    }
 }
