@@ -16,13 +16,25 @@ class StudyViewModel : ViewModel() {
     private val _studyList = StudyListFactory.makeStudyList()
     val studyList: MutableList<StudyData>
         get() = _studyList
+
     //주소 목록
     private val _addressList = AddressListFactory.makeAddressList()
     val addressList: MutableList<String>
         get() = _addressList
-    //주소, 검색 키워드에 따른 필터링
+
+    //검색창에 현재 입력한 텍스트
+    var typedText by mutableStateOf("")
+
+    //실제로 검색할 키워드
     var searchKeyword by mutableStateOf("")
+
+    //주소 드롭다운 확장 여부
+    var addressExpanded by mutableStateOf(false)
+
+    //드롭다운에서 선택한 주소
     var selectedAddress by mutableStateOf("")
+
+    //주소, 검색 키워드에 따른 필터링
     val filteredStudyList: MutableList<StudyData>
         get() = _studyList.filter {
             it.title.contains(searchKeyword) && it.address.contains(selectedAddress)

@@ -22,12 +22,12 @@ fun AddressList(
     studyViewModel: StudyViewModel,
     onSelectAddress: (String) -> Unit
 ) {
-    var selectedAddress = ""
-    var expanded by remember { mutableStateOf(false) }
+    var selectedAddress = studyViewModel.selectedAddress
+    var expanded = studyViewModel.addressExpanded
 
     TextButton(
         onClick = {
-            expanded = true
+            studyViewModel.addressExpanded = true
         }
     ) {
         Text(
@@ -44,7 +44,7 @@ fun AddressList(
     DropdownMenu(
         expanded = expanded,
         onDismissRequest = {
-            expanded = false
+            studyViewModel.addressExpanded = false
         }
     ) {
         studyViewModel.addressList.forEach {
@@ -60,7 +60,7 @@ fun AddressList(
                 onClick = {
                     selectedAddress = it
                     onSelectAddress(it)
-                    expanded = false
+                    studyViewModel.addressExpanded = false
                 }
             )
         }

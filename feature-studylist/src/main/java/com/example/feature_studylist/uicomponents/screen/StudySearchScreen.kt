@@ -1,5 +1,6 @@
 package com.example.feature_studylist.uicomponents.screen
 
+import android.R.attr.text
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -24,11 +25,10 @@ fun StudySearchScreen(
     modifier: Modifier = Modifier,
     onSubmitNavigate: (String) -> Unit
 ) {
-    var text by remember { mutableStateOf("") }
-
     val studyViewModel: StudyViewModel = viewModel(
         viewModelStoreOwner = LocalNavGraphViewModelStoreOwner.current
     )
+    var typedText = studyViewModel.typedText
 
     Column(
         modifier.fillMaxWidth(),
@@ -38,9 +38,9 @@ fun StudySearchScreen(
             verticalAlignment = Alignment.CenterVertically
         ) {
             TextField(
-                value = text,
+                value = typedText,
                 onValueChange = {
-                    text = it
+                    studyViewModel.typedText = it
                 },
                 modifier = Modifier
                     .fillMaxWidth()
@@ -52,8 +52,8 @@ fun StudySearchScreen(
                 modifier = Modifier
                     .weight(0.1f)
                     .clickable {
-                        studyViewModel.searchKeyword = text
-                        onSubmitNavigate(text)
+                        studyViewModel.searchKeyword = typedText
+                        onSubmitNavigate(typedText)
                     }
             )
         }
