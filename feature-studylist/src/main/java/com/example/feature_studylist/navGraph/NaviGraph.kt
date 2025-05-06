@@ -18,6 +18,7 @@ fun NaviGraph(
     navController: NavHostController
 ) {
     NavHost(navController = navController, startDestination = Routes.List.route) {
+        //스터디 목록
         composable(
             route = Routes.List.route + "?keyword={keyword}",
             arguments = listOf(
@@ -37,13 +38,13 @@ fun NaviGraph(
                 }
             )
         }
-
+        //검색창
         composable(route = Routes.Search.route) {
             StudySearchScreen { keyword ->
                 navController.navigate(Routes.List.route + "?keyword=$keyword")
             }
         }
-
+        //스터디 세부사항
         composable(
             route = Routes.Detail.route + "?studyID={ID}",
             arguments = listOf(

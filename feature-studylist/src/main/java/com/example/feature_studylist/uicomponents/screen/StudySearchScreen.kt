@@ -16,6 +16,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.feature_studylist.viewmodel.StudyViewModel
 
 @Composable
 fun StudySearchScreen(
@@ -23,6 +25,11 @@ fun StudySearchScreen(
     onSubmitNavigate: (String) -> Unit
 ) {
     var text by remember { mutableStateOf("") }
+
+    val studyViewModel: StudyViewModel = viewModel(
+        viewModelStoreOwner = LocalNavGraphViewModelStoreOwner.current
+    )
+
     Column(
         modifier.fillMaxWidth(),
         horizontalAlignment = Alignment.CenterHorizontally
@@ -45,6 +52,7 @@ fun StudySearchScreen(
                 modifier = Modifier
                     .weight(0.1f)
                     .clickable {
+                        studyViewModel.searchKeyword = text
                         onSubmitNavigate(text)
                     }
             )
