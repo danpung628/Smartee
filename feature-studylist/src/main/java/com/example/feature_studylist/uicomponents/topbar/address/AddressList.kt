@@ -18,9 +18,9 @@ import androidx.compose.ui.tooling.preview.Preview
 @Composable
 fun AddressList(
     modifier: Modifier = Modifier,
-    onSelectAddress:(String)->Unit
+    onSelectAddress: (String) -> Unit
 ) {
-    val addresses = mutableListOf("군자동", "구의제3동", "휘경동")
+    val addresses = mutableListOf("", "군자동", "구의제3동", "휘경동")
     var selectedAddress = ""
     var expanded by remember { mutableStateOf(false) }
 
@@ -30,10 +30,15 @@ fun AddressList(
             expanded = true
         }
     ) {
-        Text(selectedAddress.ifEmpty { "지역 선택" })
+        Text(
+            if (selectedAddress == "")
+                "지역 선택"
+            else
+                selectedAddress
+        )
         Icon(
             imageVector = Icons.Default.KeyboardArrowDown,
-            contentDescription = "지역 선택"
+            contentDescription = "Select Address"
         )
     }
     DropdownMenu(
@@ -45,7 +50,12 @@ fun AddressList(
         addresses.forEach {
             DropdownMenuItem(
                 text = {
-                    Text(it)
+                    Text(
+                        if (it == "")
+                            "지역 선택"
+                        else
+                            it
+                    )
                 },
                 onClick = {
                     selectedAddress = it

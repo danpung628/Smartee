@@ -8,6 +8,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.feature_studylist.uicomponents.screen.LocalNavGraphViewModelStoreOwner
 import com.example.feature_studylist.uicomponents.studylist.StudyListContent
 import com.example.feature_studylist.uicomponents.topbar.StudyListTopBar
 import com.example.feature_studylist.viewmodel.StudyViewModel
@@ -16,11 +17,11 @@ import com.google.accompanist.swiperefresh.rememberSwipeRefreshState
 
 @Composable
 fun StudyListScreen(
-    studyViewModel: StudyViewModel = viewModel(),
     keyword: String,
     onStudyDetailNavigate: (String) -> Unit,
     onSearchNavigate: () -> Unit
 ) {
+    val studyViewModel: StudyViewModel = viewModel(viewModelStoreOwner = LocalNavGraphViewModelStoreOwner.current)
     val studyList = studyViewModel.studyList
 
     val isRefreshing = studyViewModel.isRefreshing

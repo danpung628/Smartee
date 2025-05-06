@@ -20,7 +20,11 @@ fun StudyDetailScreen(
     modifier: Modifier = Modifier,
     studyId: String
 ) {
-    val study = viewModel<StudyViewModel>().studyList.find { it.studyId == studyId }
+    val studyViewModel: StudyViewModel = viewModel(
+        viewModelStoreOwner = LocalNavGraphViewModelStoreOwner.current,
+    )
+    val study = studyViewModel.studyList.find { it.studyId == studyId }
+
     Column(
         Modifier.fillMaxWidth(),
         horizontalAlignment = Alignment.CenterHorizontally
