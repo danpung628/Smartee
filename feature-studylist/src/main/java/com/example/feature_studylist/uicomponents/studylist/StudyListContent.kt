@@ -11,7 +11,6 @@ import com.example.feature_studylist.model.StudyData
 fun StudyListContent(
     modifier: Modifier = Modifier,
     filteredStudyList: MutableList<StudyData>,
-    keyword: String,
     selectedAddress: String,
     onStudyDetailNavigate:(String) -> Unit
 ) {

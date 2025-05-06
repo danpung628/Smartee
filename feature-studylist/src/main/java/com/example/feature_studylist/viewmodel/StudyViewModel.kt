@@ -11,14 +11,15 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 class StudyViewModel : ViewModel() {
+    //스터디 목록
     private val _studyList = StudyListFactory.makeStudyList()
     val studyList: MutableList<StudyData>
         get() = _studyList
 
+    //주소, 검색 키워드에 따른 필터링
     var searchKeyword by mutableStateOf("")
     var selectedAddress by mutableStateOf("")
-
-    val filteredStudyList:MutableList<StudyData>
+    val filteredStudyList: MutableList<StudyData>
         get() = _studyList.filter {
             it.title.contains(searchKeyword) && it.address.contains(selectedAddress)
         }.toMutableList()

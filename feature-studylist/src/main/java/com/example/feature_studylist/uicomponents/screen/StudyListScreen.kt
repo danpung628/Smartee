@@ -43,7 +43,6 @@ fun StudyListScreen(
             item {
                 StudyListContent(
                     filteredStudyList = studyViewModel.filteredStudyList,
-                    keyword = keyword,
                     onStudyDetailNavigate = onStudyDetailNavigate,
                     selectedAddress = selectedAddress
                 )
