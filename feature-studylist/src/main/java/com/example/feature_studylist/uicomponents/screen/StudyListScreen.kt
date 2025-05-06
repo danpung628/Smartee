@@ -25,8 +25,6 @@ fun StudyListScreen(
     val isRefreshing = studyViewModel.isRefreshing
     val swipeState = rememberSwipeRefreshState(isRefreshing)//새로고침 기능
 
-    var selectedAddress by remember { mutableStateOf("") }
-
     SwipeRefresh(
         state = swipeState,
         onRefresh = { studyViewModel.refreshStudyList() }
@@ -36,15 +34,15 @@ fun StudyListScreen(
                 StudyListTopBar(
                     onSearchNavigate = onSearchNavigate,
                     onSelectAddress =  {
-                        selectedAddress = it
-                    }
+                        studyViewModel.selectedAddress = it
+                    },
+                    studyViewModel = studyViewModel
                 )
             }
             item {
                 StudyListContent(
                     filteredStudyList = studyViewModel.filteredStudyList,
                     onStudyDetailNavigate = onStudyDetailNavigate,
-                    selectedAddress = selectedAddress
                 )
             }
         }

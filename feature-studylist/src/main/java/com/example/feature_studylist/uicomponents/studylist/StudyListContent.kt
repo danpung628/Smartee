@@ -11,17 +11,15 @@ import com.example.feature_studylist.model.StudyData
 fun StudyListContent(
     modifier: Modifier = Modifier,
     filteredStudyList: MutableList<StudyData>,
-    selectedAddress: String,
-    onStudyDetailNavigate:(String) -> Unit
+    onStudyDetailNavigate: (String) -> Unit
 ) {
     Column {
         filteredStudyList.forEach {//스터디 아이템
             Log.d("StudyID", "studyId = ${it.studyId}")
-            if (it.address.contains(selectedAddress))
-                StudyListItem(
-                    item = it,
-                    onClick = onStudyDetailNavigate
-                )
+            StudyListItem(
+                item = it,
+                onClick = onStudyDetailNavigate
+            )
         }
     }
 }

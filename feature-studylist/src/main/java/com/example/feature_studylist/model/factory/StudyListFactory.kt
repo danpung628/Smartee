@@ -1,6 +1,7 @@
-package com.example.feature_studylist.model
+package com.example.feature_studylist.model.factory
 
 import androidx.compose.runtime.mutableStateListOf
+import com.example.feature_studylist.model.StudyData
 
 object StudyListFactory {
     fun makeStudyList() = mutableStateListOf(

@@ -14,16 +14,16 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
+import com.example.feature_studylist.viewmodel.StudyViewModel
 
 @Composable
 fun AddressList(
     modifier: Modifier = Modifier,
+    studyViewModel: StudyViewModel,
     onSelectAddress: (String) -> Unit
 ) {
-    val addresses = mutableListOf("", "군자동", "구의제3동", "휘경동")
     var selectedAddress = ""
     var expanded by remember { mutableStateOf(false) }
-
 
     TextButton(
         onClick = {
@@ -47,7 +47,7 @@ fun AddressList(
             expanded = false
         }
     ) {
-        addresses.forEach {
+        studyViewModel.addressList.forEach {
             DropdownMenuItem(
                 text = {
                     Text(

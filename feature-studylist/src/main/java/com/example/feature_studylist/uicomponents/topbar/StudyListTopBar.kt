@@ -12,10 +12,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import com.example.feature_studylist.uicomponents.topbar.address.AddressList
+import com.example.feature_studylist.viewmodel.StudyViewModel
 
 @Composable
 fun StudyListTopBar(
     modifier: Modifier = Modifier,
+    studyViewModel: StudyViewModel,
     onSelectAddress:(String)->Unit,
     onSearchNavigate: () -> Unit
 ) {
@@ -25,7 +27,8 @@ fun StudyListTopBar(
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
         AddressList(
-            onSelectAddress = onSelectAddress
+            onSelectAddress = onSelectAddress,
+            studyViewModel = studyViewModel
         )
         Icon(
             imageVector = Icons.Default.Search,

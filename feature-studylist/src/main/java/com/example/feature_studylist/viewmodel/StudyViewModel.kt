@@ -6,7 +6,8 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.feature_studylist.model.StudyData
-import com.example.feature_studylist.model.StudyListFactory
+import com.example.feature_studylist.model.factory.AddressListFactory
+import com.example.feature_studylist.model.factory.StudyListFactory
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -15,7 +16,10 @@ class StudyViewModel : ViewModel() {
     private val _studyList = StudyListFactory.makeStudyList()
     val studyList: MutableList<StudyData>
         get() = _studyList
-
+    //주소 목록
+    private val _addressList = AddressListFactory.makeAddressList()
+    val addressList: MutableList<String>
+        get() = _addressList
     //주소, 검색 키워드에 따른 필터링
     var searchKeyword by mutableStateOf("")
     var selectedAddress by mutableStateOf("")
