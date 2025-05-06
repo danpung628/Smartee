@@ -22,8 +22,6 @@ fun StudyListScreen(
     onSearchNavigate: () -> Unit
 ) {
     val studyViewModel: StudyViewModel = viewModel(viewModelStoreOwner = LocalNavGraphViewModelStoreOwner.current)
-    val studyList = studyViewModel.studyList
-
     val isRefreshing = studyViewModel.isRefreshing
     val swipeState = rememberSwipeRefreshState(isRefreshing)//새로고침 기능
 
@@ -44,7 +42,7 @@ fun StudyListScreen(
             }
             item {
                 StudyListContent(
-                    studyList = studyList,
+                    filteredStudyList = studyViewModel.filteredStudyList,
                     keyword = keyword,
                     onStudyDetailNavigate = onStudyDetailNavigate,
                     selectedAddress = selectedAddress

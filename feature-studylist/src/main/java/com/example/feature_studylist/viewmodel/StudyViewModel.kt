@@ -16,11 +16,12 @@ class StudyViewModel : ViewModel() {
         get() = _studyList
 
     var searchKeyword by mutableStateOf("")
+    var selectedAddress by mutableStateOf("")
 
-    val filteredStudyList:List<StudyData>
+    val filteredStudyList:MutableList<StudyData>
         get() = _studyList.filter {
-            it.title.contains(searchKeyword)
-        }
+            it.title.contains(searchKeyword) && it.address.contains(selectedAddress)
+        }.toMutableList()
 
     //새로 고침 동작
     var isRefreshing by mutableStateOf(false)
