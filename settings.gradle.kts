@@ -21,4 +21,4 @@ dependencyResolutionManagement {
 
 rootProject.name = "Smartee"
 include(":app")
- 
+include(":studycreationmodule")
