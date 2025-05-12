@@ -41,6 +41,11 @@ fun StudyDetailScreen(
             fontSize = 50.sp
         )
         Text(
+            "분야:" + study.category,
+            fontWeight = FontWeight.ExtraBold,
+            fontSize = 30.sp
+        )
+        Text(
             study.description
         )
     }
