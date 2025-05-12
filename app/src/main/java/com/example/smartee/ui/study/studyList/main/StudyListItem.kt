@@ -4,8 +4,10 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Comment
 import androidx.compose.material.icons.filled.Favorite
@@ -26,7 +28,7 @@ fun StudyListItem(
     onClick: (String) -> Unit
 ) {
     Row(
-        modifier.clickable{
+        modifier.clickable {
             onClick(item.studyId)
         }
     ) {
@@ -45,12 +47,16 @@ fun StudyListItem(
                 }초 전"
             )
 
-            Text(
-                if (item.maxMemberCount == Int.MAX_VALUE)
-                    "인원 제한 없음"
-                else
-                    "${item.currentMemberCount}/${item.maxMemberCount}"
-            )
+            Row {
+                Text(
+                    if (item.maxMemberCount == Int.MAX_VALUE)
+                        "인원 제한 없음"
+                    else
+                        "${item.currentMemberCount}/${item.maxMemberCount}"
+                )
+                Spacer(Modifier.width(8.dp))
+                Text(item.category)
+            }
 
             Row(//댓글 수, 좋아요 수
                 modifier.fillMaxWidth(),

@@ -48,7 +48,7 @@ class StudyViewModel : ViewModel() {
     //주소, 검색 키워드에 따른 필터링
     val filteredStudyList: MutableList<StudyData>
         get() = _studyList.filter {
-            it.title.contains(searchKeyword) && it.address.contains(selectedAddress)
+            it.title.contains(searchKeyword) && it.address.contains(selectedAddress) && it.category in selectedCategory
         }.toMutableList()
 
     //새로 고침 동작
