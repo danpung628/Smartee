@@ -21,7 +21,8 @@ fun StudyListScreen(
         viewModel(viewModelStoreOwner = LocalNavGraphViewModelStoreOwner.current)
 
     // LiveData를 Compose 상태로 변환
-    val filteredStudyList = studyViewModel.filteredStudyList.observeAsState(initial = emptyList<StudyData>()).value
+    val filteredStudyList =
+        studyViewModel.filteredStudyList.observeAsState(initial = emptyList<StudyData>()).value
 
 //    val isRefreshing = studyViewModel.isRefreshing
 
@@ -51,19 +52,19 @@ fun StudyListScreen(
 //        onRefresh = { studyViewModel.refreshStudyList() }
 //    )
 //    Box(Modifier.pullRefresh(pullRefreshState)) {
-        Column {
-            StudyListTopBar(
-                onSearchNavigate = onSearchNavigate,
-                onSelectAddress = {
-                    studyViewModel.selectedAddress = it
-                },
-                studyViewModel = studyViewModel
-            )
-            StudyListContent(
-                filteredStudyList = filteredStudyList,
-                onStudyDetailNavigate = onStudyDetailNavigate,
-            )
-        }
+    Column {
+        StudyListTopBar(
+            onSearchNavigate = onSearchNavigate,
+            onSelectAddress = {
+                studyViewModel.selectedAddress = it
+            },
+            studyViewModel = studyViewModel
+        )
+        StudyListContent(
+            filteredStudyList = filteredStudyList,
+            onStudyDetailNavigate = onStudyDetailNavigate,
+        )
+    }
 //        PullRefreshIndicator(
 //            refreshing = isRefreshing,
 //            state = pullRefreshState,

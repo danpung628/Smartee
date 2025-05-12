@@ -34,30 +34,39 @@ class StudyViewModel : ViewModel() {
         loadStudiesFromFirebase()
     }
     // Firebase에서 스터디 목록 불러오기
+//    private val _isRefreshing = mutableStateOf(false)
+//    val isRefreshing: Boolean
+//        get() = _isRefreshing.value
     private fun loadStudiesFromFirebase() {
         viewModelScope.launch {
-            isRefreshing = true
+            try {
+//                _isRefreshing.value = true  // 여기서 오류가 발생하면
 
-            studyCollectionRef.get()
-                .addOnSuccessListener { documents ->
-                    val studyList = mutableListOf<StudyData>()
+                studyCollectionRef.get()
+                    .addOnSuccessListener { documents ->
+                        val studyList = mutableListOf<StudyData>()
+                            Log.d("StudyViewModel", "문서 개수: ${documents.size()}")
 
-                    for (document in documents) {
-                        // Firestore 문서에서 StudyData 객체로 변환
-                        val study = document.toObject(StudyData::class.java)
-                            .copy(studyId = document.id)
+                        for (document in documents) {
+                            // Firestore 문서에서 StudyData 객체로 변환
+                            val study = document.toObject(StudyData::class.java)
+                                .copy(studyId = document.id)
+                            studyList.add(study)
+                            Log.d("StudyViewModel", "로드된 스터디: ${study.title}, 주소: ${study.address}, 카테고리: ${study.category}")
+                        }
 
-                        studyList.add(study)
+                        _studyList.value = studyList
+                        Log.d("StudyViewModel", "전체 스터디 목록 크기: ${studyList.size}")
+//                        _isRefreshing.value = false
                     }
-
-                    _studyList.value = studyList
-                    isRefreshing = false
-                }
-                .addOnFailureListener { e ->
-                    // 오류 처리
-                    Log.e("StudyViewModel", "Error loading studies", e)
-                    isRefreshing = false
-                }
+                    .addOnFailureListener { e ->
+                        // 오류 처리
+                        Log.e("StudyViewModel", "Error loading studies", e)
+//                        _isRefreshing.value = false
+                    }
+            } catch (e: Exception) {
+                Log.e("StudyViewModel", "Fatal error in refreshing", e)
+            }
         }
     }
     // 새로고침 시 Firebase에서 다시 불러오기
@@ -90,9 +99,11 @@ class StudyViewModel : ViewModel() {
 //            it.title.contains(searchKeyword) && it.address.contains(selectedAddress) && it.category in selectedCategory
 //        }.toMutableList()
 
-    //새로 고침 동작
-    var isRefreshing by mutableStateOf(false)
-        private set
+//    //새로 고침 동작
+//    var isRefreshing by mutableStateOf(false)
+//        private set
+
+
 //    fun refreshStudyList() {
 //        // 강제로 약간의 지연을 줘야 애니메이션이 보임
 //        viewModelScope.launch {
