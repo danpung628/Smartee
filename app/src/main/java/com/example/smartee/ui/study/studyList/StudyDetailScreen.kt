@@ -1,4 +1,4 @@
-package com.example.smartee.ui.study.studyList.screen
+package com.example.smartee.ui.study.studyList
 
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth

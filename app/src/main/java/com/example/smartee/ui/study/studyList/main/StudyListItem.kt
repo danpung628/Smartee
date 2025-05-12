@@ -1,4 +1,4 @@
-package com.example.smartee.ui.study.studyList
+package com.example.smartee.ui.study.studyList.main
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement

@@ -1,4 +1,4 @@
-package com.example.smartee.ui.study.studyList.topbar.address
+package com.example.smartee.ui.study.studyList.main.topbar.address
 
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.KeyboardArrowDown

@@ -7,6 +7,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.smartee.model.StudyData
 import com.example.smartee.model.factory.AddressListFactory
+import com.example.smartee.model.factory.CategoryListFactory
 import com.example.smartee.model.factory.StudyListFactory
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -22,17 +23,27 @@ class StudyViewModel : ViewModel() {
     val addressList: MutableList<String>
         get() = _addressList
 
-    //검색창에 현재 입력한 텍스트
-    var typedText by mutableStateOf("")
-
-    //실제로 검색할 키워드
-    var searchKeyword by mutableStateOf("")
-
     //주소 드롭다운 확장 여부
     var addressExpanded by mutableStateOf(false)
 
     //드롭다운에서 선택한 주소
     var selectedAddress by mutableStateOf("")
+
+    //스터디 검색창에 현재 입력한 텍스트
+    var typedText by mutableStateOf("")
+
+    //실제로 검색할 스터디 키워드
+    var searchKeyword by mutableStateOf("")
+
+    //카테고리 체크
+    var selectedCategory by mutableStateOf(CategoryListFactory.makeCategoryList().toList())
+    fun toggleCategory(category: String) {
+        selectedCategory = if (category in selectedCategory) {
+            selectedCategory - category
+        } else{
+            selectedCategory + category
+        }
+    }
 
     //주소, 검색 키워드에 따른 필터링
     val filteredStudyList: MutableList<StudyData>

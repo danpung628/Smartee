@@ -1,11 +1,10 @@
 package com.example.smartee.model
 
 import java.time.LocalDateTime
-import java.time.LocalTime
-import java.time.format.DateTimeFormatter
 
 data class StudyData(
     val studyId:String = "",
+    var category:String,
     val date: LocalDateTime = LocalDateTime.now(),
     var title:String,
     var description:String="반갑습니다 ㅎㅎ",

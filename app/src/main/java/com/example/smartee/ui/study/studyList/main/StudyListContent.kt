@@ -1,7 +1,8 @@
-package com.example.smartee.ui.study.studyList
+package com.example.smartee.ui.study.studyList.main
 
 import android.util.Log
-import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
@@ -13,8 +14,8 @@ fun StudyListContent(
     filteredStudyList: MutableList<StudyData>,
     onStudyDetailNavigate: (String) -> Unit
 ) {
-    Column {
-        filteredStudyList.forEach {//스터디 아이템
+    LazyColumn {
+        items(filteredStudyList) {
             Log.d("StudyID", "studyId = ${it.studyId}")
             StudyListItem(
                 item = it,

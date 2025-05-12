@@ -6,8 +6,8 @@ import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
-import com.example.smartee.ui.study.studyList.screen.StudyDetailScreen
-import com.example.smartee.ui.study.studyList.screen.StudySearchScreen
+import com.example.smartee.ui.study.studyList.StudyDetailScreen
+import com.example.smartee.ui.study.studyList.search.StudySearchScreen
 import com.example.smartee.ui.attendance.AttendanceScreen
 import com.example.smartee.ui.login.LoginScreen
 import com.example.smartee.ui.profile.ProfileScreen

@@ -1,4 +1,4 @@
-package com.example.smartee.ui.study.studyList.topbar
+package com.example.smartee.ui.study.studyList.main.topbar
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -11,19 +11,19 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
-import com.example.smartee.ui.study.studyList.topbar.address.AddressList
+import com.example.smartee.ui.study.studyList.main.topbar.address.AddressList
 import com.example.smartee.viewmodel.StudyViewModel
 
 @Composable
 fun StudyListTopBar(
-    modifier: Modifier = Modifier,
+    modifier: Modifier = Modifier.Companion,
     studyViewModel: StudyViewModel,
     onSelectAddress:(String)->Unit,
     onSearchNavigate: () -> Unit
 ) {
     Row(
         modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically,
+        verticalAlignment = Alignment.Companion.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
         AddressList(
