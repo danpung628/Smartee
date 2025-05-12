@@ -16,14 +16,14 @@ import com.example.smartee.viewmodel.StudyViewModel
 
 @Composable
 fun StudyListTopBar(
-    modifier: Modifier = Modifier.Companion,
+    modifier: Modifier = Modifier,
     studyViewModel: StudyViewModel,
     onSelectAddress:(String)->Unit,
     onSearchNavigate: () -> Unit
 ) {
     Row(
         modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.Companion.CenterVertically,
+        verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
         AddressList(
