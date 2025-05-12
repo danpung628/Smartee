@@ -1,13 +1,13 @@
 {
   "project_info": {
-    "project_number": "559654731010",
-    "project_id": "smartee-a515d",
-    "storage_bucket": "smartee-a515d.firebasestorage.app"
+    "project_number": "963084791042",
+    "project_id": "smartee-319d0",
+    "storage_bucket": "smartee-319d0.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:559654731010:android:593a9fb9746414537bd61b",
+        "mobilesdk_app_id": "1:963084791042:android:465273ba4f98a4c20ae61b",
         "android_client_info": {
           "package_name": "com.example.smartee"
         }
@@ -15,7 +15,7 @@
       "oauth_client": [],
       "api_key": [
         {
-          "current_key": "AIzaSyAdpbi4B03AhkWXmgEe-n92h_IsCWy7UOk"
+          "current_key": "AIzaSyA6hEUTR46e5WIXIiNMdltdddRz25pt0wQ"
         }
       ],
       "services": {

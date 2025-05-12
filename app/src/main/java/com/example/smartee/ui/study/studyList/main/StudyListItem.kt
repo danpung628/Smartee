@@ -20,6 +20,7 @@ import coil3.compose.AsyncImage
 import com.example.smartee.model.StudyData
 import java.time.Duration
 import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
 
 @Composable
 fun StudyListItem(
@@ -42,7 +43,7 @@ fun StudyListItem(
             Text(item.title)
 
             Text(
-                "${item.address} · ${
+                "${item.address}  · ${item.getLocalDateTime().format(DateTimeFormatter.ofPattern("HH:mm:ss"))} · ${
                     Duration.between(item.getLocalDateTime(), LocalDateTime.now()).toSeconds()
                 }초 전"
             )
@@ -62,23 +63,19 @@ fun StudyListItem(
                 modifier.fillMaxWidth(),
                 Arrangement.End
             ) {
-                if (item.commentCount > 0) {
-                    Row {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Default.Comment,
-                            contentDescription = "commentCount",
-                        )
-                        Text("${item.commentCount}")
-                    }
+                Row {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Default.Comment,
+                        contentDescription = "commentCount",
+                    )
+                    Text("${item.commentCount}")
                 }
-                if (item.likeCount > 0) {
-                    Row {
-                        Icon(
-                            imageVector = Icons.Default.Favorite,
-                            contentDescription = "likeCount",
-                        )
-                        Text("${item.likeCount}")
-                    }
+                Row {
+                    Icon(
+                        imageVector = Icons.Default.Favorite,
+                        contentDescription = "likeCount",
+                    )
+                    Text("${item.likeCount}")
                 }
             }
         }
