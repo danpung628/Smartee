@@ -37,14 +37,15 @@ class StudyViewModel : ViewModel() {
     }
 
     // Firebase에서 스터디 목록 불러오기
-    private val _isRefreshing = mutableStateOf(false)
-    val isRefreshing: Boolean
-        get() = _isRefreshing.value
+
+    //새로 고침 동작
+    var isRefreshing by mutableStateOf(false)
+        private set
 
     private fun loadStudiesFromFirebase() {
         viewModelScope.launch {
             try {
-                _isRefreshing.value = true  // 여기서 오류가 발생하면
+                isRefreshing = true  // 여기서 오류가 발생하면
 
                 studyCollectionRef.get()
                     .addOnSuccessListener { documents ->
@@ -64,12 +65,12 @@ class StudyViewModel : ViewModel() {
 
                         _studyList.value = studyList
                         Log.d("StudyViewModel", "전체 스터디 목록 크기: ${studyList.size}")
-                        _isRefreshing.value = false
+                        isRefreshing = false
                     }
                     .addOnFailureListener { e ->
                         // 오류 처리
                         Log.e("StudyViewModel", "Error loading studies", e)
-                        _isRefreshing.value = false
+                        isRefreshing = false
                     }
             } catch (e: Exception) {
                 Log.e("StudyViewModel", "Fatal error in refreshing", e)
@@ -79,6 +80,19 @@ class StudyViewModel : ViewModel() {
 
     // 새로고침 시 Firebase에서 다시 불러오기
     fun refreshStudyList() {
+//        // 강제로 약간의 지연을 줘야 애니메이션이 보임
+//        viewModelScope.launch {
+//            isRefreshing = true
+//
+//            val newList = _studyList.map {
+//                it.copy()
+//            }
+//            _studyList.clear()
+//            _studyList.addAll(newList)
+//
+//            delay(500) // 애니메이션만 보여주고 아무것도 안 함
+//            isRefreshing = false
+//        }
         loadStudiesFromFirebase()
     }
 
@@ -108,27 +122,6 @@ class StudyViewModel : ViewModel() {
 //            it.title.contains(searchKeyword) && it.address.contains(selectedAddress) && it.category in selectedCategory
 //        }.toMutableList()
 
-//    //새로 고침 동작
-//    var isRefreshing by mutableStateOf(false)
-//        private set
-
-
-//    fun refreshStudyList() {
-//        // 강제로 약간의 지연을 줘야 애니메이션이 보임
-//        viewModelScope.launch {
-//            isRefreshing = true
-//
-//            val newList = _studyList.map {
-//                it.copy()
-//            }
-//            _studyList.clear()
-//            _studyList.addAll(newList)
-//
-//            delay(500) // 애니메이션만 보여주고 아무것도 안 함
-//            isRefreshing = false
-//        }
-//    }
-
     //주소 목록
     private val _addressList = AddressListFactory.makeAddressList()
     val addressList: MutableList<String>
@@ -155,6 +148,4 @@ class StudyViewModel : ViewModel() {
             selectedCategory + category
         }
     }
-
-
 }
