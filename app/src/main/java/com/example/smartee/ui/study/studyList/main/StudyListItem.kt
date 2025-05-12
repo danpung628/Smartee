@@ -43,7 +43,7 @@ fun StudyListItem(
             Text(item.title)
 
             Text(
-                "${item.address}  · ${item.getLocalDateTime().format(DateTimeFormatter.ofPattern("HH:mm:ss"))} · ${
+                "${item.address}  · ${item.getLocalDateTime().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"))} · ${
                     Duration.between(item.getLocalDateTime(), LocalDateTime.now()).toSeconds()
                 }초 전"
             )
