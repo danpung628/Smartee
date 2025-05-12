@@ -43,7 +43,7 @@ fun StudyListItem(
 
             Text(
                 "${item.address} · ${
-                    Duration.between(item.date, LocalDateTime.now()).toSeconds()
+                    Duration.between(item.getLocalDateTime(), LocalDateTime.now()).toSeconds()
                 }초 전"
             )
 

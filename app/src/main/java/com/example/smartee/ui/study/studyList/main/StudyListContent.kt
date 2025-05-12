@@ -11,7 +11,7 @@ import com.example.smartee.model.StudyData
 @Composable
 fun StudyListContent(
     modifier: Modifier = Modifier,
-    filteredStudyList: MutableList<StudyData>,
+    filteredStudyList: List<StudyData>,
     onStudyDetailNavigate: (String) -> Unit
 ) {
     LazyColumn {
