@@ -16,6 +16,10 @@ import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.launch
 
 class StudyViewModel : ViewModel() {
+    //새로 고침 동작
+    var isRefreshing by mutableStateOf(false)
+        private set
+
     // Firestore 참조
     private val db = FirebaseFirestore.getInstance()
     private val studyCollectionRef = db.collection("studies")
@@ -31,6 +35,7 @@ class StudyViewModel : ViewModel() {
         }.toMutableList()
     }
 
+
     // 초기화 시 Firebase에서 데이터 불러오기
     init {
         loadStudiesFromFirebase()
@@ -38,9 +43,6 @@ class StudyViewModel : ViewModel() {
 
     // Firebase에서 스터디 목록 불러오기
 
-    //새로 고침 동작
-    var isRefreshing by mutableStateOf(false)
-        private set
 
     private fun loadStudiesFromFirebase() {
         viewModelScope.launch {
@@ -80,19 +82,6 @@ class StudyViewModel : ViewModel() {
 
     // 새로고침 시 Firebase에서 다시 불러오기
     fun refreshStudyList() {
-//        // 강제로 약간의 지연을 줘야 애니메이션이 보임
-//        viewModelScope.launch {
-//            isRefreshing = true
-//
-//            val newList = _studyList.map {
-//                it.copy()
-//            }
-//            _studyList.clear()
-//            _studyList.addAll(newList)
-//
-//            delay(500) // 애니메이션만 보여주고 아무것도 안 함
-//            isRefreshing = false
-//        }
         loadStudiesFromFirebase()
     }
 

@@ -25,9 +25,7 @@ fun StudyListScreen(
     val filteredStudyList =
         studyViewModel.filteredStudyList.observeAsState(initial = emptyList<StudyData>()).value
 
-    val isRefreshing = studyViewModel.isRefreshing
-
-val swipeState = rememberSwipeRefreshState(isRefreshing)//새로고침 기능
+val swipeState = rememberSwipeRefreshState(studyViewModel.isRefreshing)//새로고침 기능
     SwipeRefresh(
         state = swipeState,
         onRefresh = { studyViewModel.refreshStudyList() }
