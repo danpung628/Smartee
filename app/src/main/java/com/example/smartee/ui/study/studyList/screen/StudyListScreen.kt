@@ -4,10 +4,10 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.example.feature_studylist.uicomponents.screen.LocalNavGraphViewModelStoreOwner
-import com.example.feature_studylist.uicomponents.studylist.StudyListContent
-import com.example.feature_studylist.uicomponents.topbar.StudyListTopBar
-import com.example.feature_studylist.viewmodel.StudyViewModel
+import com.example.smartee.ui.LocalNavGraphViewModelStoreOwner
+import com.example.smartee.ui.study.studyList.StudyListContent
+import com.example.smartee.ui.study.studyList.topbar.StudyListTopBar
+import com.example.smartee.viewmodel.StudyViewModel
 import com.google.accompanist.swiperefresh.SwipeRefresh
 import com.google.accompanist.swiperefresh.rememberSwipeRefreshState
 

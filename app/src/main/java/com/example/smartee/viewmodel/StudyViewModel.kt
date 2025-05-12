@@ -5,9 +5,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.feature_studylist.model.StudyData
-import com.example.feature_studylist.model.factory.AddressListFactory
-import com.example.feature_studylist.model.factory.StudyListFactory
 import com.example.smartee.model.StudyData
 import com.example.smartee.model.factory.AddressListFactory
 import com.example.smartee.model.factory.StudyListFactory

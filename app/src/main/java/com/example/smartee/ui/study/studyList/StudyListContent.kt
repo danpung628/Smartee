@@ -5,7 +5,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
-import com.example.feature_studylist.model.StudyData
+import com.example.smartee.model.StudyData
 
 @Composable
 fun StudyListContent(

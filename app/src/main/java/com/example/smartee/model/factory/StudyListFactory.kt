@@ -1,7 +1,7 @@
 package com.example.smartee.model.factory
 
 import androidx.compose.runtime.mutableStateListOf
-import com.example.feature_studylist.model.StudyData
+import com.example.smartee.model.StudyData
 
 object StudyListFactory {
     fun makeStudyList() = mutableStateListOf(

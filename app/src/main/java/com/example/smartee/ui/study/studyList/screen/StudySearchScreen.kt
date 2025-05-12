@@ -13,7 +13,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.example.feature_studylist.viewmodel.StudyViewModel
+import com.example.smartee.ui.LocalNavGraphViewModelStoreOwner
+import com.example.smartee.viewmodel.StudyViewModel
 
 @Composable
 fun StudySearchScreen(

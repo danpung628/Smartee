@@ -13,7 +13,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil3.compose.AsyncImage
-import com.example.feature_studylist.viewmodel.StudyViewModel
+import com.example.smartee.ui.LocalNavGraphViewModelStoreOwner
+import com.example.smartee.viewmodel.StudyViewModel
 
 @Composable
 fun StudyDetailScreen(

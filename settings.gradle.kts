@@ -21,4 +21,3 @@ dependencyResolutionManagement {
 
 rootProject.name = "Smartee"
 include(":app")
-include(":feature-studylist")
