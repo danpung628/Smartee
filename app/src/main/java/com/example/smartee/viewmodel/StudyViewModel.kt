@@ -21,6 +21,7 @@ class StudyViewModel : ViewModel() {
     private val studyCollectionRef = db.collection("studies")
     private val _studyList = MutableLiveData<MutableList<StudyData>>(mutableListOf())
     val studyList: LiveData<MutableList<StudyData>> get() = _studyList
+
     // 필터링된 스터디 목록도 LiveData로 변경
     val filteredStudyList = studyList.map { list ->
         list.filter {
@@ -29,50 +30,58 @@ class StudyViewModel : ViewModel() {
                     it.category in selectedCategory
         }.toMutableList()
     }
+
     // 초기화 시 Firebase에서 데이터 불러오기
     init {
         loadStudiesFromFirebase()
     }
+
     // Firebase에서 스터디 목록 불러오기
-//    private val _isRefreshing = mutableStateOf(false)
-//    val isRefreshing: Boolean
-//        get() = _isRefreshing.value
+    private val _isRefreshing = mutableStateOf(false)
+    val isRefreshing: Boolean
+        get() = _isRefreshing.value
+
     private fun loadStudiesFromFirebase() {
         viewModelScope.launch {
             try {
-//                _isRefreshing.value = true  // 여기서 오류가 발생하면
+                _isRefreshing.value = true  // 여기서 오류가 발생하면
 
                 studyCollectionRef.get()
                     .addOnSuccessListener { documents ->
                         val studyList = mutableListOf<StudyData>()
-                            Log.d("StudyViewModel", "문서 개수: ${documents.size()}")
+                        Log.d("StudyViewModel", "문서 개수: ${documents.size()}")
 
                         for (document in documents) {
                             // Firestore 문서에서 StudyData 객체로 변환
                             val study = document.toObject(StudyData::class.java)
                                 .copy(studyId = document.id)
                             studyList.add(study)
-                            Log.d("StudyViewModel", "로드된 스터디: ${study.title}, 주소: ${study.address}, 카테고리: ${study.category}")
+                            Log.d(
+                                "StudyViewModel",
+                                "로드된 스터디: ${study.title}, 주소: ${study.address}, 카테고리: ${study.category}"
+                            )
                         }
 
                         _studyList.value = studyList
                         Log.d("StudyViewModel", "전체 스터디 목록 크기: ${studyList.size}")
-//                        _isRefreshing.value = false
+                        _isRefreshing.value = false
                     }
                     .addOnFailureListener { e ->
                         // 오류 처리
                         Log.e("StudyViewModel", "Error loading studies", e)
-//                        _isRefreshing.value = false
+                        _isRefreshing.value = false
                     }
             } catch (e: Exception) {
                 Log.e("StudyViewModel", "Fatal error in refreshing", e)
             }
         }
     }
+
     // 새로고침 시 Firebase에서 다시 불러오기
     fun refreshStudyList() {
         loadStudiesFromFirebase()
     }
+
     // 새 스터디 추가
     fun addStudy(study: StudyData) {
         viewModelScope.launch {
@@ -142,7 +151,7 @@ class StudyViewModel : ViewModel() {
     fun toggleCategory(category: String) {
         selectedCategory = if (category in selectedCategory) {
             selectedCategory - category
-        } else{
+        } else {
             selectedCategory + category
         }
     }
