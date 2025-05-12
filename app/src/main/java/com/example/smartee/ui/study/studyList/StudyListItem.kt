@@ -1,4 +1,4 @@
-package com.example.feature_studylist.uicomponents.studylist
+package com.example.smartee.ui.study.studyList
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -15,7 +15,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
-import com.example.feature_studylist.model.StudyData
+import com.example.smartee.model.StudyData
 import java.time.Duration
 import java.time.LocalDateTime
 
