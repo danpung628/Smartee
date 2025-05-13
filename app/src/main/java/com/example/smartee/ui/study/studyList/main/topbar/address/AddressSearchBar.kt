@@ -1,7 +1,6 @@
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -27,7 +26,6 @@ fun AddressSearchBar(
                 addressViewModel.searchAddresses(it)
             },
             label = { Text("지역 검색") },
-            modifier = Modifier.fillMaxWidth()
         )
 
         // 자동완성 제안 목록
@@ -36,7 +34,6 @@ fun AddressSearchBar(
                 Text(
                     text = suggestion,
                     modifier = Modifier
-                        .fillMaxWidth()
                         .clickable {
                             addressViewModel.selectAddress(suggestion)
                             onSelectAddress(suggestion)
