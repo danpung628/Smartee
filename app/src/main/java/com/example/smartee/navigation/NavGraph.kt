@@ -9,8 +9,11 @@ import androidx.navigation.navArgument
 import com.example.smartee.ui.attendance.AttendanceScreen
 import com.example.smartee.ui.login.LoginScreen
 import com.example.smartee.ui.profile.ProfileScreen
-import com.example.smartee.ui.register.RegisterScreen
-import com.example.smartee.ui.screen.StudyCreationScreen
+
+import com.example.smartee.ui.signup.FillProfileScreen
+import com.example.smartee.ui.signup.SignUpScreen
+import com.example.smartee.ui.study.StudyCreateScreen
+import com.example.smartee.ui.study.StudyListScreen
 import com.example.smartee.ui.study.studyList.StudyDetailScreen
 import com.example.smartee.ui.study.studyList.main.StudyListScreen
 import com.example.smartee.ui.study.studyList.search.StudySearchScreen
@@ -18,15 +21,18 @@ import com.example.smartee.ui.study.studyList.search.StudySearchScreen
 
 @Composable
 fun SmarteeNavGraph(navController: NavHostController) {
-    NavHost(navController, startDestination = Screen.Login.route) {
+    NavHost(navController, startDestination = Screen.SignUp.route) {
         composable(Screen.Login.route) {
             LoginScreen(navController)
         }
         composable(Screen.Profile.route) {
             ProfileScreen(navController)
         }
-        composable(Screen.Register.route) {
-            RegisterScreen(navController)
+        composable(Screen.SignUp.route) {
+            SignUpScreen(navController)
+        }
+        composable(Screen.FillProfile.route) {
+            FillProfileScreen(navController)
         }
         composable(Screen.StudyCreate.route) {
             StudyCreationScreen(navController)
