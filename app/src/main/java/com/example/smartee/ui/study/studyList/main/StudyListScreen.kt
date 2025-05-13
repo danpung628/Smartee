@@ -40,7 +40,7 @@ val swipeState = rememberSwipeRefreshState(studyViewModel.isRefreshing)//새로�
             )
             StudyListContent(
 //                filteredStudyList = studyViewModel.filteredStudyList,
-                filteredStudyList = filteredStudyList,
+                studyViewModel = studyViewModel,
                 onStudyDetailNavigate = onStudyDetailNavigate,
             )
         }

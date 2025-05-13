@@ -7,7 +7,6 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
-import androidx.lifecycle.map
 import androidx.lifecycle.viewModelScope
 import com.example.smartee.model.StudyData
 import com.example.smartee.model.factory.AddressListFactory
@@ -26,14 +25,15 @@ class StudyViewModel : ViewModel() {
     private val _studyList = MutableLiveData<MutableList<StudyData>>(mutableListOf())
     val studyList: LiveData<MutableList<StudyData>> get() = _studyList
 
-    // 필터링된 스터디 목록도 LiveData로 변경
-    val filteredStudyList = studyList.map { list ->
-        list.filter {
-            it.title.contains(searchKeyword) &&
-                    it.address.contains(selectedAddress) &&
-                    it.category in selectedCategory
-        }.toMutableList()
-    }
+    //    // 필터링된 스터디 목록도 LiveData로 변경
+//    val filteredStudyList = studyList.map { list ->
+//        list.filter {
+//            it.title.contains(searchKeyword) &&
+//                    it.address.contains(selectedAddress) &&
+//                    it.category in selectedCategory
+//        }.toMutableList()
+//    }
+    val filteredStudyList = studyList
 
 
     // 초기화 시 Firebase에서 데이터 불러오기
