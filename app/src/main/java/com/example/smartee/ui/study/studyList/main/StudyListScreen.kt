@@ -3,9 +3,7 @@ package com.example.smartee.ui.study.studyList.main
 import androidx.compose.foundation.layout.Column
 import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.livedata.observeAsState
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.example.smartee.model.StudyData
 import com.example.smartee.ui.LocalNavGraphViewModelStoreOwner
 import com.example.smartee.ui.study.studyList.main.topbar.StudyListTopBar
 import com.example.smartee.viewmodel.StudyViewModel
@@ -21,10 +19,6 @@ fun StudyListScreen(
     val studyViewModel: StudyViewModel =
         viewModel(viewModelStoreOwner = LocalNavGraphViewModelStoreOwner.current)
 
-    // LiveData를 Compose 상태로 변환
-    val filteredStudyList =
-        studyViewModel.filteredStudyList.observeAsState(initial = emptyList<StudyData>()).value
-
 val swipeState = rememberSwipeRefreshState(studyViewModel.isRefreshing)//새로고침 기능
     SwipeRefresh(
         state = swipeState,
@@ -39,7 +33,6 @@ val swipeState = rememberSwipeRefreshState(studyViewModel.isRefreshing)//새로�
                 studyViewModel = studyViewModel
             )
             StudyListContent(
-//                filteredStudyList = studyViewModel.filteredStudyList,
                 studyViewModel = studyViewModel,
                 onStudyDetailNavigate = onStudyDetailNavigate,
             )

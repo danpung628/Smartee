@@ -18,27 +18,34 @@ class AddressApiService(context: Context) {
     suspend fun getAddresses(query: String = ""): List<String> {
         return withContext(Dispatchers.IO) {
             try {
+                // Places API 설정 확인 로그 추가
+                Log.d("AddressApi", "Places 초기화 상태: ${Places.isInitialized()}")
+
                 val request = FindAutocompletePredictionsRequest.builder()
                     .setQuery(query)
                     .setTypesFilter(listOf(PlaceTypes.LOCALITY, PlaceTypes.SUBLOCALITY))
+                    .setCountries("KR") // 한국으로 한정
                     .build()
 
-                // API 호출 결과를 코루틴으로 변환
                 suspendCancellableCoroutine { continuation ->
                     placesClient.findAutocompletePredictions(request)
                         .addOnSuccessListener { response ->
-                            val addresses = listOf("") + response.autocompletePredictions
-                                .map { it.getPrimaryText(null).toString() }
-                            continuation.resume(addresses)
+                            if (response.autocompletePredictions.isEmpty()) {
+                                continuation.resume(listOf("", "[검색 결과 없음]"))
+                            } else {
+                                val addresses = listOf("") + response.autocompletePredictions
+                                    .map { it.getPrimaryText(null).toString() }
+                                continuation.resume(addresses)
+                            }
                         }
                         .addOnFailureListener { e ->
-                            Log.e("AddressApi", "주소 검색 실패", e)
-                            continuation.resume(listOf("", "서울시", "부산시", "대구시"))
+                            Log.e("AddressApi", "주소 검색 실패: ${e.message}", e)
+                            continuation.resume(listOf("", "[주소 로드 실패]", "[네트워크를 확인하세요]"))
                         }
                 }
             } catch (e: Exception) {
-                Log.e("AddressApi", "API 오류", e)
-                listOf("", "서울시", "부산시", "대구시") // 오류 시 기본값
+                Log.e("AddressApi", "API 예외 발생: ${e.message}", e)
+                listOf("", "[Places API 오류]", "[앱을 재시작하세요]")
             }
         }
     }
