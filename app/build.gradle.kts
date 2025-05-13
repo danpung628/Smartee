@@ -62,10 +62,14 @@ dependencies {
     implementation(libs.accompanist.swiperefresh)
     implementation(libs.androidx.lifecycle.livedata.ktx)
     implementation(libs.androidx.runtime.livedata)
-    implementation(libs.androidx.material) // 새로고침 기능
+    implementation(libs.androidx.material)
+    implementation(libs.play.services.maps)
+    implementation(libs.maps.compose) // 새로고침 기능
 
     implementation(libs.androidx.material)
-    implementation(libs.firebase.common.ktx) // 새로고침 기능
+    implementation(libs.firebase.common.ktx)
+    implementation(libs.places)
+    implementation(libs.material) // 새로고침 기능
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
