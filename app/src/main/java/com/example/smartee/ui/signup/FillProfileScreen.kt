@@ -47,7 +47,7 @@ fun FillProfileScreen(navController: NavController) {
         Button(
             onClick = {
                 // TODO: 입력값 Firebase에 저장하고 다음 화면으로 이동
-                navController.navigate("study_list")
+                navController.navigate("login")
             },
             modifier = Modifier.fillMaxWidth()
         ) {

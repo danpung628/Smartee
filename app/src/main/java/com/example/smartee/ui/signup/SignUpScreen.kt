@@ -56,7 +56,7 @@ fun SignUpScreen(navController: NavController) {
                         if (isNewUser) {
                             navController.navigate(Screen.FillProfile.route)
                         } else {
-                            navController.navigate(Screen.StudyList.route)
+                            navController.navigate(Screen.Login.route)
                         }
                     }
                     .addOnFailureListener {
