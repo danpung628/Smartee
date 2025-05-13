@@ -66,6 +66,8 @@ dependencies {
     implementation(libs.play.services.maps)
     implementation(libs.maps.compose) // 새로고침 기능
 
+    implementation(libs.androidx.material)
+    implementation(libs.firebase.common.ktx) // 새로고침 기능
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)

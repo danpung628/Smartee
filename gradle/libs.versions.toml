@@ -25,6 +25,7 @@ runtimeLivedata = "1.8.1"
 material = "1.9.0-alpha02"
 playServicesMaps = "19.2.0"
 mapsCompose = "6.6.0"
+firebaseCommonKtx = "21.0.0"
 
 
 [libraries]
@@ -59,6 +60,7 @@ androidx-runtime-livedata = { group = "androidx.compose.runtime", name = "runtim
 androidx-material = { group = "androidx.compose.material", name = "material", version.ref = "material" }
 play-services-maps = { group = "com.google.android.gms", name = "play-services-maps", version.ref = "playServicesMaps" }
 maps-compose = { group = "com.google.maps.android", name = "maps-compose", version.ref = "mapsCompose" }
+firebase-common-ktx = { group = "com.google.firebase", name = "firebase-common-ktx", version.ref = "firebaseCommonKtx" }
 
 
 [plugins]

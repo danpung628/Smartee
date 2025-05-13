@@ -1,12 +1,16 @@
 package com.example.smartee.navigation
 
+import HostScreen
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
 import com.example.smartee.ui.attendance.AttendanceScreen
+import com.example.smartee.ui.attendance.ParticipantScreen
 import com.example.smartee.ui.login.LoginScreen
 import com.example.smartee.ui.profile.ProfileScreen
 import com.example.smartee.ui.screen.StudyCreationScreen
@@ -20,6 +24,8 @@ import com.example.smartee.ui.study.studyList.search.StudySearchScreen
 
 @Composable
 fun SmarteeNavGraph(navController: NavHostController) {
+    //출석코드
+    val randomCode = remember { mutableStateOf((100..999).random()) }
     NavHost(navController, startDestination = Screen.SignUp.route) {
         composable(Screen.Login.route) {
             LoginScreen(navController)
@@ -80,6 +86,15 @@ fun SmarteeNavGraph(navController: NavHostController) {
 
         composable(Screen.Attendance.route) {
             AttendanceScreen(navController)
+        }
+        //출석
+        composable(Screen.Host.route) {
+            HostScreen(navController, randomCode.value) { newCode ->
+                randomCode.value = newCode
+            }
+        }
+        composable(Screen.Participant.route) {
+            ParticipantScreen(navController, randomCode.value)
         }
     }
 }
