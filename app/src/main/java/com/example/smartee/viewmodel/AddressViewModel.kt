@@ -16,30 +16,22 @@ class AddressViewModel(app: Application) : AndroidViewModel(app) {
     // 상태 관리
     var addressSuggestions by mutableStateOf<List<String>>(emptyList())
     var addressSearchQuery by mutableStateOf("")
-    var selectedAddress by mutableStateOf("")
 
     // 주소 검색 기능
     fun searchAddresses(query: String) {
         viewModelScope.launch {
             try {
-                if (query.length >= 2) {
+//                if (query.length >= 2) {
                     val results = addressApiService.searchAddresses(query)
                     addressSuggestions = results
                     Log.d("AddressViewModel", "검색 결과: ${results.size}개")
-                } else {
-                    addressSuggestions = emptyList()
-                }
+//                } else {
+//                    addressSuggestions = emptyList()
+//                }
             } catch (e: Exception) {
                 Log.e("AddressViewModel", "주소 검색 실패", e)
                 addressSuggestions = emptyList()
             }
         }
-    }
-
-    // 선택된 주소 업데이트
-    fun selectAddress(address: String) {
-        selectedAddress = address
-        addressSearchQuery = address
-        addressSuggestions = emptyList()
     }
 }

@@ -35,8 +35,6 @@ class StudyViewModel(app: Application) : AndroidViewModel(app) {
         }.toMutableList()
     }
 
-    //주소 드롭다운 확장 여부
-    var addressExpanded by mutableStateOf(false)
     //드롭다운에서 선택한 주소
     var selectedAddress by mutableStateOf("")
     //스터디 검색창에 현재 입력한 텍스트

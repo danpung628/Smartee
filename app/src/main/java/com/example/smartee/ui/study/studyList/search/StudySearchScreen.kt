@@ -24,13 +24,12 @@ fun StudySearchScreen(
     Column {
         StudySearchBar(
             studyViewModel = studyViewModel,
-            onSubmitNavigate = onSubmitNavigate
-        )
+        ) {
+            studyViewModel.selectedAddress = addressViewModel.addressSearchQuery
+            onSubmitNavigate(it)
+        }
         AddressSearchField(
-            addressViewModel = addressViewModel,
-            onSelectAddress = {
-                studyViewModel.selectedAddress = it
-            }
+            addressViewModel = addressViewModel
         )
         StudyCategory(studyViewModel = studyViewModel)
     }

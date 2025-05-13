@@ -15,7 +15,6 @@ import com.example.smartee.viewmodel.AddressViewModel
 @Composable
 fun AddressSearchField(
     addressViewModel: AddressViewModel = viewModel(),
-    onSelectAddress: (String) -> Unit
 ) {
     Column {
         // 검색창
@@ -35,8 +34,8 @@ fun AddressSearchField(
                     text = suggestion,
                     modifier = Modifier
                         .clickable {
-                            addressViewModel.selectAddress(suggestion)
-                            onSelectAddress(suggestion)
+                            addressViewModel.addressSearchQuery = suggestion
+                            addressViewModel.addressSuggestions = emptyList()
                         }
                         .padding(16.dp)
                 )

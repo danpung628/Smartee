@@ -17,7 +17,7 @@ import com.example.smartee.viewmodel.StudyViewModel
 fun StudySearchBar(
     modifier: Modifier = Modifier,
     studyViewModel: StudyViewModel,
-    onSubmitNavigate: (String) -> Unit
+    onSubmit: (String) -> Unit
 ) {
     val typedText = studyViewModel.typedText
 
@@ -40,7 +40,7 @@ fun StudySearchBar(
                 modifier = Modifier
                     .clickable {
                         studyViewModel.searchKeyword = typedText
-                        onSubmitNavigate(typedText)
+                        onSubmit(typedText)
                         studyViewModel.refreshStudyList()
                     }
             )
