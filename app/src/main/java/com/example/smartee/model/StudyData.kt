@@ -7,14 +7,18 @@ import java.time.ZoneId
 
 data class StudyData(
     val studyId: String = "",
-    var category: String = "",
-//    val date: LocalDateTime = LocalDateTime.now(),
-    val dateTimestamp: Timestamp = Timestamp.now(),
     var title: String = "",
-    var description: String = "반갑습니다 ㅎㅎ",
-    var address: String = "",
+    var category: String = "",
+    //등록일
+    val dateTimestamp: Timestamp = Timestamp.now(),
+    //스터디 기간
+    var startDate: String = "",
+    var endDate: String = "",
     var currentMemberCount: Int = 0,
     var maxMemberCount: Int = 0,
+    var isOffline: Boolean = true,
+    var description: String = "반갑습니다 ㅎㅎ",
+    var address: String = "",
     var commentCount: Int = 0,
     var likeCount: Int = 0,
     var thumbnailModel: String = ""
