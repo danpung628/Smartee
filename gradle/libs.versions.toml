@@ -26,6 +26,7 @@ material = "1.9.0-alpha02"
 playServicesMaps = "19.2.0"
 mapsCompose = "6.6.0"
 firebaseCommonKtx = "21.0.0"
+places = "4.2.0"
 
 
 [libraries]
@@ -61,6 +62,7 @@ androidx-material = { group = "androidx.compose.material", name = "material", ve
 play-services-maps = { group = "com.google.android.gms", name = "play-services-maps", version.ref = "playServicesMaps" }
 maps-compose = { group = "com.google.maps.android", name = "maps-compose", version.ref = "mapsCompose" }
 firebase-common-ktx = { group = "com.google.firebase", name = "firebase-common-ktx", version.ref = "firebaseCommonKtx" }
+places = { group = "com.google.android.libraries.places", name = "places", version.ref = "places" }
 
 
 [plugins]
