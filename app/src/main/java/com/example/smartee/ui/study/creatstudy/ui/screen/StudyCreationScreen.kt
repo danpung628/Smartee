@@ -28,14 +28,19 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
+import com.example.smartee.ui.LocalNavGraphViewModelStoreOwner
 import com.example.smartee.ui.component.DatePickerField
 import com.example.smartee.viewmodel.StudyCreationViewModel
 
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
-fun StudyCreationScreen(navController: NavController, viewModel: StudyCreationViewModel = StudyCreationViewModel()) {
+fun StudyCreationScreen(navController: NavController) {
+    val viewModel: StudyCreationViewModel =
+        viewModel(viewModelStoreOwner = LocalNavGraphViewModelStoreOwner.current)
+
     val context = LocalContext.current
     val categories = listOf("CS", "자격증", "코딩", "운동", "토익", "면접", "영어", "자기계발", "기타")
 
