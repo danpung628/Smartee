@@ -21,7 +21,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.example.smartee.model.StudyData
 import com.example.smartee.viewmodel.StudyEditViewModel
-import com.example.smateeeeeeeeeeeeeeeeeeeeeeeee.editstudy.util.validateStudy
+import com.example.smartee.ui.study.editstudy.util.validateStudy
 import com.google.firebase.Timestamp
 import kotlinx.coroutines.launch
 import study_edit.ui.component.CategorySelector
