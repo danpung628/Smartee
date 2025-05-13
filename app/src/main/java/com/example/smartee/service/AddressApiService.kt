@@ -40,7 +40,7 @@ class AddressApiService(context: Context) {
                         }
                         .addOnFailureListener { e ->
                             Log.e("AddressApi", "주소 검색 실패: ${e.message}", e)
-                            continuation.resume(listOf("", "[주소 로드 실패]", "[네트워크를 확인하세요]"))
+                            continuation.resume(listOf("", "[주소 로드 실패]"))
                         }
                 }
             } catch (e: Exception) {
