@@ -11,12 +11,15 @@ import androidx.compose.material3.Icon
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.smartee.viewmodel.AddressViewModel
 import com.example.smartee.viewmodel.StudyViewModel
 
 @Composable
 fun StudyListTopBar(
     modifier: Modifier = Modifier,
     studyViewModel: StudyViewModel,
+    addressViewModel: AddressViewModel = viewModel(),
     onSelectAddress:(String)->Unit,
     onSearchNavigate: () -> Unit
 ) {
@@ -25,7 +28,10 @@ fun StudyListTopBar(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
-        AddressSearchBar(onSelectAddress = onSelectAddress)
+        AddressSearchBar(
+            addressViewModel = addressViewModel,
+            onSelectAddress = onSelectAddress
+        )
 //        AddressList(
 //            onSelectAddress = onSelectAddress,
 //            studyViewModel = studyViewModel

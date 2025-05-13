@@ -3,7 +3,6 @@ package com.example.smartee.ui.study.studyList.main.topbar.address
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -43,23 +42,23 @@ fun AddressList(
             studyViewModel.addressExpanded = false
         }
     ) {
-        studyViewModel.addressList.forEach {
-            DropdownMenuItem(
-                text = {
-                    Text(
-                        if (it == "")
-                            "지역 선택"
-                        else
-                            it
-                    )
-                },
-                onClick = {
-                    studyViewModel.selectedAddress = it
-                    onSelectAddress(it)
-                    studyViewModel.addressExpanded = false
-                }
-            )
-        }
+//        studyViewModel.addressList.forEach {
+//            DropdownMenuItem(
+//                text = {
+//                    Text(
+//                        if (it == "")
+//                            "지역 선택"
+//                        else
+//                            it
+//                    )
+//                },
+//                onClick = {
+//                    studyViewModel.selectedAddress = it
+//                    onSelectAddress(it)
+//                    studyViewModel.addressExpanded = false
+//                }
+//            )
+//        }
     }
 }
 

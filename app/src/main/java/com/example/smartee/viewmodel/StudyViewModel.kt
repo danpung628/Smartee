@@ -12,7 +12,6 @@ import androidx.lifecycle.map
 import androidx.lifecycle.viewModelScope
 import com.example.smartee.model.StudyData
 import com.example.smartee.model.factory.CategoryListFactory
-import com.example.smartee.service.AddressApiService
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.launch
 
@@ -36,12 +35,6 @@ class StudyViewModel(app: Application) : AndroidViewModel(app) {
         }.toMutableList()
     }
 
-    //주소 목록
-    private val addressService = AddressApiService(app)
-    private val _addressList = mutableListOf("")
-    val addressList: MutableList<String>
-        get() = _addressList
-
     //주소 드롭다운 확장 여부
     var addressExpanded by mutableStateOf(false)
     //드롭다운에서 선택한 주소
@@ -56,7 +49,6 @@ class StudyViewModel(app: Application) : AndroidViewModel(app) {
     // 초기화 시 Firebase에서 데이터 불러오기
     init {
         loadStudiesFromFirebase()
-        loadAddresses()
     }
 
     // Firebase에서 스터디 목록 불러오기
@@ -99,22 +91,6 @@ class StudyViewModel(app: Application) : AndroidViewModel(app) {
     // 새로고침 시 Firebase에서 다시 불러오기
     fun refreshStudyList() {
         loadStudiesFromFirebase()
-    }
-
-    // 주소 목록 로드 함수
-    private fun loadAddresses() {
-        viewModelScope.launch {
-            try {
-                val addresses = addressService.getAddresses()
-                _addressList.clear()
-                _addressList.addAll(addresses)
-            } catch (e: Exception) {
-                Log.e("StudyVM", "주소 로드 실패", e)
-                // 실패 시
-                _addressList.add("") // 전체 선택 옵션은 유지
-                _addressList.add("[주소 로딩 실패]") // 오류 상태 표시
-            }
-        }
     }
 
     fun toggleCategory(category: String) {
