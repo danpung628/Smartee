@@ -1,21 +1,22 @@
 package com.example.smartee.viewmodel
 
+import android.app.Application
 import android.util.Log
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
-import androidx.lifecycle.ViewModel
 import androidx.lifecycle.map
 import androidx.lifecycle.viewModelScope
 import com.example.smartee.model.StudyData
-import com.example.smartee.model.factory.AddressListFactory
 import com.example.smartee.model.factory.CategoryListFactory
+import com.example.smartee.service.AddressApiService
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.launch
 
-class StudyViewModel : ViewModel() {
+class StudyViewModel(app: Application) : AndroidViewModel(app) {
     //새로 고침 동작
     var isRefreshing by mutableStateOf(false)
         private set
@@ -35,14 +36,30 @@ class StudyViewModel : ViewModel() {
         }.toMutableList()
     }
 
+    //주소 목록
+    private val addressService = AddressApiService(app)
+    private val _addressList = mutableListOf("")
+    val addressList: MutableList<String>
+        get() = _addressList
+
+    //주소 드롭다운 확장 여부
+    var addressExpanded by mutableStateOf(false)
+    //드롭다운에서 선택한 주소
+    var selectedAddress by mutableStateOf("")
+    //스터디 검색창에 현재 입력한 텍스트
+    var typedText by mutableStateOf("")
+    //실제로 검색할 스터디 키워드
+    var searchKeyword by mutableStateOf("")
+    //카테고리 체크
+    var selectedCategory by mutableStateOf(CategoryListFactory.makeCategoryList().toList())
 
     // 초기화 시 Firebase에서 데이터 불러오기
     init {
         loadStudiesFromFirebase()
+        loadAddresses()
     }
 
     // Firebase에서 스터디 목록 불러오기
-
     private fun loadStudiesFromFirebase() {
         viewModelScope.launch {
             try {
@@ -84,36 +101,22 @@ class StudyViewModel : ViewModel() {
         loadStudiesFromFirebase()
     }
 
-//    //스터디 목록
-//    private val _studyList = StudyListFactory.makeStudyList()
-//    val studyList: MutableList<StudyData>
-//        get() = _studyList
+    // 주소 목록 로드 함수
+    private fun loadAddresses() {
+        viewModelScope.launch {
+            try {
+                val addresses = addressService.getAddresses()
+                _addressList.clear()
+                _addressList.addAll(addresses)
+            } catch (e: Exception) {
+                Log.e("StudyVM", "주소 로드 실패", e)
+                // 실패 시
+                _addressList.add("") // 전체 선택 옵션은 유지
+                _addressList.add("[주소 로딩 실패]") // 오류 상태 표시
+            }
+        }
+    }
 
-//    //주소, 검색 키워드에 따른 필터링
-//    val filteredStudyList: MutableList<StudyData>
-//        get() = _studyList.filter {
-//            it.title.contains(searchKeyword) && it.address.contains(selectedAddress) && it.category in selectedCategory
-//        }.toMutableList()
-
-    //주소 목록
-    private val _addressList = AddressListFactory.makeAddressList()
-    val addressList: MutableList<String>
-        get() = _addressList
-
-    //주소 드롭다운 확장 여부
-    var addressExpanded by mutableStateOf(false)
-
-    //드롭다운에서 선택한 주소
-    var selectedAddress by mutableStateOf("")
-
-    //스터디 검색창에 현재 입력한 텍스트
-    var typedText by mutableStateOf("")
-
-    //실제로 검색할 스터디 키워드
-    var searchKeyword by mutableStateOf("")
-
-    //카테고리 체크
-    var selectedCategory by mutableStateOf(CategoryListFactory.makeCategoryList().toList())
     fun toggleCategory(category: String) {
         selectedCategory = if (category in selectedCategory) {
             selectedCategory - category
