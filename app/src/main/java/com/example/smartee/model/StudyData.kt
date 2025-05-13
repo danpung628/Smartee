@@ -15,7 +15,7 @@ data class StudyData(
     var startDate: String = "",
     var endDate: String = "",
     //정기/비정기
-    var isRegular:Boolean,
+    var isRegular:Boolean = false,
 
     var currentMemberCount: Int = 0,
     var maxMemberCount: Int = 0,
