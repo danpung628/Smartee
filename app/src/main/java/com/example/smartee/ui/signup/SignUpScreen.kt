@@ -5,11 +5,16 @@ import android.util.Log
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.IntentSenderRequest
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.height
 import androidx.compose.material3.Button
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.example.smartee.R
 import com.example.smartee.navigation.Screen
@@ -56,7 +61,7 @@ fun SignUpScreen(navController: NavController) {
                         if (isNewUser) {
                             navController.navigate(Screen.FillProfile.route)
                         } else {
-                            navController.navigate(Screen.StudyList.route)
+                            navController.navigate(Screen.Login.route)
                         }
                     }
                     .addOnFailureListener {
@@ -70,16 +75,26 @@ fun SignUpScreen(navController: NavController) {
         }
     }
 
-    Button(onClick = {
-        oneTapClient.beginSignIn(signInRequest)
-            .addOnSuccessListener { result ->
-                val request = IntentSenderRequest.Builder(result.pendingIntent.intentSender).build()
-                launcher.launch(request)
-            }
-            .addOnFailureListener {
-                Log.e("SignUpScreen", "One Tap Sign-In 실패: ${it.message}")
-            }
-    }) {
-        Text("Google로 시작하기")
+    Column {
+        Button(onClick = {
+            oneTapClient.beginSignIn(signInRequest)
+                .addOnSuccessListener { result ->
+                    val request =
+                        IntentSenderRequest.Builder(result.pendingIntent.intentSender).build()
+                    launcher.launch(request)
+                }
+                .addOnFailureListener {
+                    Log.e("SignUpScreen", "One Tap Sign-In 실패: ${it.message}")
+                }
+        }) {
+            Text("Google로 시작하기")
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        Button(onClick = { navController.navigate(Screen.Login.route) }) {
+            Text("개발자 모드")
+        }
     }
+
 }
