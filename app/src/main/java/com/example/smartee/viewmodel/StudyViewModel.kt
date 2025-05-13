@@ -26,7 +26,7 @@ class StudyViewModel : ViewModel() {
     private val _studyList = MutableLiveData<MutableList<StudyData>>(mutableListOf())
     val studyList: LiveData<MutableList<StudyData>> get() = _studyList
 
-        // 필터링된 스터디 목록도 LiveData로 변경
+    // 필터링된 스터디 목록도 LiveData로 변경
     val filteredStudyList = studyList.map { list ->
         list.filter {
             it.title.contains(searchKeyword) &&

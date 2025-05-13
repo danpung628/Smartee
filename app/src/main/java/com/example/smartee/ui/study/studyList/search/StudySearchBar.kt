@@ -44,6 +44,7 @@ fun StudySearchBar(
                     .weight(0.1f)
                     .clickable {
                         studyViewModel.searchKeyword = typedText
+                        studyViewModel.refreshStudyList()
                         onSubmitNavigate(typedText)
                     }
             )
