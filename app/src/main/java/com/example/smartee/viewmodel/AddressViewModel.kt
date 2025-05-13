@@ -21,13 +21,9 @@ class AddressViewModel(app: Application) : AndroidViewModel(app) {
     fun searchAddresses(query: String) {
         viewModelScope.launch {
             try {
-//                if (query.length >= 2) {
-                    val results = addressApiService.searchAddresses(query)
-                    addressSuggestions = results
-                    Log.d("AddressViewModel", "검색 결과: ${results.size}개")
-//                } else {
-//                    addressSuggestions = emptyList()
-//                }
+                val results = addressApiService.searchAddresses(query)
+                addressSuggestions = results
+                Log.d("AddressViewModel", "검색 결과: ${results.size}개")
             } catch (e: Exception) {
                 Log.e("AddressViewModel", "주소 검색 실패", e)
                 addressSuggestions = emptyList()
