@@ -18,8 +18,8 @@ fun AddressList(
     studyViewModel: StudyViewModel,
     onSelectAddress: (String) -> Unit
 ) {
-    var selectedAddress = studyViewModel.selectedAddress
-    var expanded = studyViewModel.addressExpanded
+    val selectedAddress = studyViewModel.selectedAddress
+    val expanded = studyViewModel.addressExpanded
 
     TextButton(
         onClick = {
@@ -54,7 +54,7 @@ fun AddressList(
                     )
                 },
                 onClick = {
-                    selectedAddress = it
+                    studyViewModel.selectedAddress = it
                     onSelectAddress(it)
                     studyViewModel.addressExpanded = false
                 }
