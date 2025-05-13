@@ -29,7 +29,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import com.example.smartee.ui.component.DatePickerField
-import com.example.smartee.creatstudy.viewmodel.StudyCreationViewModel
+import com.example.smartee.ui.study.creatstudy.viewmodel.StudyCreationViewModel
 
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)

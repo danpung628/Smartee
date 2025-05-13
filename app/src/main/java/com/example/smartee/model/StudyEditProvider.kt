@@ -1,4 +1,4 @@
-package com.example.smateeeeeeeeeeeeeeeeeeeeeeeee.editstudy.provider
+package com.example.smartee.model
 
 import study_edit.viewmodel.StudyCreationData
 import study_edit.viewmodel.StudyEditViewModel

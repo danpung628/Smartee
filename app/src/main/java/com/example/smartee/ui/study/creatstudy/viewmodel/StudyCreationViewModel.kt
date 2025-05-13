@@ -1,4 +1,4 @@
-package com.example.smartee.creatstudy.viewmodel
+package com.example.smartee.ui.study.creatstudy.viewmodel
 
 import android.util.Log
 import androidx.compose.runtime.getValue

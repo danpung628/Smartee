@@ -12,11 +12,13 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.example.smartee.model.factory.CategoryListFactory
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun CategorySelector(selectedCategories: SnapshotStateList<String>) {
-    val allCategories = listOf("스터디", "운동", "영어", "자격증", "취미")
+//    val allCategories = listOf("스터디", "운동", "영어", "자격증", "취미")
+    val allCategories = CategoryListFactory.makeCategoryList()
 
     FlowRow {
         allCategories.forEach { category ->

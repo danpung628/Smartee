@@ -1,4 +1,4 @@
-package com.example.smartee.creatstudy.ui.theme
+package com.example.smartee.ui.study.creatstudy.ui.theme
 
 import androidx.compose.ui.graphics.Color
 
