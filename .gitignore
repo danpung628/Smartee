@@ -16,3 +16,4 @@ local.properties
 node_modules
 # Firebase 설정 파일 무시
 /app/google-services.json
+node_modules
