@@ -4,9 +4,11 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.unit.dp
 import com.example.smartee.model.factory.CategoryListFactory
 import com.example.smartee.viewmodel.StudyViewModel
 
@@ -26,7 +28,8 @@ fun StudyCategory(
                         Color.Green
                     } else {
                         Color.Gray
-                    }
+                    },
+                    shape = RoundedCornerShape(12.dp)
                 ),
                 category = it
             ) {

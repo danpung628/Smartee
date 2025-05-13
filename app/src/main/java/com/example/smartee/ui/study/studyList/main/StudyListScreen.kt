@@ -1,27 +1,31 @@
-package com.example.smartee.ui.study
+package com.example.smartee.ui.study.studyList.main
 
 import androidx.compose.foundation.layout.Column
+import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.runtime.livedata.observeAsState
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.smartee.model.StudyData
 import com.example.smartee.ui.LocalNavGraphViewModelStoreOwner
-import com.example.smartee.ui.study.studyList.main.StudyListContent
 import com.example.smartee.ui.study.studyList.main.topbar.StudyListTopBar
 import com.example.smartee.viewmodel.StudyViewModel
 import com.google.accompanist.swiperefresh.SwipeRefresh
 import com.google.accompanist.swiperefresh.rememberSwipeRefreshState
 
+@OptIn(ExperimentalMaterialApi::class)
 @Composable
 fun StudyListScreen(
-    keyword: String,
     onStudyDetailNavigate: (String) -> Unit,
     onSearchNavigate: () -> Unit
 ) {
     val studyViewModel: StudyViewModel =
         viewModel(viewModelStoreOwner = LocalNavGraphViewModelStoreOwner.current)
-    val isRefreshing = studyViewModel.isRefreshing
-    val swipeState = rememberSwipeRefreshState(isRefreshing)//새로고침 기능
 
+    // LiveData를 Compose 상태로 변환
+    val filteredStudyList =
+        studyViewModel.filteredStudyList.observeAsState(initial = emptyList<StudyData>()).value
+
+val swipeState = rememberSwipeRefreshState(studyViewModel.isRefreshing)//새로고침 기능
     SwipeRefresh(
         state = swipeState,
         onRefresh = { studyViewModel.refreshStudyList() }
@@ -35,17 +39,11 @@ fun StudyListScreen(
                 studyViewModel = studyViewModel
             )
             StudyListContent(
-                filteredStudyList = studyViewModel.filteredStudyList,
+//                filteredStudyList = studyViewModel.filteredStudyList,
+                studyViewModel = studyViewModel,
                 onStudyDetailNavigate = onStudyDetailNavigate,
             )
         }
     }
-}
 
-@Preview
-@Composable
-private fun StudyListScreenPreview() {
-//    StudyListScreen(keyword = "") {
-//
-//    }
 }

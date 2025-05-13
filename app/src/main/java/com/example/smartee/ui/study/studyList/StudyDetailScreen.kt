@@ -5,6 +5,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
@@ -24,7 +26,12 @@ fun StudyDetailScreen(
     val studyViewModel: StudyViewModel = viewModel(
         viewModelStoreOwner = LocalNavGraphViewModelStoreOwner.current,
     )
-    val study = studyViewModel.studyList.find { it.studyId == studyId }
+//    val study = studyViewModel.studyList.find { it.studyId == studyId }
+
+// LiveData를 Compose 상태로 변환
+    val studyList by studyViewModel.studyList.observeAsState(mutableListOf())
+    // 이제 일반 리스트에서 검색 가능
+    val study = studyList.find { it.studyId == studyId }
 
     Column(
         Modifier.fillMaxWidth(),
