@@ -5,9 +5,7 @@
       <SelectionState runConfigName="app">
         <option name="selectionMode" value="DROPDOWN" />
       </SelectionState>
-      <SelectionState runConfigName="feature-studylist">
-        <option name="selectionMode" value="DROPDOWN" />
-      </SelectionState>
+      <SelectionState runConfigName="studycreationmodule">
       <SelectionState runConfigName="MainActivity">
         <option name="selectionMode" value="DROPDOWN" />
       </SelectionState>
