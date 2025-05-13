@@ -28,13 +28,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.navigation.NavController
 import com.example.smartee.ui.component.DatePickerField
-import com.example.smartee.ui.study.creatstudy.viewmodel.StudyCreationViewModel
+import com.example.smartee.viewmodel.StudyCreationViewModel
 
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
-fun StudyCreationScreen(viewModel: StudyCreationViewModel) {
+fun StudyCreationScreen(navController: NavController, viewModel: StudyCreationViewModel = StudyCreationViewModel()) {
     val context = LocalContext.current
     val categories = listOf("CS", "자격증", "코딩", "운동", "토익", "면접", "영어", "자기계발", "기타")
 
@@ -45,7 +46,7 @@ fun StudyCreationScreen(viewModel: StudyCreationViewModel) {
             .padding(20.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        OutlinedTextField(value = viewModel.name, onValueChange = { viewModel.name = it }, label = { Text("스터디 이름") })
+        OutlinedTextField(value = viewModel.title, onValueChange = { viewModel.title = it }, label = { Text("스터디 이름") })
         Spacer(modifier = Modifier.height(16.dp))
 
         DatePickerField("시작일", viewModel.startDate) { viewModel.startDate = it }
@@ -117,7 +118,7 @@ fun StudyCreationScreen(viewModel: StudyCreationViewModel) {
             viewModel.submit()
             if (viewModel.errorMessage == null) {
                 viewModel.submittedStudies.lastOrNull()?.let {
-                    Toast.makeText(context, "제출 완료: ${it.name}", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(context, "제출 완료: ${it.title}", Toast.LENGTH_SHORT).show()
                 }
             }
         }) {

@@ -2,9 +2,9 @@ package com.example.smateeeeeeeeeeeeeeeeeeeeeeeee.editstudy.util
 
 
 
-import study_edit.viewmodel.StudyCreationData
+import com.example.smartee.model.StudyData
 
-fun validateStudy(data: StudyCreationData): List<String> {
+fun validateStudy(data: StudyData): List<String> {
     val errors = mutableListOf<String>()
 
     if (data.name.isBlank()) errors.add("스터디 이름을 입력해주세요.")

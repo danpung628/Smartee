@@ -19,12 +19,13 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.example.smartee.model.StudyData
+import com.example.smartee.viewmodel.StudyEditViewModel
 import com.example.smateeeeeeeeeeeeeeeeeeeeeeeee.editstudy.util.validateStudy
+import com.google.firebase.Timestamp
 import kotlinx.coroutines.launch
 import study_edit.ui.component.CategorySelector
 import study_edit.ui.component.DatePickerField
-import study_edit.viewmodel.StudyCreationData
-import study_edit.viewmodel.StudyEditViewModel
 
 @Composable
 fun StudyEditScreen(viewModel: StudyEditViewModel) {
@@ -37,8 +38,8 @@ fun StudyEditScreen(viewModel: StudyEditViewModel) {
             .padding(paddingValues)
             .padding(16.dp)) {
             OutlinedTextField(
-                value = viewModel.name,
-                onValueChange = { viewModel.name = it },
+                value = viewModel.title,
+                onValueChange = { viewModel.title = it },
                 label = { Text("스터디 이름") },
                 modifier = Modifier.fillMaxWidth()
             )
@@ -48,8 +49,8 @@ fun StudyEditScreen(viewModel: StudyEditViewModel) {
             DatePickerField("종료일", viewModel.endDate) { viewModel.endDate = it }
 
             OutlinedTextField(
-                value = viewModel.maxParticipants,
-                onValueChange = { viewModel.maxParticipants = it },
+                value = viewModel.maxMemberCount,
+                onValueChange = { viewModel.maxMemberCount = it },
                 label = { Text("최대 인원수") },
                 modifier = Modifier.fillMaxWidth()
             )
@@ -63,8 +64,8 @@ fun StudyEditScreen(viewModel: StudyEditViewModel) {
             }
 
             OutlinedTextField(
-                value = viewModel.minInk,
-                onValueChange = { viewModel.minInk = it },
+                value = viewModel.minInkLevel,
+                onValueChange = { viewModel.minInkLevel = it },
                 label = { Text("최소 잉크") },
                 modifier = Modifier.fillMaxWidth()
             )
@@ -89,16 +90,25 @@ fun StudyEditScreen(viewModel: StudyEditViewModel) {
             Spacer(modifier = Modifier.height(12.dp))
 
             Button(onClick = {
-                val currentData = StudyCreationData(
-                    name = viewModel.name,
-                    startDate = viewModel.startDate,
-                    endDate = viewModel.endDate,
-                    maxParticipants = viewModel.maxParticipants.toIntOrNull() ?: -1,
-                    isOffline = viewModel.isOffline,
-                    minInk = viewModel.minInk.toIntOrNull() ?: -1,
+                val currentData = StudyData(
+                    studyId = "",  // 새 스터디면 빈 문자열
+                    title = viewModel.title,
+                    category = viewModel.selectedCategories.joinToString(","),
+                    dateTimestamp = Timestamp.now(),
+                    startDate = viewModel.startDate?.toString() ?: "",
+                    endDate = viewModel.endDate?.toString() ?: "",
                     isRegular = viewModel.isRegular,
-                    selectedCategories = viewModel.selectedCategories.toList(),
-                    penCount = viewModel.penCount.toIntOrNull() ?: -1
+                    currentMemberCount = 0,
+                    maxMemberCount = viewModel.maxMemberCount.toIntOrNull() ?: -1,
+                    isOffline = viewModel.isOffline,
+                    minInkLevel = viewModel.minInkLevel.toIntOrNull() ?: -1,
+                    penCount = viewModel.penCount.toIntOrNull() ?: -1,
+                    punishment = viewModel.punishment,
+                    description = "반갑습니다 ㅎㅎ",  // 기본값
+                    address = "",  // 기본값
+                    commentCount = 0,
+                    likeCount = 0,
+                    thumbnailModel = "https://picsum.photos/300/200"  // 기본 썸네일
                 )
 
                 val errors = validateStudy(currentData)

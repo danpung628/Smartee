@@ -85,21 +85,6 @@ class StudyViewModel : ViewModel() {
         loadStudiesFromFirebase()
     }
 
-    // 새 스터디 추가
-    fun addStudy(study: StudyData) {
-        viewModelScope.launch {
-            // ID가 없는 새 문서 추가
-            studyCollectionRef.add(study)
-                .addOnSuccessListener { documentReference ->
-                    // 성공 시 로컬 목록에도 추가
-                    val newStudy = study.copy(studyId = documentReference.id)
-                    val currentList = _studyList.value ?: mutableListOf()
-                    currentList.add(newStudy)
-                    _studyList.value = currentList
-                }
-        }
-    }
-
 //    //스터디 목록
 //    private val _studyList = StudyListFactory.makeStudyList()
 //    val studyList: MutableList<StudyData>

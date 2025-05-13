@@ -10,7 +10,7 @@ import com.example.smartee.ui.attendance.AttendanceScreen
 import com.example.smartee.ui.login.LoginScreen
 import com.example.smartee.ui.profile.ProfileScreen
 import com.example.smartee.ui.register.RegisterScreen
-import com.example.smartee.ui.study.StudyCreateScreen
+import com.example.smartee.ui.screen.StudyCreationScreen
 import com.example.smartee.ui.study.studyList.StudyDetailScreen
 import com.example.smartee.ui.study.studyList.main.StudyListScreen
 import com.example.smartee.ui.study.studyList.search.StudySearchScreen
@@ -29,7 +29,7 @@ fun SmarteeNavGraph(navController: NavHostController) {
             RegisterScreen(navController)
         }
         composable(Screen.StudyCreate.route) {
-            StudyCreateScreen(navController)
+            StudyCreationScreen(navController)
         }
 
         //스터디 목록 관련
