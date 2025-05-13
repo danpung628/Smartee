@@ -51,8 +51,19 @@ dependencies {
     implementation(libs.androidx.ui.tooling.preview)
     implementation(libs.androidx.material3)
     implementation(libs.androidx.navigation.compose)
+
     implementation(libs.play.services.auth)
     implementation(libs.googleid)
+
+    implementation(libs.lifecycle.viewmodel.compose)
+    implementation(libs.coil.compose)
+    implementation(libs.coil.network.okhttp)
+    implementation(libs.androidx.material.icons.extended)
+    implementation(libs.accompanist.swiperefresh)
+    implementation(libs.androidx.lifecycle.livedata.ktx)
+    implementation(libs.androidx.runtime.livedata)
+    implementation(libs.androidx.material) // 새로고침 기능
+
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
@@ -64,4 +75,14 @@ dependencies {
     implementation("com.google.firebase:firebase-analytics")
     implementation ("com.google.firebase:firebase-auth-ktx")             // 로그인 기능
     implementation ("com.google.firebase:firebase-firestore-ktx")       // DB 기능
+    implementation ("androidx.core:core-ktx:1.12.0")
+        implementation ("androidx.activity:activity-compose:1.8.0") // 이게 가장 중요!
+        implementation ("androidx.lifecycle:lifecycle-runtime-ktx:2.6.2") // ViewModel 등을 쓸 경우
+        // 아래는 Compose 쓸 때 기본적으로 같이 사용합니다
+        implementation ("androidx.compose.ui:ui:1.5.4")
+        implementation ("androidx.compose.material:material:1.5.4")
+        implementation ("androidx.compose.ui:ui-tooling-preview:1.5.4")
+        implementation ("androidx.navigation:navigation-compose:2.7.5")
+
+
 }

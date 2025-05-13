@@ -13,3 +13,9 @@
 .externalNativeBuild
 .cxx
 local.properties
+node_modules
+# Firebase 설정 파일 무시
+/app/google-services.json
+# 스크립트 관련
+node_modules
+serviceAccountKey.json
