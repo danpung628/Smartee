@@ -13,7 +13,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.smartee.viewmodel.AddressViewModel
 
 @Composable
-fun AddressSearchBar(
+fun AddressSearchField(
     addressViewModel: AddressViewModel = viewModel(),
     onSelectAddress: (String) -> Unit
 ) {

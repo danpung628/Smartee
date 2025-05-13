@@ -3,6 +3,7 @@ package com.example.smartee.ui.study.studyList.search
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Icon
@@ -14,16 +15,17 @@ import com.example.smartee.viewmodel.StudyViewModel
 
 @Composable
 fun StudySearchBar(
-    modifier: Modifier,
+    modifier: Modifier = Modifier,
     studyViewModel: StudyViewModel,
     onSubmitNavigate: (String) -> Unit
 ) {
-    var typedText = studyViewModel.typedText
+    val typedText = studyViewModel.typedText
 
     Column(
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Row(
+            Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
         ) {
             TextField(
@@ -38,8 +40,8 @@ fun StudySearchBar(
                 modifier = Modifier
                     .clickable {
                         studyViewModel.searchKeyword = typedText
-                        studyViewModel.refreshStudyList()
                         onSubmitNavigate(typedText)
+                        studyViewModel.refreshStudyList()
                     }
             )
         }

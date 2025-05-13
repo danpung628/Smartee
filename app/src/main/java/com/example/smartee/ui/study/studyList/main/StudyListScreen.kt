@@ -6,7 +6,6 @@ import androidx.compose.runtime.Composable
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.smartee.ui.LocalNavGraphViewModelStoreOwner
 import com.example.smartee.ui.study.studyList.main.topbar.StudyListTopBar
-import com.example.smartee.viewmodel.AddressViewModel
 import com.example.smartee.viewmodel.StudyViewModel
 import com.google.accompanist.swiperefresh.SwipeRefresh
 import com.google.accompanist.swiperefresh.rememberSwipeRefreshState
@@ -19,8 +18,6 @@ fun StudyListScreen(
 ) {
     val studyViewModel: StudyViewModel =
         viewModel(viewModelStoreOwner = LocalNavGraphViewModelStoreOwner.current)
-    val AddressViewModel: AddressViewModel =
-        viewModel(viewModelStoreOwner = LocalNavGraphViewModelStoreOwner.current)
 
 val swipeState = rememberSwipeRefreshState(studyViewModel.isRefreshing)//새로고침 기능
     SwipeRefresh(
@@ -30,10 +27,6 @@ val swipeState = rememberSwipeRefreshState(studyViewModel.isRefreshing)//새로�
         Column {
             StudyListTopBar(
                 onSearchNavigate = onSearchNavigate,
-                onSelectAddress = {
-                    studyViewModel.selectedAddress = it
-                },
-                addressViewModel = AddressViewModel
             )
             StudyListContent(
                 studyViewModel = studyViewModel,

@@ -1,40 +1,45 @@
 package com.example.smartee.ui.study.studyList.main.topbar
 
-import AddressSearchBar
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Icon
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import com.example.smartee.viewmodel.AddressViewModel
+import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.dp
 
 @Composable
 fun StudyListTopBar(
     modifier: Modifier = Modifier,
-    addressViewModel: AddressViewModel,
-    onSelectAddress:(String)->Unit,
     onSearchNavigate: () -> Unit
 ) {
     Row(
         modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.SpaceBetween
+        horizontalArrangement = Arrangement.End
     ) {
-        AddressSearchBar(
-            addressViewModel = addressViewModel,
-            onSelectAddress = onSelectAddress
-        )
         Icon(
             imageVector = Icons.Default.Search,
             contentDescription = "Search",
-            modifier.clickable(
-                onClick = onSearchNavigate
-            )
+            modifier
+                .clickable(
+                    onClick = onSearchNavigate
+                )
+                .size(50.dp)
         )
+    }
+}
+
+@Preview
+@Composable
+private fun StudyListTopBarPreview() {
+    StudyListTopBar{
+
     }
 }
