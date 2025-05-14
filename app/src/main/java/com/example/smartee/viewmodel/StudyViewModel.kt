@@ -49,6 +49,8 @@ class StudyViewModel(app: Application) : AndroidViewModel(app) {
         loadStudiesFromFirebase()
     }
 
+    // 스터디 데이터 로드 후 추천 갱신을 위한 콜백
+    var onStudiesLoaded: ((List<StudyData>) -> Unit)? = null
     // Firebase에서 스터디 목록 불러오기
     private fun loadStudiesFromFirebase() {
         viewModelScope.launch {
@@ -73,6 +75,9 @@ class StudyViewModel(app: Application) : AndroidViewModel(app) {
 
                         _studyList.value = studyList
                         Log.d("StudyViewModel", "전체 스터디 목록 크기: ${studyList.size}")
+                        // 콜백을 통해 RecommendationViewModel에 알림
+                        onStudiesLoaded?.invoke(studyList)
+
                         isRefreshing = false
                     }
                     .addOnFailureListener { e ->
