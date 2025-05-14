@@ -68,7 +68,8 @@ dependencies {
 
     implementation(libs.androidx.material)
     implementation(libs.firebase.common.ktx)
-    implementation(libs.places) // 새로고침 기능
+    implementation(libs.places)
+    implementation(libs.material) // 새로고침 기능
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
