@@ -48,6 +48,7 @@ fun StudyListScreen(
             StudyListContent(
                 studyViewModel = studyViewModel,
                 onStudyDetailNavigate = onStudyDetailNavigate,
+                recommendationViewModel = recommendationViewModel,
             )
         }
     }
