@@ -32,10 +32,11 @@ class RecommendationViewModel(
     private val _errorMessage = MutableLiveData<String?>(null)
     val errorMessage: LiveData<String?> = _errorMessage
 
-    // 현재 사용자 관심 카테고리 (실제로는 사용자 프로필에서 가져와야 함)
-    // 나중에는 Repository나 UserProfileManager 등에서 가져오도록 변경
-    private val userCategories = listOf("프로그래밍", "자격증")
-    private val userInkLevel = 70
+    // 현재 사용자 관심 카테고리
+//    private val userCategories = listOf("프로그래밍", "자격증")
+//    private val userInkLevel = 70
+    private val userCategories = getUserCategories()
+    private val userInkLevel = getUserInkLevel()
 
     private val _recommendationReason = MutableLiveData<String?>(null)
     val recommendationReason: LiveData<String?> = _recommendationReason

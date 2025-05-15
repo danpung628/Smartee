@@ -25,6 +25,7 @@ import com.example.smartee.viewmodel.RecommendationViewModel
 import com.example.smartee.viewmodel.RecommendationViewModelFactory
 import com.example.smartee.viewmodel.StudyViewModel
 import com.example.smartee.viewmodel.UserViewModel
+import com.example.smartee.viewmodel.UserViewModelFactory
 import com.google.accompanist.swiperefresh.SwipeRefresh
 import com.google.accompanist.swiperefresh.rememberSwipeRefreshState
 
@@ -40,7 +41,8 @@ fun StudyListScreen(
         viewModel(viewModelStoreOwner = LocalNavGraphViewModelStoreOwner.current)
     val authViewModel = LocalAuthViewModel.current
     val userViewModel: UserViewModel = viewModel(
-        viewModelStoreOwner = LocalNavGraphViewModelStoreOwner.current
+        viewModelStoreOwner = LocalNavGraphViewModelStoreOwner.current,
+        factory = UserViewModelFactory(LocalContext.current.applicationContext as Application)
     )
     val recommendationViewModel: RecommendationViewModel = viewModel(
         viewModelStoreOwner = LocalNavGraphViewModelStoreOwner.current,

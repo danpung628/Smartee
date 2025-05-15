@@ -1,23 +1,34 @@
 package com.example.smartee.ui.ink
 
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.foundation.layout.*
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.graphics.Color
 
 @Composable
-fun InkScreen() {
+fun InkScreen(inkLevel: Int = 50) {  // 기본값 설정, 실제 값은 매개변수로 받음
     val expanded = remember { mutableStateOf(false) }
-    var inkPercent = 82
-    val recentChange = "+5 환급됨"
+    val recentChange = "+5 환급됨"  // 이 부분도 실제 데이터로 대체해야 함
 
     Column(
         modifier = Modifier
@@ -38,13 +49,13 @@ fun InkScreen() {
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Text("잉크", fontSize = 20.sp, fontWeight = FontWeight.Bold)
-                    Text("$inkPercent%", fontSize = 20.sp, color = Color(0xFF2196F3))
+                    Text("$inkLevel%", fontSize = 20.sp, color = Color(0xFF2196F3))  // 실제 잉크 레벨 표시
                 }
 
                 Spacer(modifier = Modifier.height(8.dp))
 
                 LinearProgressIndicator(
-                    progress = { inkPercent / 100f },
+                    progress = { inkLevel / 100f },  // 실제 잉크 레벨로 계산
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(8.dp),
@@ -87,5 +98,5 @@ fun Bullet(text: String) {
 @Preview(showBackground = true)
 @Composable
 fun InkScreenPreview() {
-    InkScreen()
+//    InkScreen(userProfile?.inkLevel ?: 50)
 }

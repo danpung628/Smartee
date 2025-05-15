@@ -1,8 +1,10 @@
 package com.example.smartee.ui.profile
 
+import android.app.Application
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -21,28 +23,42 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SuggestionChip
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import coil3.compose.AsyncImage
 import com.example.smartee.navigation.Screen
 import com.example.smartee.ui.LocalAuthViewModel
+import com.example.smartee.ui.LocalNavGraphViewModelStoreOwner
 import com.example.smartee.ui.ink.InkScreen
+import com.example.smartee.viewmodel.UserViewModel
+import com.example.smartee.viewmodel.UserViewModelFactory
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProfileScreen(navController: NavController) {
     val authViewModel = LocalAuthViewModel.current
     val currentUser by authViewModel.currentUser.collectAsState()
+
+    // UserViewModel 초기화 및 사용자 프로필 데이터 가져오기
+    val userViewModel: UserViewModel = viewModel(
+        viewModelStoreOwner = LocalNavGraphViewModelStoreOwner.current,
+        factory = UserViewModelFactory(LocalContext.current.applicationContext as Application)
+    )
+    val userProfile by userViewModel.userProfile.observeAsState()
 
     Scaffold(
         topBar = {
@@ -104,42 +120,68 @@ fun ProfileScreen(navController: NavController) {
 
                 Spacer(modifier = Modifier.height(24.dp))
 
-                // 잉크 섹션 (기존 InkScreen 컴포넌트 활용)
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-                ) {
-                    InkScreen()
+                // 사용자 지역 표시 (새로 추가)
+                userProfile?.location?.let { location ->
+                    if (location.isNotEmpty()) {
+                        Text(
+                            text = "지역: $location",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
                 }
 
                 Spacer(modifier = Modifier.height(24.dp))
 
-                // 참여 중인 스터디 섹션
+                // 잉크 섹션에 실제 사용자 잉크 데이터 전달
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                ) {
+                    // 실제 잉크 수치 전달
+                    InkScreen(inkLevel = userProfile?.inkLevel ?: 50)
+                }
+
+                Spacer(modifier = Modifier.height(24.dp))
+
+                // 관심사 섹션 추가
                 Text(
-                    text = "참여 중인 스터디",
+                    text = "관심 카테고리",
                     style = MaterialTheme.typography.titleLarge,
                     modifier = Modifier.align(Alignment.Start)
                 )
 
                 Spacer(modifier = Modifier.height(8.dp))
 
-                // 여기에 참여 중인 스터디 목록을 표시하는 LazyColumn 추가
-                // StudyListItem 컴포넌트를 재사용할 수 있음
-
-                // 아직 참여 중인 스터디가 없는 경우 표시
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.surfaceVariant
-                    )
+                // 사용자 관심사 표시
+                FlowRow(
+                    modifier = Modifier.fillMaxWidth()
                 ) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(32.dp),
-                        contentAlignment = Alignment.Center
+                    userProfile?.interests?.forEach { interest ->
+                        SuggestionChip(
+                            onClick = { },
+                            label = { Text(interest) },
+                            modifier = Modifier.padding(end = 4.dp, bottom = 4.dp)
+                        )
+                    }
+                }
+
+                // 관심사가 없는 경우 표시
+                if (userProfile?.interests.isNullOrEmpty()) {
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.surfaceVariant
+                        )
                     ) {
-                        Text("아직 참여 중인 스터디가 없습니다")
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text("아직 설정된 관심 카테고리가 없습니다")
+                        }
                     }
                 }
             }
