@@ -28,12 +28,28 @@ fun StudyContent(study: StudyData) {
         Divider()
         Spacer(modifier = Modifier.height(16.dp))
 
-        StudyDescription(study.description)
+        // 스터디 일정 정보 추가
+        StudyScheduleInfo(study)
 
-        Spacer(modifier = Modifier.height(8.dp))
+        Spacer(modifier = Modifier.height(16.dp))
         Divider()
         Spacer(modifier = Modifier.height(16.dp))
 
-        StudyRequirements(study.minInkLevel)
+        StudyDescription(study.description)
+
+        Spacer(modifier = Modifier.height(16.dp))
+        Divider()
+        Spacer(modifier = Modifier.height(16.dp))
+
+        StudyRequirements(study)
+
+        // 벌칙 정보가 있는 경우에만 표시
+        if (study.punishment.isNotEmpty()) {
+            Spacer(modifier = Modifier.height(16.dp))
+            Divider()
+            Spacer(modifier = Modifier.height(16.dp))
+
+            StudyPunishmentInfo(study)
+        }
     }
 }

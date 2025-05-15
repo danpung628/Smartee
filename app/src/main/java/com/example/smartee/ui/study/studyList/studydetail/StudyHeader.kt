@@ -2,6 +2,7 @@ package com.example.smartee.ui.study.studyList.studydetail
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -76,15 +77,30 @@ fun StudyHeader(
         }
 
         // 제목 텍스트
-        Text(
-            text = study.title,
-            color = Color.White,
-            style = MaterialTheme.typography.headlineMedium,
-            fontWeight = FontWeight.Bold,
+        Box(
             modifier = Modifier
                 .align(Alignment.BottomStart)
                 .padding(16.dp)
-        )
+        ) {
+            Column {
+                Text(
+                    text = study.title,
+                    color = Color.White,
+                    style = MaterialTheme.typography.headlineMedium,
+                    fontWeight = FontWeight.Bold
+                )
+
+                // 스터디 날짜 간단 표시
+                if (study.startDate.isNotEmpty() && study.endDate.isNotEmpty()) {
+                    Text(
+                        text = "${study.startDate} ~ ${study.endDate}",
+                        color = Color.White.copy(alpha = 0.8f),
+                        style = MaterialTheme.typography.bodyMedium,
+                        modifier = Modifier.padding(top = 4.dp)
+                    )
+                }
+            }
+        }
     }
 }
 
