@@ -2,7 +2,6 @@ package com.example.smartee.service
 
 import android.util.Log
 import com.example.smartee.model.StudyData
-import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.functions.ktx.functions
 import com.google.firebase.ktx.Firebase
 import com.google.firebase.ktx.app
@@ -12,54 +11,8 @@ class VertexAIRecommendationService {
     private val TAG = "VertexAIRecommendation"
     private val functions = Firebase.functions("us-central1")
 
-    private suspend fun ensureUserIsAuthenticated() {
-        val auth = FirebaseAuth.getInstance()
-        if (auth.currentUser == null) {
-            // 익명 로그인 강제 시도
-            try {
-                Log.d(TAG, "익명 로그인 시도 중...")
-                auth.signInAnonymously().await()
-                Log.d(TAG, "익명 로그인 성공")
-            } catch (e: Exception) {
-                Log.e(TAG, "익명 로그인 실패: ${e.message}", e)
-                throw e
-            }
-        } else {
-            // 기존 토큰 리프레시
-            try {
-                auth.currentUser!!.getIdToken(true).await()
-                Log.d(TAG, "토큰 새로고침 성공")
-            } catch (e: Exception) {
-                Log.e(TAG, "토큰 새로고침 실패: ${e.message}", e)
-                throw e
-            }
-        }
-    }
-
     suspend fun recommendStudy(userCategories: List<String>, userInkLevel: Int): StudyData? {
         try {
-            // 사용자 인증 상태 먼저 확인
-            ensureUserIsAuthenticated()
-            // 현재 사용자 토큰 명시적으로 얻기
-            val auth = FirebaseAuth.getInstance()
-            val currentUser = auth.currentUser
-
-            if (currentUser == null) {
-                // 사용자가 없으면 익명 로그인
-                Log.d(TAG, "사용자 없음, 익명 로그인 시도")
-                auth.signInAnonymously().await()  // 여기가 핵심!
-                Log.d(TAG, "익명 로그인 성공")
-            } else {
-                // 토큰 새로 고침 시도
-                try {
-                    Log.d(TAG, "토큰 새로고침 시도 중...")
-                    currentUser.getIdToken(true).await()
-                    Log.d(TAG, "토큰 새로고침 성공")
-                } catch (e: Exception) {
-                    Log.e(TAG, "토큰 새로고침 실패: ${e.message}", e)
-                }
-            }
-
             // 요청 데이터 구성
             val data = hashMapOf(
                 "userCategories" to userCategories,
