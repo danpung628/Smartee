@@ -19,6 +19,8 @@ class RecommendationViewModel(
 ) : AndroidViewModel(app) {
     private val TAG = "RecommendationViewModel"
 
+    private var availableStudies = listOf<StudyData>()
+
     // AI 추천 서비스
     private val recommendationService = VertexAIRecommendationService()
 
@@ -32,11 +34,17 @@ class RecommendationViewModel(
     private val _errorMessage = MutableLiveData<String?>(null)
     val errorMessage: LiveData<String?> = _errorMessage
 
-    // 현재 사용자 관심 카테고리
-//    private val userCategories = listOf("프로그래밍", "자격증")
-//    private val userInkLevel = 70
     private val _recommendationReason = MutableLiveData<String?>(null)
     val recommendationReason: LiveData<String?> = _recommendationReason
+
+    init {
+        userViewModel.userProfile.observeForever { profile ->
+            if (profile != null && profile.interests.isNotEmpty() && availableStudies.isNotEmpty()) {
+                Log.d(TAG, "프로필 데이터 로드됨, 카테고리: ${profile.interests}")
+                refreshRecommendation(availableStudies)
+            }
+        }
+    }
 
     // 사용자 관심 카테고리를 UserViewModel에서 가져오기
     private fun getUserCategories(): List<String> {
@@ -48,11 +56,11 @@ class RecommendationViewModel(
     }
 
     // 스터디 목록이 변경될 때 추천 새로고침
-    fun refreshRecommendation(availableStudies: List<StudyData>) {
-        if (availableStudies.isEmpty()) return
+    fun refreshRecommendation(studies: List<StudyData>) {
+        // 스터디 목록 저장
+        this.availableStudies = studies
 
-        _isLoading.value = true
-        _errorMessage.value = null
+        if (studies.isEmpty()) return
 
         val userCategories = getUserCategories()
         val userInkLevel = getUserInkLevel()
@@ -66,6 +74,9 @@ class RecommendationViewModel(
             _isLoading.value = false
             return
         }
+
+        _isLoading.value = true
+        _errorMessage.value = null
 
         viewModelScope.launch {
             try {
