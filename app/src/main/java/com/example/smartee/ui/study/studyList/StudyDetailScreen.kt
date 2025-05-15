@@ -19,26 +19,37 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Comment
+import androidx.compose.material.icons.filled.CalendarToday
+import androidx.compose.material.icons.filled.Create
 import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.Flag
 import androidx.compose.material.icons.filled.LocationOn
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.People
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Divider
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SuggestionChip
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.livedata.observeAsState
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil3.compose.AsyncImage
@@ -49,7 +60,9 @@ import com.example.smartee.viewmodel.StudyViewModel
 @Composable
 fun StudyDetailScreen(
     modifier: Modifier = Modifier,
-    studyId: String
+    studyId: String,
+    onJoinStudy: (String) -> Unit = {},
+    onReportStudy: (String) -> Unit = {}
 ) {
     val studyViewModel: StudyViewModel = viewModel(
         viewModelStoreOwner = LocalNavGraphViewModelStoreOwner.current,
@@ -95,6 +108,46 @@ fun StudyDetailScreen(
                             )
                         )
                 )
+
+                // 옵션 메뉴 (더보기)
+                var showMenu by remember { mutableStateOf(false) }
+
+                IconButton(
+                    onClick = { showMenu = true },
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .padding(8.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.MoreVert,
+                        contentDescription = "More Options",
+                        tint = Color.White
+                    )
+                }
+
+                // 드롭다운 메뉴
+                DropdownMenu(
+                    expanded = showMenu,
+                    onDismissRequest = { showMenu = false }
+                ) {
+                    DropdownMenuItem(
+                        text = {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(
+                                    imageVector = Icons.Default.Flag,
+                                    contentDescription = "Report",
+                                    tint = MaterialTheme.colorScheme.error
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text("신고하기")
+                            }
+                        },
+                        onClick = {
+                            onReportStudy(studyId)
+                            showMenu = false
+                        }
+                    )
+                }
 
                 // 제목 텍스트 (이미지 위에 오버레이)
                 Text(
@@ -181,6 +234,24 @@ fun StudyDetailScreen(
                             )
                         }
 
+                        // 날짜 정보
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.padding(bottom = 8.dp)
+                        ) {
+                            Icon(
+                                Icons.Default.CalendarToday,
+                                contentDescription = "Date",
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(20.dp)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = study.getLocalDateTime().toString().split("T")[0], // yyyy-MM-dd 형식
+                                style = MaterialTheme.typography.bodyLarge
+                            )
+                        }
+
                         // 통계 정보 (좋아요, 댓글 수)
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
@@ -235,34 +306,96 @@ fun StudyDetailScreen(
                     modifier = Modifier.padding(bottom = 16.dp)
                 )
 
-                // 잉크 레벨 요구사항
-                if (study.minInkLevel > 0) {
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Divider()
-                    Spacer(modifier = Modifier.height(16.dp))
+                // 잉크 레벨 요구사항 및 소모 만년필
+                Spacer(modifier = Modifier.height(8.dp))
+                Divider()
+                Spacer(modifier = Modifier.height(16.dp))
 
-                    Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.primaryContainer
-                        ),
-                        shape = RoundedCornerShape(12.dp)
+                Text(
+                    text = "참여 요구사항",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.padding(bottom = 8.dp)
+                )
+
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.primaryContainer
+                    ),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Column(
+                        modifier = Modifier.padding(16.dp)
                     ) {
+                        // 잉크 레벨 요구사항
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier.padding(16.dp)
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(bottom = 8.dp)
                         ) {
                             Text(
-                                text = "참여 필요 잉크 레벨: ${study.minInkLevel}",
+                                text = "필요 잉크 레벨:",
                                 style = MaterialTheme.typography.bodyLarge,
                                 fontWeight = FontWeight.Medium,
-                                textAlign = TextAlign.Center,
-                                modifier = Modifier.fillMaxWidth()
+                                modifier = Modifier.width(120.dp)
+                            )
+                            Text(
+                                text = "${study.minInkLevel}",
+                                style = MaterialTheme.typography.bodyLarge
+                            )
+                        }
+
+                        // 소모 만년필 정보
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Icon(
+                                Icons.Default.Create,
+                                contentDescription = "Pen",
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier
+                                    .size(20.dp)
+                                    .padding(end = 4.dp)
+                            )
+                            Text(
+                                text = "소모 만년필:",
+                                style = MaterialTheme.typography.bodyLarge,
+                                fontWeight = FontWeight.Medium,
+                                modifier = Modifier.width(100.dp)
+                            )
+                            Text(
+                                text = "1개", // 스터디마다 다를 수 있으므로 실제 데이터로 교체 필요
+                                style = MaterialTheme.typography.bodyLarge
                             )
                         }
                     }
                 }
             }
+
+            // 참가 버튼
+            Spacer(modifier = Modifier.height(24.dp))
+            Button(
+                onClick = { onJoinStudy(studyId) },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(56.dp)
+                    .padding(horizontal = 16.dp),
+                shape = RoundedCornerShape(8.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.primary
+                )
+            ) {
+                Text(
+                    "스터디 참가하기",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+
+            Spacer(modifier = Modifier.height(32.dp))
         }
     } ?: run {
         // 스터디를 찾을 수 없는 경우
