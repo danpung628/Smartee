@@ -95,17 +95,6 @@ class RecommendationViewModel(
             }
         }
     }
-
-    // 사용자 관심사 업데이트 (프로필 변경 시 호출)
-    fun updateUserPreferences(categories: List<String>, inkLevel: Int) {
-        // 사용자 설정 업데이트 후 추천 갱신
-        // 실제 구현에서는 이 정보를 저장하고 관리하는 로직 추가
-    }
-
-    // 추천 결과 초기화
-    fun clearRecommendation() {
-        _recommendedStudy.value = null
-    }
 }
 
 class RecommendationViewModelFactory(

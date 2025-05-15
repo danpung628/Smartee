@@ -87,7 +87,7 @@ ID: ${study.id}
 위 목록에 없는 ID나 번호를 생성하지 마세요.
 
 선택한 번호와 추천 이유를 JSON 형식으로 다음과 같이 반환해 주세요:
-{"selectedIndex": 선택한 번호, "reason": "추천 이유"}
+{"selectedIndex": 2, "reason": "추천 이유"}
 `;
 
     // Vertex AI 모델 호출 (최신 API 방식으로 변경)
