@@ -14,7 +14,8 @@ import kotlinx.coroutines.launch
 
 class RecommendationViewModel(
     app: Application,
-    private val authViewModel: AuthViewModel
+    private val authViewModel: AuthViewModel,
+    private val userViewModel: UserViewModel
 ) : AndroidViewModel(app) {
     private val TAG = "RecommendationViewModel"
 
@@ -38,6 +39,15 @@ class RecommendationViewModel(
 
     private val _recommendationReason = MutableLiveData<String?>(null)
     val recommendationReason: LiveData<String?> = _recommendationReason
+
+    // 사용자 관심 카테고리를 UserViewModel에서 가져오기
+    private fun getUserCategories(): List<String> {
+        return userViewModel.userProfile.value?.interests ?: listOf()
+    }
+
+    private fun getUserInkLevel(): Int {
+        return userViewModel.userProfile.value?.inkLevel ?: 50
+    }
 
     // 스터디 목록이 변경될 때 추천 새로고침
     fun refreshRecommendation(availableStudies: List<StudyData>) {
@@ -95,12 +105,13 @@ class RecommendationViewModel(
 
 class RecommendationViewModelFactory(
     private val application: Application,
-    private val authViewModel: AuthViewModel
+    private val authViewModel: AuthViewModel,
+    private val userViewModel: UserViewModel
 ) : ViewModelProvider.Factory {
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
         if (modelClass.isAssignableFrom(RecommendationViewModel::class.java)) {
             @Suppress("UNCHECKED_CAST")
-            return RecommendationViewModel(application, authViewModel) as T
+            return RecommendationViewModel(application, authViewModel, userViewModel) as T
         }
         throw IllegalArgumentException("Unknown ViewModel class")
     }

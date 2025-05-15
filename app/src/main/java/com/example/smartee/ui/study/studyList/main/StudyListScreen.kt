@@ -24,6 +24,7 @@ import com.example.smartee.ui.study.studyList.main.topbar.StudyListTopBar
 import com.example.smartee.viewmodel.RecommendationViewModel
 import com.example.smartee.viewmodel.RecommendationViewModelFactory
 import com.example.smartee.viewmodel.StudyViewModel
+import com.example.smartee.viewmodel.UserViewModel
 import com.google.accompanist.swiperefresh.SwipeRefresh
 import com.google.accompanist.swiperefresh.rememberSwipeRefreshState
 
@@ -38,9 +39,16 @@ fun StudyListScreen(
     val studyViewModel: StudyViewModel =
         viewModel(viewModelStoreOwner = LocalNavGraphViewModelStoreOwner.current)
     val authViewModel = LocalAuthViewModel.current
+    val userViewModel: UserViewModel = viewModel(
+        viewModelStoreOwner = LocalNavGraphViewModelStoreOwner.current
+    )
     val recommendationViewModel: RecommendationViewModel = viewModel(
         viewModelStoreOwner = LocalNavGraphViewModelStoreOwner.current,
-        factory = RecommendationViewModelFactory(LocalContext.current.applicationContext as Application, authViewModel)
+        factory = RecommendationViewModelFactory(
+            LocalContext.current.applicationContext as Application,
+            authViewModel,
+            userViewModel
+        )
     )
 
     // 스터디 목록 로드될 때 추천 요청하도록 설정
