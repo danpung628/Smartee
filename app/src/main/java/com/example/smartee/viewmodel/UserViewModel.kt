@@ -43,26 +43,6 @@ class UserViewModel(
                 }
             }
     }
-
-    fun updateUserInterests(interests: List<String>) {
-        val currentUser = auth.currentUser ?: return
-        userRepository.updateUserInterests(currentUser.uid, interests)
-            .addOnSuccessListener {
-                // 현재 프로필 업데이트
-                _userProfile.value = _userProfile.value?.copy(interests = interests)
-            }
-    }
-
-//    fun updatePenCount(penCount: Int) {
-//        val currentUser = auth.currentUser ?: return
-//        userRepository.updatePenCount(currentUser.uid, penCount)
-//            .addOnSuccessListener {
-//                // 현재 프로필 업데이트
-//                _userProfile.value?.let { currentProfile ->
-//                    _userProfile.value = currentProfile.copy(penCount = penCount)
-//                }
-//            }
-//    }
 }
 
 class UserViewModelFactory(application: android.app.Application) : ViewModelProvider.Factory {

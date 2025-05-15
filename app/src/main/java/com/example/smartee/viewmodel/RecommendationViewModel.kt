@@ -35,9 +35,6 @@ class RecommendationViewModel(
     // 현재 사용자 관심 카테고리
 //    private val userCategories = listOf("프로그래밍", "자격증")
 //    private val userInkLevel = 70
-    private val userCategories = getUserCategories()
-    private val userInkLevel = getUserInkLevel()
-
     private val _recommendationReason = MutableLiveData<String?>(null)
     val recommendationReason: LiveData<String?> = _recommendationReason
 
@@ -57,8 +54,15 @@ class RecommendationViewModel(
         _isLoading.value = true
         _errorMessage.value = null
 
+        val userCategories = getUserCategories()
+        val userInkLevel = getUserInkLevel()
+
+        Log.d(TAG, "현재 사용자 카테고리: $userCategories")
+        Log.d(TAG, "현재 사용자 잉크레벨: $userInkLevel")
+
         if (userCategories.isEmpty()) {
-            _errorMessage.value = "카테고리가 선택되지 않았습니다"
+            Log.e(TAG, "카테고리가 비어 있어서 추천이 불가능함")
+            _errorMessage.value = "관심 카테고리를 설정해주세요"
             _isLoading.value = false
             return
         }
