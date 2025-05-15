@@ -5,7 +5,9 @@ import com.example.smartee.model.StudyData
 import com.google.firebase.functions.ktx.functions
 import com.google.firebase.ktx.Firebase
 import com.google.firebase.ktx.app
+import com.google.gson.Gson
 import kotlinx.coroutines.tasks.await
+import org.json.JSONObject
 
 class VertexAIRecommendationService {
     private val TAG = "VertexAIRecommendation"
@@ -13,11 +15,20 @@ class VertexAIRecommendationService {
 
     suspend fun recommendStudy(userCategories: List<String>, userInkLevel: Int): StudyData? {
         try {
-            // 요청 데이터 구성
-            val data = hashMapOf(
-                "userCategories" to userCategories,
-                "userInkLevel" to userInkLevel
-            )
+            if (userCategories.isEmpty()) {
+                Log.e(TAG, "카테고리 목록이 비어 있습니다")
+                return null
+            }
+
+            Log.d(TAG, "요청 데이터: 카테고리=$userCategories, 잉크레벨=$userInkLevel")
+
+            val jsonString = """
+{
+    "userCategories": ${Gson().toJson(userCategories)},
+    "userInkLevel": $userInkLevel
+}
+"""
+            val data = JSONObject(jsonString)
 
             Log.d(TAG, "Cloud Function 호출: ${Firebase.app.name}")
 

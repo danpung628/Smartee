@@ -38,6 +38,12 @@ class RecommendationViewModel(app: Application) : AndroidViewModel(app) {
         _isLoading.value = true
         _errorMessage.value = null
 
+        if (userCategories.isEmpty()) {
+            _errorMessage.value = "카테고리가 선택되지 않았습니다"
+            _isLoading.value = false
+            return
+        }
+
         viewModelScope.launch {
             try {
                 val recommendation = recommendationService.recommendStudy(
