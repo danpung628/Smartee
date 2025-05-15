@@ -1,4 +1,4 @@
-package com.example.smartee.ui.ink
+package com.example.smartee.ui.profile.Resource
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.layout.Arrangement
