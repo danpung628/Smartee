@@ -7,11 +7,10 @@ admin.initializeApp();
 // Vertex AI 설정
 const projectId = "smartee-319d0"; // Firebase 프로젝트 ID
 const location = "us-central1"; // Vertex AI API 위치
-const modelId = "text-bison"; // 사용할 모델 ID
 
-// Vertex AI 클라이언트 초기화
+// Vertex AI 클라이언트 초기화 (최신 API로 업데이트)
 const vertexAi = new VertexAI({project: projectId, location: location});
-const genAiModel = vertexAi.preview.getGenerativeModel({model: modelId});
+const genAiModel = vertexAi.getGenerativeModel({model: "gemini-2.0-flash"});
 
 // 스터디 추천 함수
 exports.recommendStudy = functions.https.onCall(async (data, context) => {
@@ -75,12 +74,9 @@ ID: ${study.id}
 {"recommendedStudyId": "추천하는 스터디의 ID", "reason": "추천 이유"}
 `;
 
-    // Vertex AI 모델 호출
-    const result = await genAiModel.generateContent({
-      contents: [{role: "user", parts: [{text: prompt}]}],
-    });
-    const response = result.response;
-    const textResponse = response.candidates[0].content.parts[0].text;
+    // Vertex AI 모델 호출 (최신 API 방식으로 변경)
+    const result = await genAiModel.generateContent(prompt);
+    const textResponse = result.response.text();
 
     // JSON 추출
     const jsonMatch = textResponse.match(/{[\s\S]*}/);

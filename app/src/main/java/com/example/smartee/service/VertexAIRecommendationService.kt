@@ -5,9 +5,7 @@ import com.example.smartee.model.StudyData
 import com.google.firebase.functions.ktx.functions
 import com.google.firebase.ktx.Firebase
 import com.google.firebase.ktx.app
-import com.google.gson.Gson
 import kotlinx.coroutines.tasks.await
-import org.json.JSONObject
 
 class VertexAIRecommendationService {
     private val TAG = "VertexAIRecommendation"
@@ -22,13 +20,10 @@ class VertexAIRecommendationService {
 
             Log.d(TAG, "요청 데이터: 카테고리=$userCategories, 잉크레벨=$userInkLevel")
 
-            val jsonString = """
-{
-    "userCategories": ${Gson().toJson(userCategories)},
-    "userInkLevel": $userInkLevel
-}
-"""
-            val data = JSONObject(jsonString)
+            val data = mapOf(
+                "userCategories" to userCategories,
+                "userInkLevel" to userInkLevel
+            )
 
             Log.d(TAG, "Cloud Function 호출: ${Firebase.app.name}")
 
