@@ -100,15 +100,6 @@ fun StudyListContent(
                                         color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
                                 }
-
-                                // 선택적: 지역 기반 설명 추가
-                                if (study.address.isNotEmpty()) {
-                                    Text(
-                                        text = "${study.address} 지역에서 진행되는 스터디입니다",
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-                                }
                             }
 
                             StudyListItem(

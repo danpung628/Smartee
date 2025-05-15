@@ -9,7 +9,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Flag
 import androidx.compose.material.icons.filled.MoreVert
@@ -67,8 +66,14 @@ fun StudyHeader(
                 )
         )
 
-        // 옵션 메뉴 (더보기)
-        StudyOptionsMenu(study.studyId, onReportStudy)
+        // 옵션 메뉴 (더보기) - 위치 수정
+        Box(
+            modifier = Modifier
+                .align(Alignment.TopEnd)
+                .padding(8.dp)
+        ) {
+            StudyOptionsMenu(study.studyId, onReportStudy)
+        }
 
         // 제목 텍스트
         Text(
@@ -87,40 +92,40 @@ fun StudyHeader(
 private fun StudyOptionsMenu(studyId: String, onReportStudy: (String) -> Unit) {
     var showMenu by remember { mutableStateOf(false) }
 
-    IconButton(
-        onClick = { showMenu = true },
-        modifier = Modifier
-            .padding(8.dp)
-            .wrapContentSize(align = Alignment.TopEnd)
-    ) {
-        Icon(
-            imageVector = Icons.Default.MoreVert,
-            contentDescription = "More Options",
-            tint = Color.White
-        )
-    }
+    Box {
+        IconButton(
+            onClick = { showMenu = true }
+        ) {
+            Icon(
+                imageVector = Icons.Default.MoreVert,
+                contentDescription = "More Options",
+                tint = Color.White
+            )
+        }
 
-    // 드롭다운 메뉴
-    DropdownMenu(
-        expanded = showMenu,
-        onDismissRequest = { showMenu = false }
-    ) {
-        androidx.compose.material3.DropdownMenuItem(
-            text = {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
-                        imageVector = Icons.Default.Flag,
-                        contentDescription = "Report",
-                        tint = MaterialTheme.colorScheme.error
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text("신고하기")
+        // 드롭다운 메뉴 - 위치 조정
+        DropdownMenu(
+            expanded = showMenu,
+            onDismissRequest = { showMenu = false },
+            modifier = Modifier.align(Alignment.TopEnd)
+        ) {
+            androidx.compose.material3.DropdownMenuItem(
+                text = {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            imageVector = Icons.Default.Flag,
+                            contentDescription = "Report",
+                            tint = MaterialTheme.colorScheme.error
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("신고하기")
+                    }
+                },
+                onClick = {
+                    onReportStudy(studyId)
+                    showMenu = false
                 }
-            },
-            onClick = {
-                onReportStudy(studyId)
-                showMenu = false
-            }
-        )
+            )
+        }
     }
 }
