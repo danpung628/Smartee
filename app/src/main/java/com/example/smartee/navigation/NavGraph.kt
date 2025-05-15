@@ -69,11 +69,20 @@ fun SmarteeNavGraph(navController: NavHostController) {
         ) {
             StudyListScreen(
 //                keyword = it.arguments!!.getString("keyword")!!,
+                onHomeNavigate = {
+                    navController.navigate(Screen.StudyList.route)
+                },
                 onStudyDetailNavigate = {
                     navController.navigate(Screen.Detail.route + "?studyID=$it")
                 },
                 onSearchNavigate = {
                     navController.navigate(Screen.Search.route)
+                },
+                onStudyCreateNavigate = {
+                    navController.navigate(Screen.StudyCreate.route)
+                },
+                onProfileNavigate = {
+                    navController.navigate(Screen.Profile.route)
                 }
             )
         }

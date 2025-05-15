@@ -26,7 +26,10 @@ import com.google.accompanist.swiperefresh.rememberSwipeRefreshState
 @Composable
 fun StudyListScreen(
     onStudyDetailNavigate: (String) -> Unit,
-    onSearchNavigate: () -> Unit
+    onSearchNavigate: () -> Unit,
+    onStudyCreateNavigate: () -> Unit,
+    onProfileNavigate: () -> Unit,
+    onHomeNavigate: () -> Unit
 ) {
     val studyViewModel: StudyViewModel =
         viewModel(viewModelStoreOwner = LocalNavGraphViewModelStoreOwner.current)
@@ -55,7 +58,7 @@ fun StudyListScreen(
             NavigationBar {
                 NavigationBarItem(
                     selected = true,
-                    onClick = { },
+                    onClick = onHomeNavigate,
                     icon = { Icon(Icons.Default.Home, contentDescription = "홈") },
                     label = { Text("홈") }
                 )
@@ -67,14 +70,14 @@ fun StudyListScreen(
                 )
                 NavigationBarItem(
                     selected = false,
-                    onClick = { },
+                    onClick = onProfileNavigate,
                     icon = { Icon(Icons.Default.Person, contentDescription = "프로필") },
                     label = { Text("프로필") }
                 )
             }
         },
         floatingActionButton = {
-            FloatingActionButton(onClick = { }) {
+            FloatingActionButton(onClick = onStudyCreateNavigate) {
                 Icon(Icons.Default.Add, contentDescription = "스터디 생성")
             }
         }
