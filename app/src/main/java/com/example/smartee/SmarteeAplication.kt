@@ -13,7 +13,7 @@ class SmarteeApplication : Application() {
         FirebaseApp.initializeApp(this)
 
         // Places API 초기화 - google-services.json에서 자동으로 생성된 API 키 사용
-        val apiKey = getString(R.string.default_web_client_id)
+        val apiKey = getString(R.string.maps_api_key)
         Places.initialize(applicationContext, apiKey)
     }
 }

@@ -12,7 +12,6 @@ import androidx.lifecycle.map
 import androidx.lifecycle.viewModelScope
 import com.example.smartee.model.StudyData
 import com.example.smartee.model.factory.CategoryListFactory
-import com.example.smartee.service.AddressApiService
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.launch
 
@@ -36,14 +35,6 @@ class StudyViewModel(app: Application) : AndroidViewModel(app) {
         }.toMutableList()
     }
 
-    //주소 목록
-    private val addressService = AddressApiService(app)
-    private val _addressList = mutableListOf("")
-    val addressList: MutableList<String>
-        get() = _addressList
-
-    //주소 드롭다운 확장 여부
-    var addressExpanded by mutableStateOf(false)
     //드롭다운에서 선택한 주소
     var selectedAddress by mutableStateOf("")
     //스터디 검색창에 현재 입력한 텍스트
@@ -56,9 +47,10 @@ class StudyViewModel(app: Application) : AndroidViewModel(app) {
     // 초기화 시 Firebase에서 데이터 불러오기
     init {
         loadStudiesFromFirebase()
-        loadAddresses()
     }
 
+    // 스터디 데이터 로드 후 추천 갱신을 위한 콜백
+    var onStudiesLoaded: ((List<StudyData>) -> Unit)? = null
     // Firebase에서 스터디 목록 불러오기
     private fun loadStudiesFromFirebase() {
         viewModelScope.launch {
@@ -83,6 +75,9 @@ class StudyViewModel(app: Application) : AndroidViewModel(app) {
 
                         _studyList.value = studyList
                         Log.d("StudyViewModel", "전체 스터디 목록 크기: ${studyList.size}")
+                        // 콜백을 통해 RecommendationViewModel에 알림
+                        onStudiesLoaded?.invoke(studyList)
+
                         isRefreshing = false
                     }
                     .addOnFailureListener { e ->
@@ -99,22 +94,6 @@ class StudyViewModel(app: Application) : AndroidViewModel(app) {
     // 새로고침 시 Firebase에서 다시 불러오기
     fun refreshStudyList() {
         loadStudiesFromFirebase()
-    }
-
-    // 주소 목록 로드 함수
-    private fun loadAddresses() {
-        viewModelScope.launch {
-            try {
-                val addresses = addressService.getAddresses()
-                _addressList.clear()
-                _addressList.addAll(addresses)
-            } catch (e: Exception) {
-                Log.e("StudyVM", "주소 로드 실패", e)
-                // 실패 시
-                _addressList.add("") // 전체 선택 옵션은 유지
-                _addressList.add("[주소 로딩 실패]") // 오류 상태 표시
-            }
-        }
     }
 
     fun toggleCategory(category: String) {
