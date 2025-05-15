@@ -6,5 +6,6 @@ data class UserProfile(
     val email: String = "",
     val interests: List<String> = listOf(),
     val inkLevel: Int = 50,
-    val location: String = ""
+    val location: String = "",
+    val penCount: Int = 0
 )

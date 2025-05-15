@@ -24,4 +24,8 @@ class UserRepository(private val firestore: FirebaseFirestore) {
     fun saveUserProfile(userProfile: UserProfile): Task<Void> {
         return usersCollection.document(userProfile.uid).set(userProfile)
     }
+
+    fun updatePenCount(userId: String, penCount: Int): Any {
+        return usersCollection.document(userId).update("penCount", penCount)
+    }
 }

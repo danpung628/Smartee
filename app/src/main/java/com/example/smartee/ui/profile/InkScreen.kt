@@ -26,9 +26,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
 @Composable
-fun InkScreen(inkLevel: Int = 50) {  // 기본값 설정, 실제 값은 매개변수로 받음
+fun InkScreen() {
     val expanded = remember { mutableStateOf(false) }
-    val recentChange = "+5 환급됨"  // 이 부분도 실제 데이터로 대체해야 함
+    var inkPercent = 82
+    val recentChange = "+5 환급됨"
 
     Column(
         modifier = Modifier
@@ -49,13 +50,13 @@ fun InkScreen(inkLevel: Int = 50) {  // 기본값 설정, 실제 값은 매개�
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Text("잉크", fontSize = 20.sp, fontWeight = FontWeight.Bold)
-                    Text("$inkLevel%", fontSize = 20.sp, color = Color(0xFF2196F3))  // 실제 잉크 레벨 표시
+                    Text("$inkPercent%", fontSize = 20.sp, color = Color(0xFF2196F3))
                 }
 
                 Spacer(modifier = Modifier.height(8.dp))
 
                 LinearProgressIndicator(
-                    progress = { inkLevel / 100f },  // 실제 잉크 레벨로 계산
+                    progress = { inkPercent / 100f },
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(8.dp),
@@ -98,5 +99,5 @@ fun Bullet(text: String) {
 @Preview(showBackground = true)
 @Composable
 fun InkScreenPreview() {
-//    InkScreen(userProfile?.inkLevel ?: 50)
+    InkScreen()
 }

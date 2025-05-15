@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -33,6 +34,7 @@ import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -43,7 +45,6 @@ import coil3.compose.AsyncImage
 import com.example.smartee.navigation.Screen
 import com.example.smartee.ui.LocalAuthViewModel
 import com.example.smartee.ui.LocalNavGraphViewModelStoreOwner
-import com.example.smartee.ui.ink.InkScreen
 import com.example.smartee.viewmodel.UserViewModel
 import com.example.smartee.viewmodel.UserViewModelFactory
 
@@ -120,7 +121,7 @@ fun ProfileScreen(navController: NavController) {
 
                 Spacer(modifier = Modifier.height(24.dp))
 
-                // 사용자 지역 표시 (새로 추가)
+                // 사용자 지역 표시
                 userProfile?.location?.let { location ->
                     if (location.isNotEmpty()) {
                         Text(
@@ -133,13 +134,43 @@ fun ProfileScreen(navController: NavController) {
 
                 Spacer(modifier = Modifier.height(24.dp))
 
-                // 잉크 섹션에 실제 사용자 잉크 데이터 전달
+                // 잉크와 만년필 정보 카드
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
                 ) {
-                    // 실제 잉크 수치 전달
-                    InkScreen(inkLevel = userProfile?.inkLevel ?: 50)
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        // 잉크 섹션
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text("잉크", fontSize = MaterialTheme.typography.titleLarge.fontSize, fontWeight = FontWeight.Bold)
+                            Text("${userProfile?.inkLevel ?: 0}%", fontSize = MaterialTheme.typography.titleMedium.fontSize, color = Color(0xFF2196F3))
+                        }
+
+                        Spacer(modifier = Modifier.height(8.dp))
+
+                        // 만년필 섹션 추가
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text("만년필", fontSize = MaterialTheme.typography.titleLarge.fontSize, fontWeight = FontWeight.Bold)
+                            Text("${userProfile?.penCount ?: 0}개", fontSize = MaterialTheme.typography.titleMedium.fontSize, color = Color(0xFF4CAF50))
+                        }
+
+                        Spacer(modifier = Modifier.height(16.dp))
+
+                        // 정보 설명 텍스트
+                        Text(
+                            "잉크는 신뢰도 지표이며, 만년필은 스터디 개설 및 참여에 필요한 재화입니다.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
                 }
 
                 Spacer(modifier = Modifier.height(24.dp))
