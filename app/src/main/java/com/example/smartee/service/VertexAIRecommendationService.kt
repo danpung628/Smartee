@@ -21,9 +21,13 @@ class VertexAIRecommendationService {
             Log.d(TAG, "요청 데이터: 카테고리=$userCategories, 잉크레벨=$userInkLevel")
 
             val data = mapOf(
-                "userCategories" to userCategories,
-                "userInkLevel" to userInkLevel
+                "categories" to userCategories,
+                "inkLevel" to userInkLevel
             )
+
+            Log.d(TAG, "전송할 데이터 타입: ${userCategories.javaClass}")
+            Log.d(TAG, "전송할 데이터 내용: $userCategories")
+            Log.d(TAG, "최종 요청 데이터: $data")
 
             Log.d(TAG, "Cloud Function 호출: ${Firebase.app.name}")
 

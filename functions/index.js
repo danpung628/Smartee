@@ -13,17 +13,19 @@ const vertexAi = new VertexAI({project: projectId, location: location});
 const genAiModel = vertexAi.getGenerativeModel({model: "gemini-2.0-flash"});
 
 // 스터디 추천 함수
-exports.recommendStudy = functions.https.onCall(async (data, context) => {
+exports.recommendStudy = functions.https.onCall(async (req) => {
+  console.log("recommendStudy called with data:", req.data);
   try {
-    if (!context.auth) {
+    if (!req.auth) {
       console.log("인증 없음 - 무시하고 진행");
       // 인증 에러를 던지지 않고 계속 진행
     }
 
     // 사용자 정보
-    const {userCategories, userInkLevel} = data;
+    const { categories, inkLevel } = req.data;
+    console.log("Parsed categories:", categories, "Parsed inkLevel:", inkLevel);
 
-    if (!userCategories || !Array.isArray(userCategories)) {
+    if (!categories || !Array.isArray(categories)) {
       throw new functions.https.HttpsError(
           "invalid-argument",
           "카테고리 목록이 필요합니다",
@@ -33,7 +35,7 @@ exports.recommendStudy = functions.https.onCall(async (data, context) => {
     // Firestore에서 스터디 목록 가져오기
     const studiesSnapshot = await admin.firestore()
         .collection("studies")
-        .where("minInkLevel", "<=", userInkLevel)
+        .where("minInkLevel", "<=", inkLevel)
         .get();
 
     if (studiesSnapshot.empty) {
@@ -55,12 +57,12 @@ exports.recommendStudy = functions.https.onCall(async (data, context) => {
     // AI 추천을 위한 프롬프트 작성
     const prompt = `
 사용자 프로필:
-- 관심 카테고리: ${userCategories.join(", ")}
-- 잉크 레벨: ${userInkLevel}
+- 관심 카테고리: ${categories.join(", ")}
+- 잉크 레벨: ${inkLevel}
 
 다음 스터디 목록 중에서 이 사용자에게 가장 적합한 스터디를 하나만 추천해 주세요:
 
-${studies.map((study) => `
+${studies.map((study) => ` s
 ID: ${study.id}
 제목: ${study.title}
 카테고리: ${study.category}
@@ -74,12 +76,26 @@ ID: ${study.id}
 {"recommendedStudyId": "추천하는 스터디의 ID", "reason": "추천 이유"}
 `;
 
-    // Vertex AI 모델 호출 (최신 API 방식으로 변경)
-    const result = await genAiModel.generateContent(prompt);
-    const textResponse = result.response.text();
+// Vertex AI 모델 호출 (최신 API 방식으로 변경)
+const request = {
+  contents: [
+    {
+      role: 'user',
+      parts: [{ text: prompt }]
+    }
+  ]
+};
+const result = await genAiModel.generateContent(request);
+const candidates = result.response.candidates;
+const textResponse = candidates?.[0]?.content?.parts?.[0]?.text;
+if (!textResponse) {
+  console.error("응답에서 JSON 텍스트를 찾을 수 없음:", JSON.stringify(result.response));
+  throw new Error("응답 파싱 실패");
+}
 
-    // JSON 추출
-    const jsonMatch = textResponse.match(/{[\s\S]*}/);
+// JSON 추출
+const jsonMatch = textResponse.match(/{[\s\S]*}/);
+
     if (!jsonMatch) {
       console.error("응답에서 JSON을 찾을 수 없음:", textResponse);
       throw new Error("응답 파싱 실패");
