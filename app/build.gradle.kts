@@ -82,16 +82,16 @@ dependencies {
     debugImplementation(libs.androidx.ui.test.manifest)
     implementation(platform("com.google.firebase:firebase-bom:33.13.0"))
     implementation("com.google.firebase:firebase-analytics")
-    implementation ("com.google.firebase:firebase-auth-ktx")             // 로그인 기능
-    implementation ("com.google.firebase:firebase-firestore-ktx")       // DB 기능
-    implementation ("androidx.core:core-ktx:1.12.0")
-        implementation ("androidx.activity:activity-compose:1.8.0") // 이게 가장 중요!
-        implementation ("androidx.lifecycle:lifecycle-runtime-ktx:2.6.2") // ViewModel 등을 쓸 경우
-        // 아래는 Compose 쓸 때 기본적으로 같이 사용합니다
-        implementation ("androidx.compose.ui:ui:1.5.4")
-        implementation ("androidx.compose.material:material:1.5.4")
-        implementation ("androidx.compose.ui:ui-tooling-preview:1.5.4")
-        implementation ("androidx.navigation:navigation-compose:2.7.5")
+    implementation("com.google.firebase:firebase-auth-ktx")             // 로그인 기능
+    implementation("com.google.firebase:firebase-firestore-ktx")       // DB 기능
+    implementation("androidx.core:core-ktx:1.12.0")
+    implementation("androidx.activity:activity-compose:1.8.0") // 이게 가장 중요!
+    implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.6.2") // ViewModel 등을 쓸 경우
+    // 아래는 Compose 쓸 때 기본적으로 같이 사용합니다
+    implementation("androidx.compose.ui:ui:1.5.4")
+    implementation("androidx.compose.material:material:1.5.4")
+    implementation("androidx.compose.ui:ui-tooling-preview:1.5.4")
+    implementation("androidx.navigation:navigation-compose:2.7.5")
 
 
 }

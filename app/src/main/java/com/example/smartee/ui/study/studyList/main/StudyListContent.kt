@@ -59,7 +59,7 @@ fun StudyListContent(
                 StudyListItem(
                     item = study,
                     onClick = onStudyDetailNavigate,
-                    isRecommended = true
+                    isRecommended = false
                 )
             }
         }

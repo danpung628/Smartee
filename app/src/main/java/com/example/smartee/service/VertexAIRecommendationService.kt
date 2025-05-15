@@ -2,6 +2,7 @@ package com.example.smartee.service
 
 import android.util.Log
 import com.example.smartee.model.StudyData
+import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.functions.ktx.functions
 import com.google.firebase.ktx.Firebase
 import kotlinx.coroutines.tasks.await
@@ -12,6 +13,21 @@ class VertexAIRecommendationService {
 
     suspend fun recommendStudy(userCategories: List<String>, userInkLevel: Int): StudyData? {
         try {
+            // 현재 사용자 토큰 명시적으로 얻기
+            val auth = FirebaseAuth.getInstance()
+            val currentUser = auth.currentUser
+
+            if (currentUser != null) {
+                // 토큰 새로 고침 시도
+                try {
+                    Log.d(TAG, "토큰 새로고침 시도 중...")
+                    currentUser.getIdToken(true).await()
+                    Log.d(TAG, "토큰 새로고침 성공")
+                } catch (e: Exception) {
+                    Log.e(TAG, "토큰 새로고침 실패: ${e.message}", e)
+                }
+            }
+
             // 요청 데이터 구성
             val data = hashMapOf(
                 "userCategories" to userCategories,
