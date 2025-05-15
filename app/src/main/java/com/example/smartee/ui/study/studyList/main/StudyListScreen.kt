@@ -3,11 +3,11 @@ package com.example.smartee.ui.study.studyList.main
 import androidx.compose.foundation.layout.Column
 import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.livedata.observeAsState
+import androidx.compose.runtime.DisposableEffect
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.example.smartee.model.StudyData
 import com.example.smartee.ui.LocalNavGraphViewModelStoreOwner
 import com.example.smartee.ui.study.studyList.main.topbar.StudyListTopBar
+import com.example.smartee.viewmodel.RecommendationViewModel
 import com.example.smartee.viewmodel.StudyViewModel
 import com.google.accompanist.swiperefresh.SwipeRefresh
 import com.google.accompanist.swiperefresh.rememberSwipeRefreshState
@@ -20,12 +20,23 @@ fun StudyListScreen(
 ) {
     val studyViewModel: StudyViewModel =
         viewModel(viewModelStoreOwner = LocalNavGraphViewModelStoreOwner.current)
+    val recommendationViewModel: RecommendationViewModel = viewModel(
+        viewModelStoreOwner = LocalNavGraphViewModelStoreOwner.current
+    )
 
-    // LiveData를 Compose 상태로 변환
-    val filteredStudyList =
-        studyViewModel.filteredStudyList.observeAsState(initial = emptyList<StudyData>()).value
+    // 스터디 목록 로드될 때 추천 요청하도록 설정
+    DisposableEffect(studyViewModel) {
+        studyViewModel.onStudiesLoaded = { studies ->
+            recommendationViewModel.refreshRecommendation(studies)
+        }
 
-val swipeState = rememberSwipeRefreshState(studyViewModel.isRefreshing)//새로고침 기능
+        onDispose {
+            studyViewModel.onStudiesLoaded = null
+        }
+    }
+
+
+    val swipeState = rememberSwipeRefreshState(studyViewModel.isRefreshing)//새로고침 기능
     SwipeRefresh(
         state = swipeState,
         onRefresh = { studyViewModel.refreshStudyList() }
@@ -33,15 +44,11 @@ val swipeState = rememberSwipeRefreshState(studyViewModel.isRefreshing)//새로�
         Column {
             StudyListTopBar(
                 onSearchNavigate = onSearchNavigate,
-                onSelectAddress = {
-                    studyViewModel.selectedAddress = it
-                },
-                studyViewModel = studyViewModel
             )
             StudyListContent(
-//                filteredStudyList = studyViewModel.filteredStudyList,
                 studyViewModel = studyViewModel,
                 onStudyDetailNavigate = onStudyDetailNavigate,
+                recommendationViewModel = recommendationViewModel,
             )
         }
     }

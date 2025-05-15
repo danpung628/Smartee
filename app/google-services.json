@@ -14,6 +14,14 @@
       },
       "oauth_client": [
         {
+          "client_id": "963084791042-5j0uahog9bm95qs75abuc9hpmgbguisi.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.smartee",
+            "certificate_hash": "5ad0050cd8ec4e7ae1a1f35c948edac26c53c21a"
+          }
+        },
+        {
           "client_id": "963084791042-cr73nmo05vglfj8ugj69okean4umg0kd.apps.googleusercontent.com",
           "client_type": 1,
           "android_info": {
