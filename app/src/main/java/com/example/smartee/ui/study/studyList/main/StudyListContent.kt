@@ -84,12 +84,32 @@ fun StudyListContent(
                                     alpha = 0.7f
                                 )
                         ) {
-                            Text(
-                                text = "AI 추천 스터디",
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.Bold,
-                                modifier = Modifier.padding(16.dp)
-                            )
+                            Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
+                                Text(
+                                    text = "AI 추천 스터디",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Bold
+                                )
+
+                                val recommendationReason = recommendationViewModel.recommendationReason.observeAsState().value
+                                // 추천 이유 텍스트 표시
+                                recommendationReason?.let { reason ->
+                                    Text(
+                                        text = reason,
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+
+                                // 선택적: 지역 기반 설명 추가
+                                if (study.address.isNotEmpty()) {
+                                    Text(
+                                        text = "${study.address} 지역에서 진행되는 스터디입니다",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                            }
 
                             StudyListItem(
                                 item = study,

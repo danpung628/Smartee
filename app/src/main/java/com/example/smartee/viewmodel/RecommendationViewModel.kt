@@ -5,13 +5,21 @@ import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.example.smartee.model.StudyData
 import com.example.smartee.service.VertexAIRecommendationService
 import kotlinx.coroutines.launch
 
-class RecommendationViewModel(app: Application) : AndroidViewModel(app) {
+class RecommendationViewModel(
+    app: Application,
+    private val authViewModel: AuthViewModel,
+    private val userViewModel: UserViewModel
+) : AndroidViewModel(app) {
     private val TAG = "RecommendationViewModel"
+
+    private var availableStudies = listOf<StudyData>()
 
     // AI 추천 서비스
     private val recommendationService = VertexAIRecommendationService()
@@ -26,23 +34,49 @@ class RecommendationViewModel(app: Application) : AndroidViewModel(app) {
     private val _errorMessage = MutableLiveData<String?>(null)
     val errorMessage: LiveData<String?> = _errorMessage
 
-    // 현재 사용자 관심 카테고리 (실제로는 사용자 프로필에서 가져와야 함)
-    // 나중에는 Repository나 UserProfileManager 등에서 가져오도록 변경
-    private val userCategories = listOf("프로그래밍", "자격증")
-    private val userInkLevel = 70
+    private val _recommendationReason = MutableLiveData<String?>(null)
+    val recommendationReason: LiveData<String?> = _recommendationReason
+
+    init {
+        userViewModel.userProfile.observeForever { profile ->
+            if (profile != null && profile.interests.isNotEmpty() && availableStudies.isNotEmpty()) {
+                Log.d(TAG, "프로필 데이터 로드됨, 카테고리: ${profile.interests}")
+                refreshRecommendation(availableStudies)
+            }
+        }
+    }
+
+    // 사용자 관심 카테고리를 UserViewModel에서 가져오기
+    private fun getUserCategories(): List<String> {
+        return userViewModel.userProfile.value?.interests ?: listOf()
+    }
+
+    private fun getUserInkLevel(): Int {
+        return userViewModel.userProfile.value?.inkLevel ?: 50
+    }
 
     // 스터디 목록이 변경될 때 추천 새로고침
-    fun refreshRecommendation(availableStudies: List<StudyData>) {
-        if (availableStudies.isEmpty()) return
+    fun refreshRecommendation(studies: List<StudyData>) {
+        // 스터디 목록 저장
+        this.availableStudies = studies
 
-        _isLoading.value = true
-        _errorMessage.value = null
+        if (studies.isEmpty()) return
+
+        val userCategories = getUserCategories()
+        val userInkLevel = getUserInkLevel()
+
+        Log.d(TAG, "현재 사용자 카테고리: $userCategories")
+        Log.d(TAG, "현재 사용자 잉크레벨: $userInkLevel")
 
         if (userCategories.isEmpty()) {
-            _errorMessage.value = "카테고리가 선택되지 않았습니다"
+            Log.e(TAG, "카테고리가 비어 있어서 추천이 불가능함")
+            _errorMessage.value = "관심 카테고리를 설정해주세요"
             _isLoading.value = false
             return
         }
+
+        _isLoading.value = true
+        _errorMessage.value = null
 
         viewModelScope.launch {
             try {
@@ -52,6 +86,17 @@ class RecommendationViewModel(app: Application) : AndroidViewModel(app) {
                 )
 
                 _recommendedStudy.value = recommendation
+
+                // 추천 이유 설정
+                val userName = authViewModel.currentUser.value?.displayName ?: "회원"
+                val category = recommendation?.category?.split(",")?.firstOrNull() ?: ""
+                val location = if (recommendation?.address?.isNotEmpty() == true)
+                    "${recommendation.address} 지역의 "
+                else ""
+
+                _recommendationReason.value =
+                    "${userName}님이 관심 있는 ${category} 분야의 ${location}스터디입니다"
+
                 Log.d(TAG, "추천 결과: ${recommendation?.title ?: "추천 없음"}")
             } catch (e: Exception) {
                 Log.e(TAG, "추천 실패", e)
@@ -61,15 +106,18 @@ class RecommendationViewModel(app: Application) : AndroidViewModel(app) {
             }
         }
     }
+}
 
-    // 사용자 관심사 업데이트 (프로필 변경 시 호출)
-    fun updateUserPreferences(categories: List<String>, inkLevel: Int) {
-        // 사용자 설정 업데이트 후 추천 갱신
-        // 실제 구현에서는 이 정보를 저장하고 관리하는 로직 추가
-    }
-
-    // 추천 결과 초기화
-    fun clearRecommendation() {
-        _recommendedStudy.value = null
+class RecommendationViewModelFactory(
+    private val application: Application,
+    private val authViewModel: AuthViewModel,
+    private val userViewModel: UserViewModel
+) : ViewModelProvider.Factory {
+    override fun <T : ViewModel> create(modelClass: Class<T>): T {
+        if (modelClass.isAssignableFrom(RecommendationViewModel::class.java)) {
+            @Suppress("UNCHECKED_CAST")
+            return RecommendationViewModel(application, authViewModel, userViewModel) as T
+        }
+        throw IllegalArgumentException("Unknown ViewModel class")
     }
 }

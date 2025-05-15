@@ -33,7 +33,7 @@ class VertexAIRecommendationService {
 
             // Cloud Function 호출
             val result = functions.getHttpsCallable("recommendStudy").call(data).await()
-
+            Log.d(TAG, "Cloud Function 응답: ${result.data}")
             // 응답 파싱
             val response = result.data as Map<*, *>
 

@@ -1,5 +1,6 @@
 package com.example.smartee.ui.study.studyList.main
 
+import android.app.Application
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
@@ -15,23 +16,41 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.smartee.ui.LocalAuthViewModel
 import com.example.smartee.ui.LocalNavGraphViewModelStoreOwner
 import com.example.smartee.ui.study.studyList.main.topbar.StudyListTopBar
 import com.example.smartee.viewmodel.RecommendationViewModel
+import com.example.smartee.viewmodel.RecommendationViewModelFactory
 import com.example.smartee.viewmodel.StudyViewModel
+import com.example.smartee.viewmodel.UserViewModel
+import com.example.smartee.viewmodel.UserViewModelFactory
 import com.google.accompanist.swiperefresh.SwipeRefresh
 import com.google.accompanist.swiperefresh.rememberSwipeRefreshState
 
 @Composable
 fun StudyListScreen(
     onStudyDetailNavigate: (String) -> Unit,
-    onSearchNavigate: () -> Unit
+    onSearchNavigate: () -> Unit,
+    onStudyCreateNavigate: () -> Unit,
+    onProfileNavigate: () -> Unit,
+    onHomeNavigate: () -> Unit
 ) {
     val studyViewModel: StudyViewModel =
         viewModel(viewModelStoreOwner = LocalNavGraphViewModelStoreOwner.current)
+    val authViewModel = LocalAuthViewModel.current
+    val userViewModel: UserViewModel = viewModel(
+        viewModelStoreOwner = LocalNavGraphViewModelStoreOwner.current,
+        factory = UserViewModelFactory(LocalContext.current.applicationContext as Application)
+    )
     val recommendationViewModel: RecommendationViewModel = viewModel(
-        viewModelStoreOwner = LocalNavGraphViewModelStoreOwner.current
+        viewModelStoreOwner = LocalNavGraphViewModelStoreOwner.current,
+        factory = RecommendationViewModelFactory(
+            LocalContext.current.applicationContext as Application,
+            authViewModel,
+            userViewModel
+        )
     )
 
     // 스터디 목록 로드될 때 추천 요청하도록 설정
@@ -55,7 +74,7 @@ fun StudyListScreen(
             NavigationBar {
                 NavigationBarItem(
                     selected = true,
-                    onClick = { },
+                    onClick = onHomeNavigate,
                     icon = { Icon(Icons.Default.Home, contentDescription = "홈") },
                     label = { Text("홈") }
                 )
@@ -67,14 +86,14 @@ fun StudyListScreen(
                 )
                 NavigationBarItem(
                     selected = false,
-                    onClick = { },
+                    onClick = onProfileNavigate,
                     icon = { Icon(Icons.Default.Person, contentDescription = "프로필") },
                     label = { Text("프로필") }
                 )
             }
         },
         floatingActionButton = {
-            FloatingActionButton(onClick = { }) {
+            FloatingActionButton(onClick = onStudyCreateNavigate) {
                 Icon(Icons.Default.Add, contentDescription = "스터디 생성")
             }
         }
