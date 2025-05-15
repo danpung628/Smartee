@@ -16,6 +16,11 @@ const genAiModel = vertexAi.preview.getGenerativeModel({model: modelId});
 // 스터디 추천 함수
 exports.recommendStudy = functions.https.onCall(async (data, context) => {
   try {
+    if (!context.auth) {
+      console.log("인증 없음 - 무시하고 진행");
+      // 인증 에러를 던지지 않고 계속 진행
+    }
+
     // 사용자 정보
     const {userCategories, userInkLevel} = data;
 
