@@ -1,5 +1,6 @@
 package com.example.smartee.ui.study.studyList.main
 
+import android.app.Application
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
@@ -15,10 +16,13 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.smartee.ui.LocalAuthViewModel
 import com.example.smartee.ui.LocalNavGraphViewModelStoreOwner
 import com.example.smartee.ui.study.studyList.main.topbar.StudyListTopBar
 import com.example.smartee.viewmodel.RecommendationViewModel
+import com.example.smartee.viewmodel.RecommendationViewModelFactory
 import com.example.smartee.viewmodel.StudyViewModel
 import com.google.accompanist.swiperefresh.SwipeRefresh
 import com.google.accompanist.swiperefresh.rememberSwipeRefreshState
@@ -33,8 +37,10 @@ fun StudyListScreen(
 ) {
     val studyViewModel: StudyViewModel =
         viewModel(viewModelStoreOwner = LocalNavGraphViewModelStoreOwner.current)
+    val authViewModel = LocalAuthViewModel.current
     val recommendationViewModel: RecommendationViewModel = viewModel(
-        viewModelStoreOwner = LocalNavGraphViewModelStoreOwner.current
+        viewModelStoreOwner = LocalNavGraphViewModelStoreOwner.current,
+        factory = RecommendationViewModelFactory(LocalContext.current.applicationContext as Application, authViewModel)
     )
 
     // 스터디 목록 로드될 때 추천 요청하도록 설정

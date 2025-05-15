@@ -5,12 +5,17 @@ import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.example.smartee.model.StudyData
 import com.example.smartee.service.VertexAIRecommendationService
 import kotlinx.coroutines.launch
 
-class RecommendationViewModel(app: Application) : AndroidViewModel(app) {
+class RecommendationViewModel(
+    app: Application,
+    private val authViewModel: AuthViewModel
+) : AndroidViewModel(app) {
     private val TAG = "RecommendationViewModel"
 
     // AI 추천 서비스
@@ -30,6 +35,9 @@ class RecommendationViewModel(app: Application) : AndroidViewModel(app) {
     // 나중에는 Repository나 UserProfileManager 등에서 가져오도록 변경
     private val userCategories = listOf("프로그래밍", "자격증")
     private val userInkLevel = 70
+
+    private val _recommendationReason = MutableLiveData<String?>(null)
+    val recommendationReason: LiveData<String?> = _recommendationReason
 
     // 스터디 목록이 변경될 때 추천 새로고침
     fun refreshRecommendation(availableStudies: List<StudyData>) {
@@ -52,6 +60,17 @@ class RecommendationViewModel(app: Application) : AndroidViewModel(app) {
                 )
 
                 _recommendedStudy.value = recommendation
+
+                // 추천 이유 설정
+                val userName = authViewModel.currentUser.value?.displayName ?: "회원"
+                val category = recommendation?.category?.split(",")?.firstOrNull() ?: ""
+                val location = if (recommendation?.address?.isNotEmpty() == true)
+                    "${recommendation.address} 지역의 "
+                else ""
+
+                _recommendationReason.value =
+                    "${userName}님이 관심 있는 ${category} 분야의 ${location}스터디입니다"
+
                 Log.d(TAG, "추천 결과: ${recommendation?.title ?: "추천 없음"}")
             } catch (e: Exception) {
                 Log.e(TAG, "추천 실패", e)
@@ -71,5 +90,18 @@ class RecommendationViewModel(app: Application) : AndroidViewModel(app) {
     // 추천 결과 초기화
     fun clearRecommendation() {
         _recommendedStudy.value = null
+    }
+}
+
+class RecommendationViewModelFactory(
+    private val application: Application,
+    private val authViewModel: AuthViewModel
+) : ViewModelProvider.Factory {
+    override fun <T : ViewModel> create(modelClass: Class<T>): T {
+        if (modelClass.isAssignableFrom(RecommendationViewModel::class.java)) {
+            @Suppress("UNCHECKED_CAST")
+            return RecommendationViewModel(application, authViewModel) as T
+        }
+        throw IllegalArgumentException("Unknown ViewModel class")
     }
 }
