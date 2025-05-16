@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="FirebaseConfiguration">
+    <option name="connectionConfigurations">
+      <map>
+        <entry key="714e99c3-7448-4743-94fa-fc925bb91e56">
+          <value>
+            <FirebaseConfigInternal>
+              <option name="id" value="714e99c3-7448-4743-94fa-fc925bb91e56" />
+              <option name="label" value="Smartee" />
+              <option name="serviceAccountPath" value="$PROJECT_DIR$/../smartee-319d0-firebase-adminsdk-fbsvc-e30a5f70cf.json" />
+            </FirebaseConfigInternal>
+          </value>
+        </entry>
+      </map>
+    </option>
+    <option name="version" value="2" />
+  </component>
+</project>
