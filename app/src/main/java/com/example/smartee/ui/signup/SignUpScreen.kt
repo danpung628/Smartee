@@ -5,6 +5,7 @@ import android.util.Log
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.IntentSenderRequest
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
@@ -12,13 +13,17 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.example.smartee.R
 import com.example.smartee.navigation.Screen
+import com.example.smartee.ui.common.LoadingOverlay
 import com.google.android.gms.auth.api.identity.BeginSignInRequest
 import com.google.android.gms.auth.api.identity.Identity
 import com.google.android.gms.common.api.ApiException
@@ -32,6 +37,7 @@ fun SignUpScreen(navController: NavController) {
     val activity = context as Activity
     val auth = remember { FirebaseAuth.getInstance() }
     val oneTapClient = remember { Identity.getSignInClient(context) }
+    var isLoading by remember { mutableStateOf(false) }
 
     // 로그인된 유저가 있으면 바로 홈으로
     LaunchedEffect(Unit) {
@@ -115,27 +121,36 @@ fun SignUpScreen(navController: NavController) {
         }
     }
 
-    Column {
-        Button(onClick = {
-            oneTapClient.beginSignIn(signInRequest)
-                .addOnSuccessListener { result ->
-                    val request = IntentSenderRequest.Builder(result.pendingIntent.intentSender).build()
-                    launcher.launch(request)
-                }
-                .addOnFailureListener {
-                    Log.e("SignUpScreen", "One Tap Sign-In 실패: ${it.message}")
-                }
-        }) {
-            Text("Google로 시작하기")
+    Box {
+        Column {
+            Button(onClick = {
+                isLoading = true
+                oneTapClient.beginSignIn(signInRequest)
+                    .addOnSuccessListener { result ->
+                        val request = IntentSenderRequest.Builder(result.pendingIntent.intentSender).build()
+                        launcher.launch(request)
+                    }
+                    .addOnFailureListener {
+                        Log.e("SignUpScreen", "One Tap Sign-In 실패: ${it.message}")
+                        isLoading = false
+                    }
+            }) {
+                Text("Google로 시작하기")
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Button(onClick = {
+                auth.signOut()
+                navController.navigate(Screen.Login.route)
+            }) {
+                Text("개발자 모드 (로그아웃)")
+            }
         }
 
-        Spacer(modifier = Modifier.height(16.dp))
-
-        Button(onClick = {
-            auth.signOut()
-            navController.navigate(Screen.Login.route)
-        }) {
-            Text("개발자 모드 (로그아웃)")
+        // 👇 로딩 중일 때 오버레이 표시
+        if (isLoading) {
+            LoadingOverlay()
         }
     }
 }
