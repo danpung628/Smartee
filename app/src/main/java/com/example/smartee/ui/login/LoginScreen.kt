@@ -38,6 +38,7 @@ fun LoginScreen(navController: NavController) {
         }
         Button(onClick = {
             FirebaseAuth.getInstance().signOut()
+            navController.navigate(Screen.SignUp.route)
         }) {
             Text("로그아웃")
         }

@@ -33,9 +33,31 @@ fun SignUpScreen(navController: NavController) {
     val auth = remember { FirebaseAuth.getInstance() }
     val oneTapClient = remember { Identity.getSignInClient(context) }
 
-    // 테스트 편의용: 앱 실행 시 로그아웃
+    // 로그인된 유저가 있으면 바로 홈으로
     LaunchedEffect(Unit) {
-        auth.signOut()
+        val currentUser = auth.currentUser
+        if (currentUser != null) {
+            val uid = currentUser.uid
+            val db = FirebaseFirestore.getInstance()
+
+            db.collection("users").document(uid).get()
+                .addOnSuccessListener { document ->
+                    if (document.exists()) {
+                        // 기존 유저 → 홈 또는 로그인 화면
+                        navController.navigate(Screen.Login.route) {
+                            popUpTo(Screen.SignUp.route) { inclusive = true }
+                        }
+                    } else {
+                        // 신규 유저이지만 앱 재실행한 경우 → 프로필 입력부터 다시
+                        navController.navigate(Screen.FillProfile.route) {
+                            popUpTo(Screen.SignUp.route) { inclusive = true }
+                        }
+                    }
+                }
+                .addOnFailureListener { e ->
+                    Log.e("SignUpScreen", "자동 로그인 시 Firestore 조회 실패: ${e.message}")
+                }
+        }
     }
 
     val signInRequest = remember {
@@ -44,10 +66,10 @@ fun SignUpScreen(navController: NavController) {
                 BeginSignInRequest.GoogleIdTokenRequestOptions.Builder()
                     .setSupported(true)
                     .setServerClientId(context.getString(R.string.default_web_client_id))
-                    .setFilterByAuthorizedAccounts(false)
+                    .setFilterByAuthorizedAccounts(false) // 모든 계정 허용
                     .build()
             )
-            .setAutoSelectEnabled(true)
+            .setAutoSelectEnabled(true) // 최근 계정 자동 로그인
             .build()
     }
 
@@ -67,11 +89,15 @@ fun SignUpScreen(navController: NavController) {
                         db.collection("users").document(uid).get()
                             .addOnSuccessListener { document ->
                                 if (document.exists()) {
-                                    // 기존 유저 → 바로 로그인 화면으로
-                                    navController.navigate(Screen.Login.route)
+                                    // 기존 유저 → 홈 화면으로 이동
+                                    navController.navigate(Screen.Login.route) {
+                                        popUpTo(Screen.SignUp.route) { inclusive = true }
+                                    }
                                 } else {
-                                    // Firestore에 정보 없음 → 신규 유저 → 프로필 입력
-                                    navController.navigate(Screen.FillProfile.route)
+                                    // 신규 유저 → 프로필 입력 화면
+                                    navController.navigate(Screen.FillProfile.route) {
+                                        popUpTo(Screen.SignUp.route) { inclusive = true }
+                                    }
                                 }
                             }
                             .addOnFailureListener { e ->
@@ -93,8 +119,7 @@ fun SignUpScreen(navController: NavController) {
         Button(onClick = {
             oneTapClient.beginSignIn(signInRequest)
                 .addOnSuccessListener { result ->
-                    val request =
-                        IntentSenderRequest.Builder(result.pendingIntent.intentSender).build()
+                    val request = IntentSenderRequest.Builder(result.pendingIntent.intentSender).build()
                     launcher.launch(request)
                 }
                 .addOnFailureListener {
@@ -110,7 +135,7 @@ fun SignUpScreen(navController: NavController) {
             auth.signOut()
             navController.navigate(Screen.Login.route)
         }) {
-            Text("개발자 모드")
+            Text("개발자 모드 (로그아웃)")
         }
     }
 }
