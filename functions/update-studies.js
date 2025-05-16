@@ -53,11 +53,10 @@ const addresses = [
 // 요일 목록
 const days = ["월", "화", "수", "목", "금", "토", "일"];
 
-// 썸네일 모델 목록
-const thumbnailModels = [
-  "study_default", "study_coffee", "study_books", "study_coding",
-  "study_language", "study_music", "study_art", "study_fitness"
-];
+// 완전 랜덤 이미지 생성 함수
+function generateRandomImageUrl() {
+  return `https://picsum.photos/300/200?random=${Math.random()}`;
+}
 
 // 벌칙 목록
 const punishments = [
@@ -160,7 +159,7 @@ async function updateStudies() {
     const snapshot = await studiesCollection.get();
     console.log(`총 ${snapshot.size}개의 스터디 문서를 업데이트합니다...`);
 
-    const batch = db.batch();
+    let batch = db.batch();
     let count = 0;
 
     snapshot.forEach(doc => {
@@ -202,7 +201,7 @@ async function updateStudies() {
         address: getRandomElement(addresses),
         commentCount: getRandomInt(0, 30),
         likeCount: getRandomInt(0, 50),
-        thumbnailModel: getRandomElement(thumbnailModels)
+        thumbnailModel: generateRandomImageUrl()
       };
 
       batch.update(doc.ref, studyData);
