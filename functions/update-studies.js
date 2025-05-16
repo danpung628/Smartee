@@ -1,13 +1,19 @@
-const admin = require("firebase-admin");
-const serviceAccount = require("../../serviceAccountKey.json"); // 서비스 계정 키 파일 경로
+/**
+ * Firestore 스터디 데이터 업데이트 스크립트 (완전 버전)
+ */
+console.log("스크립트 시작");
+
+const admin = require('firebase-admin');
+const serviceAccount = require('../../serviceAccountKey.json');
 
 // Firebase 초기화
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount)
 });
 
+console.log("Firebase 초기화 완료");
 const db = admin.firestore();
-const studiesCollection = db.collection("studies");
+const studiesCollection = db.collection('studies');
 
 // 랜덤 데이터 생성 헬퍼 함수들
 function getRandomInt(min, max) {
@@ -53,9 +59,9 @@ const addresses = [
 // 요일 목록
 const days = ["월", "화", "수", "목", "금", "토", "일"];
 
-// 완전 랜덤 이미지 생성 함수
+// 이미지 URL 생성 함수
 function generateRandomImageUrl() {
-  return `https://picsum.photos/300/200?random=${Math.random()}`;
+  return `https://picsum.photos/300/200?random=${Math.floor(Math.random() * 1000)}`;
 }
 
 // 벌칙 목록
@@ -153,86 +159,126 @@ function selectRandomDays() {
   return selectedDays;
 }
 
+// 스터디 데이터 생성
+function createStudyData() {
+  const isRegular = getRandomBoolean();
+  const maxMemberCount = getRandomInt(4, 20);
+  const currentMemberCount = getRandomInt(1, maxMemberCount);
+
+  // 시작일/종료일 설정
+  const now = new Date();
+  const oneMonthLater = new Date();
+  oneMonthLater.setMonth(now.getMonth() + 1);
+
+  const sixMonthsLater = new Date();
+  sixMonthsLater.setMonth(now.getMonth() + 6);
+
+  const startDate = formatDate(getRandomDate(now, oneMonthLater));
+  const endDate = formatDate(getRandomDate(oneMonthLater, sixMonthsLater));
+
+  return {
+    title: generateStudyTitle(),
+    category: getRandomElement(categories),
+    // 랜덤한 등록일 설정 (최근 6개월 내)
+    dateTimestamp: admin.firestore.Timestamp.fromDate(
+      getRandomDate(new Date(Date.now() - 180 * 24 * 60 * 60 * 1000), new Date())
+    ),
+    startDate: startDate,
+    endDate: endDate,
+    isRegular: isRegular,
+    regularDays: isRegular ? selectRandomDays() : [],
+    regularTime: isRegular ? generateRegularTime() : "",
+    irregularDateTimes: !isRegular ? generateIrregularDateTimes(getRandomInt(3, 8)) : [],
+    currentMemberCount: currentMemberCount,
+    maxMemberCount: maxMemberCount,
+    isOffline: getRandomBoolean(),
+    minInkLevel: getRandomInt(10, 80),
+    penCount: getRandomInt(1, 5),
+    punishment: getRandomElement(punishments),
+    description: generateStudyDescription(),
+    address: getRandomElement(addresses),
+    commentCount: getRandomInt(0, 30),
+    likeCount: getRandomInt(0, 50),
+    thumbnailModel: generateRandomImageUrl(),
+    updatedAt: admin.firestore.FieldValue.serverTimestamp()
+  };
+}
+
 // 스터디 업데이트 함수
 async function updateStudies() {
   try {
+    console.log("Firestore에서 문서 조회 중...");
     const snapshot = await studiesCollection.get();
-    console.log(`총 ${snapshot.size}개의 스터디 문서를 업데이트합니다...`);
+    console.log(`총 ${snapshot.size}개의 스터디 문서를 업데이트합니다.`);
 
-    let batch = db.batch();
-    let count = 0;
-
-    snapshot.forEach(doc => {
-      const isRegular = getRandomBoolean();
-      const maxMemberCount = getRandomInt(4, 20);
-      const currentMemberCount = getRandomInt(1, maxMemberCount);
-
-      // 시작일/종료일 설정
-      const now = new Date();
-      const oneMonthLater = new Date();
-      oneMonthLater.setMonth(now.getMonth() + 1);
-
-      const sixMonthsLater = new Date();
-      sixMonthsLater.setMonth(now.getMonth() + 6);
-
-      const startDate = formatDate(getRandomDate(now, oneMonthLater));
-      const endDate = formatDate(getRandomDate(oneMonthLater, sixMonthsLater));
-
-      const studyData = {
-        title: generateStudyTitle(),
-        category: getRandomElement(categories),
-        // 랜덤한 등록일 설정 (최근 6개월 내)
-        dateTimestamp: admin.firestore.Timestamp.fromDate(
-          getRandomDate(new Date(Date.now() - 180 * 24 * 60 * 60 * 1000), new Date())
-        ),
-        startDate: startDate,
-        endDate: endDate,
-        isRegular: isRegular,
-        regularDays: isRegular ? selectRandomDays() : [],
-        regularTime: isRegular ? generateRegularTime() : "",
-        irregularDateTimes: !isRegular ? generateIrregularDateTimes(getRandomInt(3, 8)) : [],
-        currentMemberCount: currentMemberCount,
-        maxMemberCount: maxMemberCount,
-        isOffline: getRandomBoolean(),
-        minInkLevel: getRandomInt(10, 80),
-        penCount: getRandomInt(1, 5),
-        punishment: getRandomElement(punishments),
-        description: generateStudyDescription(),
-        address: getRandomElement(addresses),
-        commentCount: getRandomInt(0, 30),
-        likeCount: getRandomInt(0, 50),
-        thumbnailModel: generateRandomImageUrl()
-      };
-
-      batch.update(doc.ref, studyData);
-      count++;
-
-      // Firestore는 한 배치에 최대 500개 작업만 허용
-      if (count % 450 === 0) {
-        batch.commit();
-        console.log(`${count}개 문서 업데이트 완료`);
-        batch = db.batch(); // 새 배치 시작
-      }
-    });
-
-    // 남은 배치 커밋
-    if (count % 450 !== 0) {
-      batch.commit();
+    if (snapshot.empty) {
+      console.log("경고: 업데이트할 문서가 없습니다");
+      return 0;
     }
-    console.log(`총 ${count}개 스터디 문서 업데이트 완료!`);
+
+    // 배치 처리를 위한 설정
+    const BATCH_SIZE = 400; // Firestore 제한보다 작게 설정
+    const docs = snapshot.docs;
+    const totalBatches = Math.ceil(docs.length / BATCH_SIZE);
+    let processedCount = 0;
+
+    console.log(`${totalBatches}개의 배치로 나누어 처리합니다.`);
+
+    // 각 배치별 처리
+    for (let i = 0; i < totalBatches; i++) {
+      console.log(`=== 배치 ${i+1}/${totalBatches} 처리 시작 ===`);
+
+      const batch = db.batch();
+      const start = i * BATCH_SIZE;
+      const end = Math.min(start + BATCH_SIZE, docs.length);
+
+      for (let j = start; j < end; j++) {
+        const doc = docs[j];
+        const studyData = createStudyData();
+
+        batch.update(doc.ref, studyData);
+        processedCount++;
+
+        // 로그 표시 (너무 많지 않게)
+        if (processedCount % 50 === 0 || processedCount === docs.length) {
+          console.log(`${processedCount}/${docs.length} 문서 처리 중...`);
+        }
+      }
+
+      console.log(`배치 ${i+1} 커밋 시작 (${end-start}개 문서)...`);
+      await batch.commit();
+      console.log(`배치 ${i+1} 커밋 완료!`);
+    }
+
+    console.log(`모든 배치 처리 완료! 총 ${processedCount}개 문서 업데이트됨.`);
+    return processedCount;
 
   } catch (error) {
     console.error("스터디 업데이트 중 오류 발생:", error);
+    throw error;
+  }
+}
+
+// 메인 함수
+async function main() {
+  try {
+    console.log("=== 스터디 데이터 업데이트 시작 ===");
+    const count = await updateStudies();
+    console.log(`=== 업데이트 성공! 총 ${count}개 문서 업데이트됨 ===`);
+    return count;
+  } catch (error) {
+    console.error("=== 업데이트 실패! ===", error);
+    throw error;
   }
 }
 
 // 스크립트 실행
-updateStudies()
-  .then(() => {
-    console.log("스터디 데이터 업데이트가 완료되었습니다.");
+main()
+  .then(count => {
+    console.log(`스크립트 실행 완료. ${count}개 문서 업데이트됨.`);
     process.exit(0);
   })
   .catch(error => {
-    console.error("업데이트 중 오류 발생:", error);
+    console.error("치명적 오류 발생:", error);
     process.exit(1);
   });
