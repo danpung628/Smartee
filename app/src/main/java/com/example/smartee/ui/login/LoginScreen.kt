@@ -11,6 +11,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.example.smartee.navigation.Screen
+import com.google.firebase.auth.FirebaseAuth
 
 @Composable
 fun LoginScreen(navController: NavController) {
@@ -34,6 +35,11 @@ fun LoginScreen(navController: NavController) {
         }
         Button(onClick = { navController.navigate(Screen.Attendance.route) }) {
             Text("Go to Attendance")
+        }
+        Button(onClick = {
+            FirebaseAuth.getInstance().signOut()
+        }) {
+            Text("로그아웃")
         }
     }
 }

@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.material3.Button
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -23,14 +24,19 @@ import com.google.android.gms.auth.api.identity.Identity
 import com.google.android.gms.common.api.ApiException
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.GoogleAuthProvider
+import com.google.firebase.firestore.FirebaseFirestore
 
 @Composable
 fun SignUpScreen(navController: NavController) {
     val context = LocalContext.current
     val activity = context as Activity
     val auth = remember { FirebaseAuth.getInstance() }
-
     val oneTapClient = remember { Identity.getSignInClient(context) }
+
+    // 테스트 편의용: 앱 실행 시 로그아웃
+    LaunchedEffect(Unit) {
+        auth.signOut()
+    }
 
     val signInRequest = remember {
         BeginSignInRequest.Builder()
@@ -54,15 +60,23 @@ fun SignUpScreen(navController: NavController) {
             if (idToken != null) {
                 val firebaseCredential = GoogleAuthProvider.getCredential(idToken, null)
                 auth.signInWithCredential(firebaseCredential)
-                    .addOnSuccessListener { authResult ->
-                        val isNewUser = authResult.additionalUserInfo?.isNewUser == true
-                        Log.d("SignUpScreen", "로그인 성공, 신규 유저 여부: $isNewUser")
+                    .addOnSuccessListener {
+                        val uid = auth.currentUser?.uid ?: return@addOnSuccessListener
+                        val db = FirebaseFirestore.getInstance()
 
-                        if (isNewUser) {
-                            navController.navigate(Screen.FillProfile.route)
-                        } else {
-                            navController.navigate(Screen.Login.route)
-                        }
+                        db.collection("users").document(uid).get()
+                            .addOnSuccessListener { document ->
+                                if (document.exists()) {
+                                    // 기존 유저 → 바로 로그인 화면으로
+                                    navController.navigate(Screen.Login.route)
+                                } else {
+                                    // Firestore에 정보 없음 → 신규 유저 → 프로필 입력
+                                    navController.navigate(Screen.FillProfile.route)
+                                }
+                            }
+                            .addOnFailureListener { e ->
+                                Log.e("SignUpScreen", "Firestore 조회 실패: ${e.message}")
+                            }
                     }
                     .addOnFailureListener {
                         Log.e("SignUpScreen", "Firebase 인증 실패: ${it.message}")
@@ -92,9 +106,11 @@ fun SignUpScreen(navController: NavController) {
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        Button(onClick = { navController.navigate(Screen.Login.route) }) {
+        Button(onClick = {
+            auth.signOut()
+            navController.navigate(Screen.Login.route)
+        }) {
             Text("개발자 모드")
         }
     }
-
 }
