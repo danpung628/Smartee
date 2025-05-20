@@ -23,7 +23,11 @@ lifecycleViewmodelComposeVersion = "2.9.0"
 lifecycleLivedataKtx = "2.9.0"
 runtimeLivedata = "1.8.1"
 material = "1.9.0-alpha02"
+playServicesMaps = "19.2.0"
+mapsCompose = "6.6.0"
 firebaseCommonKtx = "21.0.0"
+places = "4.2.0"
+materialVersion = "1.13.0-alpha13"
 
 
 [libraries]
@@ -56,7 +60,11 @@ lifecycle-viewmodel-compose = { group = "androidx.lifecycle", name = "lifecycle-
 androidx-lifecycle-livedata-ktx = { group = "androidx.lifecycle", name = "lifecycle-livedata-ktx", version.ref = "lifecycleLivedataKtx" }
 androidx-runtime-livedata = { group = "androidx.compose.runtime", name = "runtime-livedata", version.ref = "runtimeLivedata" }
 androidx-material = { group = "androidx.compose.material", name = "material", version.ref = "material" }
+play-services-maps = { group = "com.google.android.gms", name = "play-services-maps", version.ref = "playServicesMaps" }
+maps-compose = { group = "com.google.maps.android", name = "maps-compose", version.ref = "mapsCompose" }
 firebase-common-ktx = { group = "com.google.firebase", name = "firebase-common-ktx", version.ref = "firebaseCommonKtx" }
+places = { group = "com.google.android.libraries.places", name = "places", version.ref = "places" }
+material = { group = "com.google.android.material", name = "material", version.ref = "materialVersion" }
 
 
 [plugins]
