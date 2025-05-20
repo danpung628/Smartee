@@ -15,17 +15,17 @@ import com.example.smartee.viewmodel.StudyViewModel
 
 @Composable
 fun StudySearchBar(
-    modifier: Modifier,
+    modifier: Modifier = Modifier,
     studyViewModel: StudyViewModel,
-    onSubmitNavigate: (String) -> Unit
+    onSubmit: (String) -> Unit
 ) {
-    var typedText = studyViewModel.typedText
+    val typedText = studyViewModel.typedText
 
     Column(
-        modifier.fillMaxWidth(),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Row(
+            Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
         ) {
             TextField(
@@ -33,19 +33,15 @@ fun StudySearchBar(
                 onValueChange = {
                     studyViewModel.typedText = it
                 },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .weight(0.9f)
             )
             Icon(
                 imageVector = Icons.Default.Search,
                 contentDescription = "Submit",
                 modifier = Modifier
-                    .weight(0.1f)
                     .clickable {
                         studyViewModel.searchKeyword = typedText
+                        onSubmit(typedText)
                         studyViewModel.refreshStudyList()
-                        onSubmitNavigate(typedText)
                     }
             )
         }

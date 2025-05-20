@@ -1,49 +1,113 @@
 package com.example.smartee.ui.study.studyList.main
 
-import androidx.compose.foundation.layout.Column
-import androidx.compose.material.ExperimentalMaterialApi
+import android.app.Application
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.List
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.Icon
+import androidx.compose.material3.NavigationBar
+import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.livedata.observeAsState
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.example.smartee.model.StudyData
+import com.example.smartee.ui.LocalAuthViewModel
 import com.example.smartee.ui.LocalNavGraphViewModelStoreOwner
 import com.example.smartee.ui.study.studyList.main.topbar.StudyListTopBar
+import com.example.smartee.viewmodel.RecommendationViewModel
+import com.example.smartee.viewmodel.RecommendationViewModelFactory
 import com.example.smartee.viewmodel.StudyViewModel
+import com.example.smartee.viewmodel.UserViewModel
+import com.example.smartee.viewmodel.UserViewModelFactory
 import com.google.accompanist.swiperefresh.SwipeRefresh
 import com.google.accompanist.swiperefresh.rememberSwipeRefreshState
 
-@OptIn(ExperimentalMaterialApi::class)
 @Composable
 fun StudyListScreen(
     onStudyDetailNavigate: (String) -> Unit,
-    onSearchNavigate: () -> Unit
+    onSearchNavigate: () -> Unit,
+    onStudyCreateNavigate: () -> Unit,
+    onProfileNavigate: () -> Unit,
+    onHomeNavigate: () -> Unit
 ) {
     val studyViewModel: StudyViewModel =
         viewModel(viewModelStoreOwner = LocalNavGraphViewModelStoreOwner.current)
+    val authViewModel = LocalAuthViewModel.current
+    val userViewModel: UserViewModel = viewModel(
+        viewModelStoreOwner = LocalNavGraphViewModelStoreOwner.current,
+        factory = UserViewModelFactory(LocalContext.current.applicationContext as Application)
+    )
+    val recommendationViewModel: RecommendationViewModel = viewModel(
+        viewModelStoreOwner = LocalNavGraphViewModelStoreOwner.current,
+        factory = RecommendationViewModelFactory(
+            LocalContext.current.applicationContext as Application,
+            authViewModel,
+            userViewModel
+        )
+    )
 
-    // LiveData를 Compose 상태로 변환
-    val filteredStudyList =
-        studyViewModel.filteredStudyList.observeAsState(initial = emptyList<StudyData>()).value
+    // 스터디 목록 로드될 때 추천 요청하도록 설정
+    DisposableEffect(studyViewModel) {
+        studyViewModel.onStudiesLoaded = { studies ->
+            recommendationViewModel.refreshRecommendation(studies)
+        }
 
-val swipeState = rememberSwipeRefreshState(studyViewModel.isRefreshing)//새로고침 기능
-    SwipeRefresh(
-        state = swipeState,
-        onRefresh = { studyViewModel.refreshStudyList() }
-    ) {
-        Column {
-            StudyListTopBar(
-                onSearchNavigate = onSearchNavigate,
-                onSelectAddress = {
-                    studyViewModel.selectedAddress = it
-                },
-                studyViewModel = studyViewModel
-            )
-            StudyListContent(
-//                filteredStudyList = studyViewModel.filteredStudyList,
-                studyViewModel = studyViewModel,
-                onStudyDetailNavigate = onStudyDetailNavigate,
-            )
+        onDispose {
+            studyViewModel.onStudiesLoaded = null
         }
     }
 
+    val swipeState = rememberSwipeRefreshState(studyViewModel.isRefreshing)
+
+    Scaffold(
+        topBar = {
+            StudyListTopBar(onSearchNavigate = onSearchNavigate)
+        },
+        bottomBar = {
+            NavigationBar {
+                NavigationBarItem(
+                    selected = true,
+                    onClick = onHomeNavigate,
+                    icon = { Icon(Icons.Default.Home, contentDescription = "홈") },
+                    label = { Text("홈") }
+                )
+                NavigationBarItem(
+                    selected = false,
+                    onClick = { },
+                    icon = { Icon(Icons.Default.List, contentDescription = "내 모임") },
+                    label = { Text("내 모임") }
+                )
+                NavigationBarItem(
+                    selected = false,
+                    onClick = onProfileNavigate,
+                    icon = { Icon(Icons.Default.Person, contentDescription = "프로필") },
+                    label = { Text("프로필") }
+                )
+            }
+        },
+        floatingActionButton = {
+            FloatingActionButton(onClick = onStudyCreateNavigate) {
+                Icon(Icons.Default.Add, contentDescription = "스터디 생성")
+            }
+        }
+    ) { paddingValues ->
+        SwipeRefresh(
+            state = swipeState,
+            onRefresh = { studyViewModel.refreshStudyList() },
+            modifier = Modifier.padding(paddingValues)
+        ) {
+            StudyListContent(
+                studyViewModel = studyViewModel,
+                onStudyDetailNavigate = onStudyDetailNavigate,
+                recommendationViewModel = recommendationViewModel,
+            )
+        }
+    }
 }
