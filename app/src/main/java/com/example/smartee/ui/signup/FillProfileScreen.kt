@@ -38,6 +38,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.example.smartee.model.UserData
+import com.example.smartee.model.factory.CategoryListFactory
 import com.example.smartee.navigation.Screen
 import com.example.smartee.ui.common.LoadingOverlay
 import com.google.firebase.auth.FirebaseAuth
@@ -57,9 +58,14 @@ fun FillProfileScreen(navController: NavController) {
     var gender by remember { mutableStateOf("남성") }
     var region by remember { mutableStateOf("") }
 
-    val interestsList = listOf("스터디", "운동", "영어", "자격증", "취미")
-    val selectedInterests = remember { mutableStateMapOf<String, Boolean>() }
-    interestsList.forEach { selectedInterests.putIfAbsent(it, false) }
+    val interestsList = remember { CategoryListFactory.makeCategoryList() }
+
+    val selectedInterests = remember {
+        mutableStateMapOf<String, Boolean>().apply {
+            interestsList.forEach { this[it] = false }
+        }
+    }
+
 
     var isLoading by remember { mutableStateOf(false) }
 
