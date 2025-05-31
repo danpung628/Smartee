@@ -22,9 +22,9 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -53,18 +53,14 @@ fun FillProfileScreen(navController: NavController) {
     val name = user.displayName ?: ""
     val photoUrl = user.photoUrl?.toString() ?: ""
 
-    var nickname by remember { mutableStateOf("") }
-    var age by remember { mutableStateOf("") }
-    var gender by remember { mutableStateOf("남성") }
-    var region by remember { mutableStateOf("") }
+    var nickname by rememberSaveable { mutableStateOf("") }
+    var age by rememberSaveable { mutableStateOf("") }
+    var gender by rememberSaveable { mutableStateOf("남성") }
+    var region by rememberSaveable { mutableStateOf("") }
 
     val interestsList = remember { CategoryListFactory.makeCategoryList() }
+    var selectedInterestKeys by rememberSaveable { mutableStateOf(setOf<String>()) }
 
-    val selectedInterests = remember {
-        mutableStateMapOf<String, Boolean>().apply {
-            interestsList.forEach { this[it] = false }
-        }
-    }
 
 
     var isLoading by remember { mutableStateOf(false) }
@@ -125,12 +121,14 @@ fun FillProfileScreen(navController: NavController) {
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 interestsList.forEach { interest ->
-                    val isSelected = selectedInterests[interest] == true
+                    val isSelected = selectedInterestKeys.contains(interest)
                     Surface(
                         modifier = Modifier
                             .clip(CircleShape)
                             .clickable {
-                                selectedInterests[interest] = !isSelected
+                                selectedInterestKeys =
+                                    if (isSelected) selectedInterestKeys - interest
+                                    else selectedInterestKeys + interest
                             },
                         color = if (isSelected) Color(0xFF6A4CBD) else Color(0xFFE6E1EC)
                     ) {
@@ -163,7 +161,7 @@ fun FillProfileScreen(navController: NavController) {
                         return@Button
                     }
 
-                    if (selectedInterests.none { it.value }) {
+                    if (selectedInterestKeys.isEmpty()) {
                         Toast.makeText(context, "관심 분야를 최소 1개 이상 선택해주세요.", Toast.LENGTH_SHORT)
                             .show()
                         return@Button
@@ -180,7 +178,7 @@ fun FillProfileScreen(navController: NavController) {
                         age = age.toIntOrNull() ?: 0,
                         gender = gender,
                         region = region,
-                        interests = selectedInterests.filterValues { it }.keys.toList(),
+                        interests = selectedInterestKeys.toList(),
                         ink = 0,
                         pen = 0
                     )
