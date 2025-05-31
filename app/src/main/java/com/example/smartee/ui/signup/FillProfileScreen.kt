@@ -39,6 +39,7 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.example.smartee.model.UserData
 import com.example.smartee.navigation.Screen
+import com.example.smartee.ui.Map.RegionField
 import com.example.smartee.ui.common.LoadingOverlay
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
@@ -105,11 +106,17 @@ fun FillProfileScreen(navController: NavController) {
                 }
             }
 
-            OutlinedTextField(
-                value = region,
-                onValueChange = { region = it },
-                label = { Text("거주 지역") },
-                modifier = Modifier.fillMaxWidth()
+//            OutlinedTextField(
+//                value = region,
+//                onValueChange = { region = it },
+//                label = { Text("거주 지역") },
+//                modifier = Modifier.fillMaxWidth()
+//            )
+            var region by remember { mutableStateOf("") }
+
+            RegionField(
+                region = region,
+                onRegionChange = { region = it }
             )
 
             Text("관심 분야")
