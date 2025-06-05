@@ -16,6 +16,7 @@ import com.example.smartee.ui.attendance.AttendanceScreen
 import com.example.smartee.ui.attendance.ParticipantScreen
 import com.example.smartee.ui.login.LoginScreen
 import com.example.smartee.ui.profile.ProfileScreen
+import com.example.smartee.ui.screen.MyStudyScreen
 import com.example.smartee.ui.screen.StudyCreationScreen
 
 import com.example.smartee.ui.signup.FillProfileScreen
@@ -84,6 +85,9 @@ fun SmarteeNavGraph(navController: NavHostController) {
                 },
                 onProfileNavigate = {
                     navController.navigate(Screen.Profile.route)
+                },
+                onMyStudyNavigate = {
+                    navController.navigate("my_study")
                 }
             )
         }
@@ -133,5 +137,10 @@ fun SmarteeNavGraph(navController: NavHostController) {
         composable(Screen.Participant.route) {
             ParticipantScreen(navController, randomCode.value)
         }
+        //내 스터디
+        composable("my_study") {
+            MyStudyScreen()
+        }
+
     }
 }

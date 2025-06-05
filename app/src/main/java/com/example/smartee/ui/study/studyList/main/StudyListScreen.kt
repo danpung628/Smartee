@@ -35,7 +35,8 @@ fun StudyListScreen(
     onSearchNavigate: () -> Unit,
     onStudyCreateNavigate: () -> Unit,
     onProfileNavigate: () -> Unit,
-    onHomeNavigate: () -> Unit
+    onHomeNavigate: () -> Unit,
+    onMyStudyNavigate: () -> Unit
 ) {
     val studyViewModel: StudyViewModel =
         viewModel(viewModelStoreOwner = LocalNavGraphViewModelStoreOwner.current)
@@ -80,7 +81,7 @@ fun StudyListScreen(
                 )
                 NavigationBarItem(
                     selected = false,
-                    onClick = { },
+                    onClick = onMyStudyNavigate,
                     icon = { Icon(Icons.Default.List, contentDescription = "내 모임") },
                     label = { Text("내 모임") }
                 )
