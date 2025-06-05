@@ -23,6 +23,7 @@ import com.example.smartee.ui.signup.SignUpScreen
 import com.example.smartee.ui.study.studyList.StudyDetailScreen
 import com.example.smartee.ui.study.studyList.main.StudyListScreen
 import com.example.smartee.ui.study.studyList.search.StudySearchScreen
+import com.example.smartee.ui.study.editstudy.ui.StudyEditScreen
 
 
 @Composable
@@ -102,6 +103,20 @@ fun SmarteeNavGraph(navController: NavHostController) {
             )
         ) {
             StudyDetailScreen(
+                navController = navController,
+                studyId = it.arguments!!.getString("ID")!!
+            )
+        }
+        //스터디 편집
+        composable(
+            route = Screen.StudyEdit.route + "?studyID={ID}",
+            arguments = listOf(
+                navArgument("ID") {
+                    type = NavType.StringType
+                }
+            )
+        ) {
+            StudyEditScreen(
                 studyId = it.arguments!!.getString("ID")!!
             )
         }

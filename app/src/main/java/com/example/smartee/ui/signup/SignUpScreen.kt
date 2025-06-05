@@ -38,7 +38,7 @@ fun SignUpScreen(navController: NavController) {
     val auth = remember { FirebaseAuth.getInstance() }
     val oneTapClient = remember { Identity.getSignInClient(context) }
     var isLoading by remember { mutableStateOf(false) }
-
+    val isTesting = true
     // 로그인된 유저가 있으면 바로 홈으로
     LaunchedEffect(Unit) {
         val currentUser = auth.currentUser
@@ -48,14 +48,14 @@ fun SignUpScreen(navController: NavController) {
 
             db.collection("users").document(uid).get()
                 .addOnSuccessListener { document ->
-                    if (document.exists()) {
+                    if (isTesting || !document.exists()) {
                         // 기존 유저 → 홈 또는 로그인 화면
-                        navController.navigate(Screen.Login.route) {
+                        navController.navigate(Screen.FillProfile.route) {
                             popUpTo(Screen.SignUp.route) { inclusive = true }
                         }
                     } else {
                         // 신규 유저이지만 앱 재실행한 경우 → 프로필 입력부터 다시
-                        navController.navigate(Screen.FillProfile.route) {
+                        navController.navigate(Screen.Login.route) {
                             popUpTo(Screen.SignUp.route) { inclusive = true }
                         }
                     }
