@@ -1,4 +1,4 @@
-package com.example.smateeeeeeeeeeeeeeeeeeeeeeeee.editstudy.ui
+package com.example.smartee.ui.study.editstudy.ui
 import android.util.Log
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -14,21 +14,30 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.smartee.model.StudyData
 import com.example.smartee.viewmodel.StudyEditViewModel
 import com.example.smartee.ui.study.editstudy.util.validateStudy
 import com.google.firebase.Timestamp
+import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.launch
 import study_edit.ui.component.CategorySelector
 import study_edit.ui.component.DatePickerField
 
 @Composable
-fun StudyEditScreen(viewModel: StudyEditViewModel) {
+fun StudyEditScreen(studyId: String,
+                    vm: StudyEditViewModel = viewModel())
+{
+
+    LaunchedEffect(studyId) {
+        vm.loadStudyFromFirebase(studyId)
+    }
     val snackbarHostState = remember { SnackbarHostState() }
     val coroutineScope = rememberCoroutineScope()
     Scaffold(
@@ -38,19 +47,19 @@ fun StudyEditScreen(viewModel: StudyEditViewModel) {
             .padding(paddingValues)
             .padding(16.dp)) {
             OutlinedTextField(
-                value = viewModel.title,
-                onValueChange = { viewModel.title = it },
+                value = vm.title,
+                onValueChange = { vm.title = it },
                 label = { Text("스터디 이름") },
                 modifier = Modifier.fillMaxWidth()
             )
             Spacer(modifier = Modifier.height(12.dp))
 
-            DatePickerField("시작일", viewModel.startDate) { viewModel.startDate = it }
-            DatePickerField("종료일", viewModel.endDate) { viewModel.endDate = it }
+            DatePickerField("시작일", vm.startDate) { vm.startDate = it }
+            DatePickerField("종료일", vm.endDate) { vm.endDate = it }
 
             OutlinedTextField(
-                value = viewModel.maxMemberCount,
-                onValueChange = { viewModel.maxMemberCount = it },
+                value = vm.maxMemberCount,
+                onValueChange = { vm.maxMemberCount = it },
                 label = { Text("최대 인원수") },
                 modifier = Modifier.fillMaxWidth()
             )
@@ -59,13 +68,13 @@ fun StudyEditScreen(viewModel: StudyEditViewModel) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text("대면 여부")
                 Switch(
-                    checked = viewModel.isOffline,
-                    onCheckedChange = { viewModel.isOffline = it })
+                    checked = vm.isOffline,
+                    onCheckedChange = { vm.isOffline = it })
             }
 
             OutlinedTextField(
-                value = viewModel.minInkLevel,
-                onValueChange = { viewModel.minInkLevel = it },
+                value = vm.minInkLevel,
+                onValueChange = { vm.minInkLevel = it },
                 label = { Text("최소 잉크") },
                 modifier = Modifier.fillMaxWidth()
             )
@@ -74,48 +83,47 @@ fun StudyEditScreen(viewModel: StudyEditViewModel) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text("정기 여부")
                 Switch(
-                    checked = viewModel.isRegular,
-                    onCheckedChange = { viewModel.isRegular = it })
+                    checked = vm.isRegular,
+                    onCheckedChange = { vm.isRegular = it })
             }
             Spacer(modifier = Modifier.height(12.dp))
 
-            CategorySelector(viewModel.selectedCategories)
+            CategorySelector(vm.selectedCategories)
 
             OutlinedTextField(
-                value = viewModel.penCount,
-                onValueChange = { viewModel.penCount = it },
+                value = vm.penCount,
+                onValueChange = { vm.penCount = it },
                 label = { Text("만년필 수") },
                 modifier = Modifier.fillMaxWidth()
             )
             Spacer(modifier = Modifier.height(12.dp))
 
             Button(onClick = {
-                val currentData = StudyData(
-                    studyId = "",  // 새 스터디면 빈 문자열
-                    title = viewModel.title,
-                    category = viewModel.selectedCategories.joinToString(","),
-                    dateTimestamp = Timestamp.now(),
-                    startDate = viewModel.startDate?.toString() ?: "",
-                    endDate = viewModel.endDate?.toString() ?: "",
-                    isRegular = viewModel.isRegular,
-                    currentMemberCount = 0,
-                    maxMemberCount = viewModel.maxMemberCount.toIntOrNull() ?: -1,
-                    isOffline = viewModel.isOffline,
-                    minInkLevel = viewModel.minInkLevel.toIntOrNull() ?: -1,
-                    penCount = viewModel.penCount.toIntOrNull() ?: -1,
-                    punishment = viewModel.punishment,
-                    description = "반갑습니다 ㅎㅎ",  // 기본값
-                    address = "",  // 기본값
-                    commentCount = 0,
-                    likeCount = 0,
-                    thumbnailModel = "https://picsum.photos/300/200"  // 기본 썸네일
-                )
-
-                val errors = validateStudy(currentData)
+                val studyToSave = vm.toStudyData()
+                val errors = validateStudy(studyToSave)
 
                 if (errors.isEmpty()) {
-                    Log.d("StudyEdit", "✅ 유효성 통과: $currentData")
-                    // DB 저장 예정
+                    val db = FirebaseFirestore.getInstance()
+                    val docId = vm.studyId.ifEmpty {
+                        db.collection("studies").document().id.also {
+                            vm.studyId = it // 새로 생성한 ID 저장
+                        }
+                    }
+
+                    db.collection("studies").document(docId)
+                        .set(studyToSave.copy(studyId = docId))
+                        .addOnSuccessListener {
+                            Log.d("StudyEdit", "✅ 수정된 스터디 저장 성공")
+                            coroutineScope.launch {
+                                snackbarHostState.showSnackbar("수정 완료되었습니다!")
+                            }
+                        }
+                        .addOnFailureListener {
+                            Log.e("StudyEdit", "❌ 저장 실패", it)
+                            coroutineScope.launch {
+                                snackbarHostState.showSnackbar("저장 실패: ${it.message}")
+                            }
+                        }
                 } else {
                     coroutineScope.launch {
                         snackbarHostState.showSnackbar(errors.first())
