@@ -17,6 +17,9 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.Smartee"
         >
+        <meta-data
+            android:name="com. naver.maps.map. NCP_KEY_ID"
+            android:value="${NAVER_CLIENT_ID}"/>
         <activity
             android:name=".MainActivity"
             android:exported="true"

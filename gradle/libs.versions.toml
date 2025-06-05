@@ -9,6 +9,7 @@ lifecycleRuntimeKtx = "2.8.7"
 activityCompose = "1.10.1"
 composeBom = "2024.09.00"
 navigationCompose = "2.9.0-rc01"
+secretsGradlePlugin = "2.0.1"
 
 playServicesAuth = "21.3.0"
 googleid = "1.1.1"
@@ -31,6 +32,8 @@ materialVersion = "1.13.0-alpha13"
 firebaseMlModeldownloader = "25.0.1"
 tensorflowLite = "2.17.0"
 firebaseFunctionsKtx = "21.2.1"
+mapSdk = "3.21.0"
+naverMapCompose = "1.8.0"
 
 
 [libraries]
@@ -71,10 +74,12 @@ material = { group = "com.google.android.material", name = "material", version.r
 firebase-ml-modeldownloader = { group = "com.google.firebase", name = "firebase-ml-modeldownloader", version.ref = "firebaseMlModeldownloader" }
 tensorflow-lite = { group = "org.tensorflow", name = "tensorflow-lite", version.ref = "tensorflowLite" }
 firebase-functions-ktx = { group = "com.google.firebase", name = "firebase-functions-ktx", version.ref = "firebaseFunctionsKtx" }
+map-sdk = { group = "com.naver.maps", name = "map-sdk", version.ref = "mapSdk" }
+naver-map-compose = { group = "io.github.fornewid", name = "naver-map-compose", version.ref = "naverMapCompose" }
 
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
 kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
 kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
-
+secrets-gradle-plugin = { id = "com.google.android.libraries.mapsplatform.secrets-gradle-plugin", version.ref="secretsGradlePlugin"}

@@ -3,8 +3,12 @@ plugins {
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
     id("com.google.gms.google-services")
+    alias(libs.plugins.secrets.gradle.plugin)
 }
-
+secrets {
+    propertiesFileName = "secrets.properties"
+    defaultPropertiesFileName = "local.defaults.properties"
+}
 android {
     namespace = "com.example.smartee"
     compileSdk = 35
@@ -72,7 +76,9 @@ dependencies {
     implementation(libs.material)
     implementation(libs.firebase.ml.modeldownloader)
     implementation(libs.tensorflow.lite)
-    implementation(libs.firebase.functions.ktx) // 새로고침 기능
+    implementation(libs.firebase.functions.ktx)
+    implementation(libs.map.sdk)
+    implementation(libs.naver.map.compose) // 새로고침 기능
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
@@ -99,5 +105,6 @@ dependencies {
     // ✅ JSON 파싱을 위한 Gson
     implementation("com.google.code.gson:gson:2.10.1")
 
-
+    implementation("com.naver.maps:map-sdk:3.21.0")
+    implementation(libs.naver.map.compose)
 }
