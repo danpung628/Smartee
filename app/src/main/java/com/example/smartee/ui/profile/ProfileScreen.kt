@@ -3,8 +3,8 @@ package com.example.smartee.ui.profile
 import android.app.Application
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.Logout
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -36,7 +36,7 @@ fun ProfileScreen(navController: NavController) {
         viewModelStoreOwner = LocalNavGraphViewModelStoreOwner.current,
         factory = UserViewModelFactory(LocalContext.current.applicationContext as Application)
     )
-    val userProfile by userViewModel.userProfile.observeAsState()
+    val userData by userViewModel.userData.observeAsState()
 
     Scaffold(
         topBar = {
@@ -53,7 +53,7 @@ fun ProfileScreen(navController: NavController) {
                                 popUpTo(Screen.Login.route) { inclusive = true }
                             }
                         }) {
-                            Icon(Icons.Default.Logout, contentDescription = "로그아웃")
+                            Icon(Icons.AutoMirrored.Filled.Logout, contentDescription = "로그아웃")
                         }
                     }
                 }
@@ -64,7 +64,7 @@ fun ProfileScreen(navController: NavController) {
             ProfileContent(
                 modifier = Modifier.padding(paddingValues),
                 currentUser = currentUser,
-                userProfile = userProfile
+                userData = userData
             )
         } else {
             NotLoggedInContent(
