@@ -64,7 +64,7 @@ fun NaverMapScreen(
                 .align(Alignment.BottomCenter)
                 .padding(bottom = 24.dp) // 하단 여백
         ) {
-            Text("내 관심위치로 설정")
+            Text("내 관심위치로 설정") //onclick함수 설정 필요
         }
     }
 }
