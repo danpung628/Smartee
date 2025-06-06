@@ -8,7 +8,7 @@
 /.idea/navEditor.xml
 /.idea/assetWizardSettings.xml
 .idea/deploymentTargetSelector.xml # 실행할 때마다 자동으로 수정되는 부분
-
+/secrets.properties
 .DS_Store
 /build
 /captures

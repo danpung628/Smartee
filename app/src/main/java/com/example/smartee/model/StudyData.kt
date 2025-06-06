@@ -6,6 +6,11 @@ import java.time.LocalDateTime
 import java.time.ZoneId
 
 data class StudyData(
+    val managerId: String = "",
+    val participantIds: List<String> = emptyList(),
+
+
+
     val studyId: String = "",
     var title: String = "",
     var category: String = "",

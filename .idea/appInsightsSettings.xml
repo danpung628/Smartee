@@ -8,10 +8,10 @@
             <InsightsFilterSettings>
               <option name="connection">
                 <ConnectionSetting>
-                  <option name="appId" value="com.example.smartee" />
-                  <option name="mobileSdkAppId" value="1:963084791042:android:465273ba4f98a4c20ae61b" />
-                  <option name="projectId" value="smartee-319d0" />
-                  <option name="projectNumber" value="963084791042" />
+                  <option name="appId" value="PLACEHOLDER" />
+                  <option name="mobileSdkAppId" value="" />
+                  <option name="projectId" value="" />
+                  <option name="projectNumber" value="" />
                 </ConnectionSetting>
               </option>
               <option name="signal" value="SIGNAL_UNSPECIFIED" />

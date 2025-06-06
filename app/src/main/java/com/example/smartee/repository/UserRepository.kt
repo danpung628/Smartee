@@ -28,4 +28,10 @@ class UserRepository(private val firestore: FirebaseFirestore) {
     fun updatePenCount(userId: String, penCount: Int): Any {
         return usersCollection.document(userId).update("penCount", penCount)
     }
+
+    companion object {
+        fun getCurrentUserId(): String? {
+            return com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid
+        }
+    }
 }

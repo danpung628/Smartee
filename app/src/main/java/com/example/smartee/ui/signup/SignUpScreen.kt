@@ -38,7 +38,7 @@ fun SignUpScreen(navController: NavController) {
     val auth = remember { FirebaseAuth.getInstance() }
     val oneTapClient = remember { Identity.getSignInClient(context) }
     var isLoading by remember { mutableStateOf(false) }
-    val isTesting = true
+    val isTesting = false//true
     // 로그인된 유저가 있으면 바로 홈으로
     LaunchedEffect(Unit) {
         val currentUser = auth.currentUser
