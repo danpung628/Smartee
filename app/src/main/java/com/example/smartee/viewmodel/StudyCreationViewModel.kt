@@ -9,6 +9,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.smartee.model.StudyData
 import com.google.firebase.Timestamp
+import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.launch
 import java.time.LocalDate
@@ -49,6 +50,7 @@ class StudyCreationViewModel : ViewModel() {
     }
 
     fun submit() {
+        val userEmail = FirebaseAuth.getInstance().currentUser?.email ?: ""
         if (!validate()) {
             errorMessage = "입력값을 확인해주세요."
             return
@@ -57,6 +59,7 @@ class StudyCreationViewModel : ViewModel() {
 
         // StudyData 객체로 변환
         val newStudy = StudyData(
+            managerId = userEmail,
             title = title,
             category = selectedCategories.joinToString(","), // 카테고리 문자열로 변환
             dateTimestamp = Timestamp.now(), // 현재 시간

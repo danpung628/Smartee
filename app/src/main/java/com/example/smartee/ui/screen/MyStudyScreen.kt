@@ -10,11 +10,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.smartee.model.StudyData
+import com.example.smartee.ui.study.studyList.main.StudyListItem  // 홈 화면에서 사용된 StudyListItem 가져오기
 import com.example.smartee.viewmodel.MyStudyViewModel
 
 @Composable
 fun MyStudyScreen(
-    viewModel: MyStudyViewModel = viewModel()
+    viewModel: MyStudyViewModel = viewModel(),
+    onStudyClick: (String) -> Unit = {}  // 상세 화면 이동 등 클릭 처리용 람다
 ) {
     val myCreatedStudies by viewModel.myCreatedStudies.collectAsState()
     val myJoinedStudies by viewModel.myJoinedStudies.collectAsState()
@@ -23,17 +25,18 @@ fun MyStudyScreen(
         viewModel.loadMyStudies()
     }
 
-    Column(modifier = Modifier
-        .fillMaxSize()
-        .padding(16.dp)) {
-
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp)
+    ) {
         Text(
             text = "내가 만든 스터디",
             style = MaterialTheme.typography.titleMedium,
             modifier = Modifier.padding(vertical = 8.dp)
         )
 
-        StudyList(studies = myCreatedStudies)
+        StudyList(studies = myCreatedStudies, onClick = onStudyClick)
 
         Spacer(modifier = Modifier.height(24.dp))
 
@@ -43,25 +46,22 @@ fun MyStudyScreen(
             modifier = Modifier.padding(vertical = 8.dp)
         )
 
-        StudyList(studies = myJoinedStudies)
+        StudyList(studies = myJoinedStudies, onClick = onStudyClick)
     }
 }
 
 @Composable
-fun StudyList(studies: List<StudyData>) {
+fun StudyList(
+    studies: List<StudyData>,
+    onClick: (String) -> Unit
+) {
     LazyColumn {
         items(studies) { study ->
-            StudyListItem(study = study)
+            StudyListItem(
+                item = study,
+                onClick = { onClick(it) },
+                isRecommended = false
+            )
         }
-    }
-}
-
-@Composable
-fun StudyListItem(study: StudyData) {
-    Column(modifier = Modifier
-        .fillMaxWidth()
-        .padding(vertical = 8.dp)) {
-        Text(text = study.title, style = MaterialTheme.typography.titleSmall)
-        Text(text = "카테고리: ${study.category}", style = MaterialTheme.typography.bodySmall)
     }
 }
