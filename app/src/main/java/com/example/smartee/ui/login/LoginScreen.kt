@@ -36,6 +36,9 @@ fun LoginScreen(navController: NavController) {
         Button(onClick = { navController.navigate(Screen.Attendance.route) }) {
             Text("Go to Attendance")
         }
+        Button(onClick = { navController.navigate("map") }) {  // ✅ 지도 화면으로 이동하는 버튼
+            Text("Go to Map")
+        }
         Button(onClick = {
             FirebaseAuth.getInstance().signOut()
             navController.navigate(Screen.SignUp.route)
