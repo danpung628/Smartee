@@ -4,7 +4,7 @@ import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
-import com.example.smartee.model.UserProfile
+import com.example.smartee.model.UserData
 import com.example.smartee.repository.UserRepository
 import com.google.firebase.auth.FirebaseAuth
 
@@ -13,12 +13,8 @@ class UserViewModel(
     private val auth: FirebaseAuth
 ) : ViewModel() {
 
-    private val _userProfile = MutableLiveData<UserProfile>()
-    val userProfile: LiveData<UserProfile> = _userProfile
-
-    init {
-        loadUserProfile()
-    }
+    private val _userData = MutableLiveData<UserData>() // UserProfile → UserData
+    val userData: LiveData<UserData> = _userData // UserProfile → UserData
 
     private fun loadUserProfile() {
         val currentUser = auth.currentUser ?: return
@@ -26,20 +22,19 @@ class UserViewModel(
         userRepository.getUserProfile(currentUser.uid)
             .addOnSuccessListener { document ->
                 if (document.exists()) {
-                    _userProfile.value = document.toObject(UserProfile::class.java)
+                    _userData.value =
+                        document.toObject(UserData::class.java) // UserProfile → UserData
                 } else {
-                    // 신규 사용자인 경우 기본 프로필 생성
-                    val newProfile = UserProfile(
+                    val newProfile = UserData( // UserProfile → UserData
                         uid = currentUser.uid,
-                        displayName = currentUser.displayName ?: "",
+                        name = currentUser.displayName ?: "", // displayName → name
                         email = currentUser.email ?: "",
                         interests = listOf(),
-                        inkLevel = 50,
-                        penCount = 2 // 기본 만년필 보유량 설정
+                        ink = 50, // inkLevel → ink
+                        pen = 2 // penCount → pen
                     )
-                    _userProfile.value = newProfile
-                    // Firestore에 저장
-                    userRepository.saveUserProfile(newProfile)
+                    _userData.value = newProfile
+                    userRepository.saveUserProfile(newProfile) // 메서드명은 그대로
                 }
             }
     }

@@ -1,6 +1,6 @@
 package com.example.smartee.repository
 
-import com.example.smartee.model.UserProfile
+import com.example.smartee.model.UserData
 import com.google.android.gms.tasks.Task
 import com.google.firebase.firestore.DocumentSnapshot
 import com.google.firebase.firestore.FirebaseFirestore
@@ -21,8 +21,8 @@ class UserRepository(private val firestore: FirebaseFirestore) {
         return usersCollection.document(userId).update("inkLevel", inkLevel)
     }
 
-    fun saveUserProfile(userProfile: UserProfile): Task<Void> {
-        return usersCollection.document(userProfile.uid).set(userProfile)
+    fun saveUserProfile(userData: UserData): Task<Void> {
+        return usersCollection.document(userData.uid).set(userData)
     }
 
     fun updatePenCount(userId: String, penCount: Int): Any {

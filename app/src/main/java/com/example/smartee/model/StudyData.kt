@@ -15,7 +15,13 @@ data class StudyData(
     var startDate: String = "",
     var endDate: String = "",
     //정기/비정기
-    var isRegular:Boolean = false,
+    var isRegular: Boolean = false,
+// 정기 스터디의 경우
+    var regularDays: List<String> = listOf(), // "월", "수", "금" 등의 요일
+    var regularTime: String = "", // "19:00~21:00" 형식의 시간
+
+// 비정기 스터디의 경우
+    var irregularDateTimes: List<String> = listOf(), // "2025-05-20 15:00~17:00" 등의 날짜/시간
 
     var currentMemberCount: Int = 0,
     var maxMemberCount: Int = 0,

@@ -17,13 +17,12 @@ import com.example.smartee.ui.attendance.ParticipantScreen
 import com.example.smartee.ui.login.LoginScreen
 import com.example.smartee.ui.profile.ProfileScreen
 import com.example.smartee.ui.screen.StudyCreationScreen
-
 import com.example.smartee.ui.signup.FillProfileScreen
 import com.example.smartee.ui.signup.SignUpScreen
-import com.example.smartee.ui.study.studyList.StudyDetailScreen
+import com.example.smartee.ui.study.editstudy.ui.StudyEditScreen
 import com.example.smartee.ui.study.studyList.main.StudyListScreen
 import com.example.smartee.ui.study.studyList.search.StudySearchScreen
-import com.example.smartee.ui.study.editstudy.ui.StudyEditScreen
+import com.example.smartee.ui.study.studyList.studydetail.StudyDetailScreen
 
 
 @Composable
@@ -93,7 +92,7 @@ fun SmarteeNavGraph(navController: NavHostController) {
                 navController.navigate(Screen.StudyList.route + "?keyword=$keyword")
             }
         }
-        //스터디 세부사항
+//스터디 세부사항
         composable(
             route = Screen.Detail.route + "?studyID={ID}",
             arguments = listOf(
@@ -103,8 +102,15 @@ fun SmarteeNavGraph(navController: NavHostController) {
             )
         ) {
             StudyDetailScreen(
-                navController = navController,
-                studyId = it.arguments!!.getString("ID")!!
+                studyId = it.arguments!!.getString("ID")!!,
+                onJoinStudy = { studyId ->
+                    // 스터디 참가 로직
+                    navController.navigate(Screen.Attendance.route)
+                },
+                onReportStudy = { studyId ->
+                    // 스터디 신고 로직
+                    // 필요하면 신고 화면으로 이동
+                }
             )
         }
         //스터디 편집

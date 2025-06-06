@@ -14,7 +14,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.example.smartee.model.UserProfile
+import com.example.smartee.model.UserData
 import com.example.smartee.ui.profile.Resource.ResourcesCard
 import com.google.firebase.auth.FirebaseUser
 
@@ -22,7 +22,7 @@ import com.google.firebase.auth.FirebaseUser
 fun ProfileContent(
     modifier: Modifier = Modifier,
     currentUser: FirebaseUser?,
-    userProfile: UserProfile?
+    userData: UserData?
 ) {
     Column(
         modifier = modifier
@@ -37,7 +37,7 @@ fun ProfileContent(
         Spacer(modifier = Modifier.height(24.dp))
 
         // 지역 정보 (있는 경우에만)
-        userProfile?.location?.let { location ->
+        userData?.region?.let { location ->
             if (location.isNotEmpty()) {
                 LocationCard(location = location)
                 Spacer(modifier = Modifier.height(24.dp))
@@ -46,14 +46,14 @@ fun ProfileContent(
 
         // 자원 현황 (잉크, 만년필)
         ResourcesCard(
-            inkLevel = userProfile?.inkLevel ?: 0,
-            penCount = userProfile?.penCount ?: 0
+            inkLevel = userData?.ink ?: 0,
+            penCount = userData?.pen ?: 0
         )
 
         Spacer(modifier = Modifier.height(24.dp))
 
         // 관심 카테고리
-        InterestsCard(interests = userProfile?.interests ?: emptyList())
+        InterestsCard(interests = userData?.interests ?: emptyList())
     }
 }
 
