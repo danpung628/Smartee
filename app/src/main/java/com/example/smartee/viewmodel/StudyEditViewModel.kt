@@ -1,12 +1,17 @@
 package com.example.smartee.viewmodel
 
+import android.util.Log
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import com.example.smartee.model.StudyData
 import com.google.firebase.Timestamp
+import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.toObject
+import kotlinx.coroutines.launch
 import java.time.LocalDate
 
 class StudyEditViewModel : ViewModel() {
@@ -25,6 +30,31 @@ class StudyEditViewModel : ViewModel() {
     var address by mutableStateOf("")
     var thumbnailModel by mutableStateOf("")
     var selectedCategories = mutableStateListOf<String>()
+    private val db = FirebaseFirestore.getInstance()
+    fun loadStudyFromFirebase(studyId: String) {
+        this.studyId = studyId
+        viewModelScope.launch {
+            db.collection("studies").document(studyId)
+                .get()
+                .addOnSuccessListener { document ->
+                    if (document.exists()) {
+                        val study = document.toObject<StudyData>()?.copy(studyId = document.id)
+                        if (study != null) {
+                            loadStudyData(study)
+                            Log.d("StudyEditViewModel", "✅ 스터디 불러오기 성공: ${study.title}")
+                        } else {
+                            Log.w("StudyEditViewModel", "⚠️ 스터디 데이터 파싱 실패")
+                        }
+                    } else {
+                        Log.w("StudyEditViewModel", "⚠️ 문서가 존재하지 않음")
+                    }
+                }
+                .addOnFailureListener {
+                    Log.e("StudyEditViewModel", "❌ Firestore 불러오기 실패", it)
+                }
+        }
+    }
+
 
     fun loadStudyData(data: StudyData) {
         studyId = data.studyId
