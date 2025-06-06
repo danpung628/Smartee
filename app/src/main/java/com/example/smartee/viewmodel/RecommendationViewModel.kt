@@ -38,7 +38,7 @@ class RecommendationViewModel(
     val recommendationReason: LiveData<String?> = _recommendationReason
 
     init {
-        userViewModel.userProfile.observeForever { profile ->
+        userViewModel.userData.observeForever { profile ->
             if (profile != null && profile.interests.isNotEmpty() && availableStudies.isNotEmpty()) {
                 Log.d(TAG, "프로필 데이터 로드됨, 카테고리: ${profile.interests}")
                 refreshRecommendation(availableStudies)
@@ -48,11 +48,11 @@ class RecommendationViewModel(
 
     // 사용자 관심 카테고리를 UserViewModel에서 가져오기
     private fun getUserCategories(): List<String> {
-        return userViewModel.userProfile.value?.interests ?: listOf()
+        return userViewModel.userData.value?.interests ?: listOf()
     }
 
     private fun getUserInkLevel(): Int {
-        return userViewModel.userProfile.value?.inkLevel ?: 50
+        return userViewModel.userData.value?.ink ?: 50
     }
 
     // 스터디 목록이 변경될 때 추천 새로고침
