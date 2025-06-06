@@ -20,7 +20,7 @@ import com.example.smartee.ui.screen.StudyCreationScreen
 
 import com.example.smartee.ui.signup.FillProfileScreen
 import com.example.smartee.ui.signup.SignUpScreen
-import com.example.smartee.ui.study.studyList.StudyDetailScreen
+import com.example.smartee.ui.study.studyList.studydetail.StudyDetailScreen
 import com.example.smartee.ui.study.studyList.main.StudyListScreen
 import com.example.smartee.ui.study.studyList.search.StudySearchScreen
 import com.example.smartee.ui.study.editstudy.ui.StudyEditScreen

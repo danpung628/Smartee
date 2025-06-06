@@ -1,3 +1,4 @@
+
 package com.example.smartee.ui.study.studyList
 
 import androidx.compose.foundation.layout.Arrangement
@@ -21,7 +22,6 @@ import androidx.navigation.NavController
 import coil3.compose.AsyncImage
 import com.example.smartee.ui.LocalNavGraphViewModelStoreOwner
 import com.example.smartee.viewmodel.StudyViewModel
-
 @Composable
 fun StudyDetailScreen(
     navController: NavController,

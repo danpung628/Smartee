@@ -8,6 +8,7 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.smartee.service.AddressApiService
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 
 class AddressViewModel(app: Application) : AndroidViewModel(app) {
@@ -17,10 +18,22 @@ class AddressViewModel(app: Application) : AndroidViewModel(app) {
     var addressSuggestions by mutableStateOf<List<String>>(emptyList())
     var addressSearchQuery by mutableStateOf("")
 
-    // 주소 검색 기능
+    // 디바운스 처리를 위한 Job
+    private var searchJob: Job? = null
+
+    // 주소 검색 기능 (디바운스 처리)
     fun searchAddresses(query: String) {
-        viewModelScope.launch {
+        // 이전 검색 작업 취소
+        searchJob?.cancel()
+
+        if (query.length < 2) {
+            addressSuggestions = emptyList()
+            return
+        }
+
+        searchJob = viewModelScope.launch {
             try {
+                Log.d("AddressViewModel", "주소 검색 요청: $query")
                 val results = addressApiService.searchAddresses(query)
                 addressSuggestions = results
                 Log.d("AddressViewModel", "검색 결과: ${results.size}개")
