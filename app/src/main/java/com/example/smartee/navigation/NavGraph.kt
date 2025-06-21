@@ -1,6 +1,7 @@
 package com.example.smartee.navigation
 
 import HostScreen
+import android.util.Log
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -18,6 +19,7 @@ import com.example.smartee.ui.attendance.AttendanceScreen
 import com.example.smartee.ui.attendance.ParticipantScreen
 import com.example.smartee.ui.login.LoginScreen
 import com.example.smartee.ui.Map.NaverMapScreen
+import com.example.smartee.ui.meeting.MeetingEditScreen
 import com.example.smartee.ui.profile.ProfileScreen
 import com.example.smartee.ui.screen.MyStudyScreen
 import com.example.smartee.ui.screen.StudyCreationScreen
@@ -129,6 +131,19 @@ fun SmarteeNavGraph(navController: NavHostController, modifier: Modifier = Modif
             arguments = listOf(navArgument("studyId") { type = NavType.StringType })
         ) { backStackEntry ->
             RequestListScreen(studyId = backStackEntry.arguments?.getString("studyId") ?: "")
+        }
+        composable(
+            route = "meeting_edit/{parentStudyId}?meetingId={meetingId}",
+            arguments = listOf(
+                navArgument("parentStudyId") { type = NavType.StringType },
+                navArgument("meetingId") { nullable = true }
+            )
+        ) { backStackEntry ->
+            MeetingEditScreen(
+                parentStudyId = backStackEntry.arguments?.getString("parentStudyId") ?: "",
+                meetingId = backStackEntry.arguments?.getString("meetingId"),
+                onNavigateBack = { navController.popBackStack() }
+            )
         }
     }
 }

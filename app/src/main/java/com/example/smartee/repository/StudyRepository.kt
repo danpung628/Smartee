@@ -1,11 +1,13 @@
 package com.example.smartee.repository
 
 import com.example.smartee.model.JoinRequest
+import com.example.smartee.model.Meeting
 import com.example.smartee.model.StudyData
 import com.google.android.gms.tasks.Task
 import com.google.firebase.firestore.FieldPath
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.Query
 import kotlinx.coroutines.tasks.await
 
 class StudyRepository(
@@ -14,6 +16,70 @@ class StudyRepository(
     private val studiesCollection = firestore.collection("studies")
     private val joinRequestsCollection = firestore.collection("joinRequests")
     private val usersCollection = firestore.collection("users")
+    private val meetingsCollection = firestore.collection("meetings")
+
+    fun createMeeting(meetingData: Map<String, Any>, parentStudyId: String): Task<Void> {
+        val batch = firestore.batch()
+        val newMeetingRef = meetingsCollection.document()
+
+        // ViewModel에서 전달받은 Map 데이터를 저장합니다.
+        batch.set(newMeetingRef, meetingData)
+
+        // studies 문서에 요약 정보를 업데이트합니다.
+        val parentStudyRef = studiesCollection.document(parentStudyId)
+        val meetingSummary = mapOf(
+            "meetingId" to newMeetingRef.id,
+            "title" to (meetingData["title"] ?: ""),
+            "date" to (meetingData["date"] ?: "")
+        )
+        batch.update(parentStudyRef, "meetingSummaries", FieldValue.arrayUnion(meetingSummary))
+
+        return batch.commit()
+    }
+
+    suspend fun getMeetingById(meetingId: String): Meeting? {
+        return try {
+            meetingsCollection.document(meetingId).get().await().toObject(Meeting::class.java)
+        } catch (e: Exception) {
+            null
+        }
+    }
+
+    fun updateMeeting(meetingId: String, meetingData: Map<String, Any>): Task<Void> {
+        // TODO: studies 컬렉션의 meetingSummaries도 함께 업데이트하는 로직 추가 필요
+        return meetingsCollection.document(meetingId).update(meetingData)
+    }
+
+    fun deleteMeeting(meeting: Meeting): Task<Void> {
+        val batch = firestore.batch()
+
+        // 1. meetings 컬렉션에서 모임 문서 삭제
+        val meetingRef = meetingsCollection.document(meeting.meetingId)
+        batch.delete(meetingRef)
+
+        // 2. studies 컬렉션의 메인 스터디 문서에서 모임 요약 정보 삭제
+        val parentStudyRef = studiesCollection.document(meeting.parentStudyId)
+        val meetingSummary = mapOf(
+            "meetingId" to meeting.meetingId,
+            "title" to meeting.title,
+            "date" to meeting.date
+        )
+        batch.update(parentStudyRef, "meetingSummaries", FieldValue.arrayRemove(meetingSummary))
+
+        return batch.commit()
+    }
+    suspend fun getMeetingsForStudy(studyId: String): List<Meeting> {
+        return try {
+            val snapshot = meetingsCollection
+                .whereEqualTo("parentStudyId", studyId)
+                .orderBy("date", Query.Direction.ASCENDING)
+                .get()
+                .await()
+            snapshot.toObjects(Meeting::class.java)
+        } catch (e: Exception) {
+            emptyList()
+        }
+    }
 
     suspend fun getPendingRequestsForStudy(studyId: String): List<JoinRequest> {
         return try {
@@ -75,7 +141,7 @@ class StudyRepository(
             val snapshot = joinRequestsCollection
                 .whereEqualTo("requesterId", userId)
                 .whereEqualTo("studyId", studyId)
-                .whereEqualTo("status", "pending") // 이미 거절된 요청은 중복으로 보지 않음
+                .whereEqualTo("status", "pending")
                 .limit(1)
                 .get()
                 .await()
@@ -85,7 +151,6 @@ class StudyRepository(
 
     fun createJoinRequest(request: JoinRequest): Task<Void> {
         val newRequestRef = joinRequestsCollection.document()
-        // requestId는 @DocumentId 어노테이션으로 자동 주입되므로 copy할 필요가 없습니다.
         return newRequestRef.set(request)
     }
 }

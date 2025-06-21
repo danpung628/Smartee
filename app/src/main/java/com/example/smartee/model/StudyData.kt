@@ -46,7 +46,9 @@ data class StudyData(
     //스터디 좋아요
     var likeCount: Int = 0,
     //스터디 썸네일
+    val meetingSummaries: List<Map<String, String>> = emptyList(), // "id", "title", "date" 요약 정보
     var thumbnailModel: String = ""
+
 ) {
     // LocalDateTime 변환 헬퍼 함수
     fun getLocalDateTime(): LocalDateTime {
