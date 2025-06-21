@@ -18,6 +18,39 @@ class StudyRepository(
     private val usersCollection = firestore.collection("users")
     private val meetingsCollection = firestore.collection("meetings")
 
+    fun createMeeting(meeting: Meeting): Task<Void> {
+        val batch = firestore.batch()
+        val newMeetingRef = meetingsCollection.document()
+
+        // Firestore에 저장할 데이터를 Map 형태로 수동으로 만듭니다.
+        val meetingData = hashMapOf(
+            "parentStudyId" to meeting.parentStudyId,
+            "title" to meeting.title,
+            "date" to meeting.date,
+            "time" to meeting.time,
+            "isOffline" to meeting.isOffline,
+            "location" to meeting.location,
+            "description" to meeting.description,
+            "maxParticipants" to meeting.maxParticipants,
+            "applicants" to meeting.applicants,
+            "confirmedParticipants" to meeting.confirmedParticipants,
+            "timestamp" to FieldValue.serverTimestamp() // 서버 시간을 사용해 시간 불일치 방지
+        )
+        // 객체가 아닌 Map 데이터를 저장합니다.
+        batch.set(newMeetingRef, meetingData)
+
+        // studies 문서에 요약 정보를 업데이트하는 로직은 동일합니다.
+        val parentStudyRef = studiesCollection.document(meeting.parentStudyId)
+        val meetingSummary = mapOf(
+            "meetingId" to newMeetingRef.id,
+            "title" to meeting.title,
+            "date" to meeting.date
+        )
+        batch.update(parentStudyRef, "meetingSummaries", FieldValue.arrayUnion(meetingSummary))
+
+        return batch.commit()
+    }
+
     suspend fun getMeetingsForStudy(studyId: String): List<Meeting> {
         return try {
             val snapshot = meetingsCollection
@@ -91,7 +124,7 @@ class StudyRepository(
             val snapshot = joinRequestsCollection
                 .whereEqualTo("requesterId", userId)
                 .whereEqualTo("studyId", studyId)
-                .whereEqualTo("status", "pending") // 이미 거절된 요청은 중복으로 보지 않음
+                .whereEqualTo("status", "pending")
                 .limit(1)
                 .get()
                 .await()
@@ -101,7 +134,6 @@ class StudyRepository(
 
     fun createJoinRequest(request: JoinRequest): Task<Void> {
         val newRequestRef = joinRequestsCollection.document()
-        // requestId는 @DocumentId 어노테이션으로 자동 주입되므로 copy할 필요가 없습니다.
         return newRequestRef.set(request)
     }
 }

@@ -1,5 +1,6 @@
 package com.example.smartee.ui.study.studyList.studydetail
 
+import android.util.Log
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -10,6 +11,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.example.smartee.model.Meeting
@@ -22,6 +26,7 @@ fun StudyDetailScreen(
     studyId: String,
     navController: NavController
 ) {
+
     val viewModel: StudyDetailViewModel = viewModel()
     val studyData by viewModel.studyData.collectAsState()
     val userRole by viewModel.userRole.collectAsState()
@@ -29,11 +34,25 @@ fun StudyDetailScreen(
     val isLoading by viewModel.isLoading.collectAsState()
     val timeUntilNextMeeting by viewModel.timeUntilNextMeeting.collectAsState()
 
+
+    Log.d("MEETING_DEBUG", "화면 재구성됨. meetings 리스트 크기: ${meetings.size}")
+
     val eventState by viewModel.userEvent.collectAsState()
     val showDialog = remember { mutableStateOf<String?>(null) }
 
-    LaunchedEffect(key1 = studyId) {
-        viewModel.loadStudy(studyId)
+    val lifecycleOwner = LocalLifecycleOwner.current
+
+    // 화면이 다시 활성화될 때마다(예: 이전 화면에서 돌아올 때) 데이터를 새로고침
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                viewModel.loadStudy(studyId)
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+        }
     }
 
     LaunchedEffect(key1 = eventState) {
@@ -74,7 +93,7 @@ fun StudyDetailScreen(
     }
 
     val study = studyData
-    if (isLoading && study == null) { // 초기 로딩 시에만 전체 화면 로딩 표시
+    if (isLoading && study == null) {
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             CircularProgressIndicator()
         }
@@ -105,7 +124,14 @@ fun StudyDetailScreen(
 @Composable
 fun OwnerButtons(navController: NavController, studyId: String) {
     Column {
-        Button(onClick = { /* TODO: 세부 모임 생성 화면으로 이동 */ }, modifier = Modifier.fillMaxWidth()) {
+        Button(
+            onClick = {
+                // 네비게이션 직전에 studyId 값을 로그로 출력
+                Log.d("ID_TRACE", "StudyDetailScreen에서 전달하는 ID: $studyId")
+                navController.navigate("create_meeting/$studyId")
+            },
+            modifier = Modifier.fillMaxWidth()
+        ) {
             Text("세부 모임 추가")
         }
         Spacer(modifier = Modifier.height(8.dp))
@@ -120,7 +146,6 @@ fun OwnerButtons(navController: NavController, studyId: String) {
         }
     }
 }
-
 @Composable
 fun ParticipantButtons(timeUntilNextMeeting: String) {
     Button(
