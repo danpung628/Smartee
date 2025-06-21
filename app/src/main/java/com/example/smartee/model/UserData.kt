@@ -11,5 +11,7 @@ data class UserData(
     val region: String = "",
     val interests: List<String> = emptyList(),
     val ink: Int = 0,
-    val pen: Int = 0
+    val pen: Int = 0,
+    val createdStudyIds: List<String> = emptyList(),
+    val joinedStudyIds: List<String> = emptyList()
 )

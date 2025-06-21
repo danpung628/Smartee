@@ -10,13 +10,17 @@ import androidx.lifecycle.viewModelScope
 import com.example.smartee.model.StudyData
 import com.google.firebase.Timestamp
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.tasks.await
 import java.time.LocalDate
 
 class StudyCreationViewModel : ViewModel() {
     // Firebase 연동
     private val db = FirebaseFirestore.getInstance()
+    private val auth = FirebaseAuth.getInstance()
+
     private val studyCollectionRef = db.collection("studies")
 
     // 스터디 생성 폼 필드
@@ -50,6 +54,12 @@ class StudyCreationViewModel : ViewModel() {
     }
 
     fun submit() {
+        val currentUser = auth.currentUser
+        if (currentUser == null) {
+            errorMessage = "로그인이 필요합니다."
+            return
+        }
+
         val userEmail = FirebaseAuth.getInstance().currentUser?.email ?: ""
         if (!validate()) {
             errorMessage = "입력값을 확인해주세요."
@@ -59,7 +69,8 @@ class StudyCreationViewModel : ViewModel() {
 
         // StudyData 객체로 변환
         val newStudy = StudyData(
-            managerId = userEmail,
+            ownerId = currentUser.uid,
+            participantIds = listOf(currentUser.uid),
             title = title,
             category = selectedCategories.joinToString(","), // 카테고리 문자열로 변환
             dateTimestamp = Timestamp.now(), // 현재 시간
@@ -98,20 +109,29 @@ class StudyCreationViewModel : ViewModel() {
 
     private fun addStudyToFirebase(study: StudyData) {
         viewModelScope.launch {
-            studyCollectionRef.add(study)
-                .addOnSuccessListener { documentReference ->
-                    // ID 업데이트
-                    val studyWithId = study.copy(studyId = documentReference.id)
-                    val index = submittedStudies.indexOf(study)
-                    if (index >= 0) {
-                        submittedStudies[index] = studyWithId
-                    }
-                    Log.d("StudyDebug", "스터디 저장 성공: ${documentReference.id}")
-                }
-                .addOnFailureListener { e ->
-                    Log.e("StudyDebug", "스터디 저장 실패", e)
-                    errorMessage = "저장 실패: ${e.message}"
-                }
+            try {
+                val currentUser = auth.currentUser ?: return@launch
+
+                //  Firestore의 Batched Write를 사용해 두 개의 작업을 하나로 묶음
+                val batch = db.batch()
+
+                // 작업 1: 새로운 스터디 문서 생성
+                val newStudyRef = db.collection("studies").document()
+                batch.set(newStudyRef, study)
+
+                // 작업 2: 사용자 문서에 새로 만든 스터디 ID 추가
+                val userRef = db.collection("users").document(currentUser.uid)
+                batch.update(userRef, "createdStudyIds", FieldValue.arrayUnion(newStudyRef.id))
+
+                batch.commit().await()
+
+                Log.d("StudyDebug", "스터디 저장 및 유저 정보 업데이트 성공: ${newStudyRef.id}")
+                clearForm()
+
+            } catch (e: Exception) {
+                Log.e("StudyDebug", "스터디 저장 실패", e)
+                errorMessage = "저장 실패: ${e.message}"
+            }
         }
     }
 

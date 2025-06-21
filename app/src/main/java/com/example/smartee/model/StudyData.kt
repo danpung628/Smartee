@@ -6,7 +6,7 @@ import java.time.LocalDateTime
 import java.time.ZoneId
 
 data class StudyData(
-    val managerId: String = "",
+    val ownerId: String = "",
     val participantIds: List<String> = emptyList(),
 
 

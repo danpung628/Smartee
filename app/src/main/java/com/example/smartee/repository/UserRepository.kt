@@ -3,6 +3,7 @@ package com.example.smartee.repository
 import com.example.smartee.model.UserData
 import com.google.android.gms.tasks.Task
 import com.google.firebase.firestore.DocumentSnapshot
+import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 
 class UserRepository(private val firestore: FirebaseFirestore) {
@@ -33,5 +34,13 @@ class UserRepository(private val firestore: FirebaseFirestore) {
         fun getCurrentUserId(): String? {
             return com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid
         }
+    }
+    fun addCreatedStudyId(userId: String, studyId: String): Task<Void> {
+        // arrayUnion은 배열에 중복되지 않게 원소를 추가합니다.
+        return usersCollection.document(userId).update("createdStudyIds", FieldValue.arrayUnion(studyId))
+    }
+
+    fun addJoinedStudyId(userId: String, studyId: String): Task<Void> {
+        return usersCollection.document(userId).update("joinedStudyIds", FieldValue.arrayUnion(studyId))
     }
 }

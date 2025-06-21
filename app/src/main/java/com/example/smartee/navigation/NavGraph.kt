@@ -6,6 +6,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.ui.Modifier
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -28,20 +29,22 @@ import com.example.smartee.ui.study.studyList.studydetail.StudyDetailScreen
 
 
 @Composable
-fun SmarteeNavGraph(navController: NavHostController) {
+fun SmarteeNavGraph(navController: NavHostController, modifier: Modifier = Modifier) {
     val authViewModel = LocalAuthViewModel.current
     val isLoggedIn by authViewModel.currentUser.collectAsState(initial = null)
 
-    // 로그인 상태에 따라 시작 화면 결정
     val startDestination = if (isLoggedIn != null) {
         Screen.StudyList.route
     } else {
         Screen.SignUp.route
     }
 
-    //출석코드
     val randomCode = remember { mutableStateOf((100..999).random()) }
-    NavHost(navController, startDestination = Screen.SignUp.route) {
+    NavHost(
+        navController = navController,
+        startDestination = Screen.SignUp.route,
+        modifier = modifier
+    ) {
         composable(Screen.Login.route) {
             LoginScreen(navController)
         }
@@ -58,46 +61,23 @@ fun SmarteeNavGraph(navController: NavHostController) {
             StudyCreationScreen(navController)
         }
 
-        //스터디 목록 관련
-        //스터디 목록
         composable(
-            route = Screen.StudyList.route + "?keyword={keyword}",
-            arguments = listOf(
-                navArgument("keyword") {
-                    type = NavType.StringType
-                    defaultValue = ""
-                }
-            )
+            route = Screen.StudyList.route
         ) {
             StudyListScreen(
-//                keyword = it.arguments!!.getString("keyword")!!,
-                onHomeNavigate = {
-                    navController.navigate(Screen.StudyList.route)
-                },
-                onStudyDetailNavigate = {
-                    navController.navigate(Screen.Detail.route + "?studyID=$it")
+                onStudyDetailNavigate = { studyId ->
+                    navController.navigate(Screen.Detail.route + "?studyID=$studyId")
                 },
                 onSearchNavigate = {
                     navController.navigate(Screen.Search.route)
-                },
-                onStudyCreateNavigate = {
-                    navController.navigate(Screen.StudyCreate.route)
-                },
-                onProfileNavigate = {
-                    navController.navigate(Screen.Profile.route)
-                },
-                onMyStudyNavigate = {
-                    navController.navigate("my_study")
                 }
             )
         }
-        //검색창
         composable(route = Screen.Search.route) {
             StudySearchScreen { keyword ->
                 navController.navigate(Screen.StudyList.route + "?keyword=$keyword")
             }
         }
-//스터디 세부사항
         composable(
             route = Screen.Detail.route + "?studyID={ID}",
             arguments = listOf(
@@ -109,16 +89,12 @@ fun SmarteeNavGraph(navController: NavHostController) {
             StudyDetailScreen(
                 studyId = it.arguments!!.getString("ID")!!,
                 onJoinStudy = { studyId ->
-                    // 스터디 참가 로직
                     navController.navigate(Screen.Attendance.route)
                 },
                 onReportStudy = { studyId ->
-                    // 스터디 신고 로직
-                    // 필요하면 신고 화면으로 이동
                 }
             )
         }
-        //스터디 편집
         composable(
             route = Screen.StudyEdit.route + "?studyID={ID}",
             arguments = listOf(
@@ -135,7 +111,6 @@ fun SmarteeNavGraph(navController: NavHostController) {
         composable(Screen.Attendance.route) {
             AttendanceScreen(navController)
         }
-        //출석
         composable(Screen.Host.route) {
             HostScreen(navController, randomCode.value) { newCode ->
                 randomCode.value = newCode
@@ -144,15 +119,11 @@ fun SmarteeNavGraph(navController: NavHostController) {
         composable(Screen.Participant.route) {
             ParticipantScreen(navController, randomCode.value)
         }
-        //내 스터디
         composable("my_study") {
             MyStudyScreen()
         }
-
-
         composable("map") {
             NaverMapScreen()
         }
-
     }
 }
