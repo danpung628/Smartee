@@ -87,12 +87,7 @@ fun SmarteeNavGraph(navController: NavHostController, modifier: Modifier = Modif
             )
         ) {
             StudyDetailScreen(
-                studyId = it.arguments!!.getString("ID")!!,
-                onJoinStudy = { studyId ->
-                    navController.navigate(Screen.Attendance.route)
-                },
-                onReportStudy = { studyId ->
-                }
+                studyId = it.arguments!!.getString("ID")!!
             )
         }
         composable(
