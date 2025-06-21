@@ -19,7 +19,7 @@ import com.example.smartee.ui.attendance.AttendanceScreen
 import com.example.smartee.ui.attendance.ParticipantScreen
 import com.example.smartee.ui.login.LoginScreen
 import com.example.smartee.ui.Map.NaverMapScreen
-import com.example.smartee.ui.MeetingCreationScreen
+import com.example.smartee.ui.meeting.MeetingEditScreen
 import com.example.smartee.ui.profile.ProfileScreen
 import com.example.smartee.ui.screen.MyStudyScreen
 import com.example.smartee.ui.screen.StudyCreationScreen
@@ -133,15 +133,15 @@ fun SmarteeNavGraph(navController: NavHostController, modifier: Modifier = Modif
             RequestListScreen(studyId = backStackEntry.arguments?.getString("studyId") ?: "")
         }
         composable(
-            route = "create_meeting/{parentStudyId}",
-            arguments = listOf(navArgument("parentStudyId") { type = NavType.StringType })
+            route = "meeting_edit/{parentStudyId}?meetingId={meetingId}",
+            arguments = listOf(
+                navArgument("parentStudyId") { type = NavType.StringType },
+                navArgument("meetingId") { nullable = true }
+            )
         ) { backStackEntry ->
-            val receivedId = backStackEntry.arguments?.getString("parentStudyId") ?: ""
-            // 전달받은 ID 값을 로그로 출력
-            Log.d("ID_TRACE", "NavGraph에서 전달받은 ID: $receivedId")
-
-            MeetingCreationScreen(
-                parentStudyId = receivedId,
+            MeetingEditScreen(
+                parentStudyId = backStackEntry.arguments?.getString("parentStudyId") ?: "",
+                meetingId = backStackEntry.arguments?.getString("meetingId"),
                 onNavigateBack = { navController.popBackStack() }
             )
         }

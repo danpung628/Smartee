@@ -18,39 +18,56 @@ class StudyRepository(
     private val usersCollection = firestore.collection("users")
     private val meetingsCollection = firestore.collection("meetings")
 
-    fun createMeeting(meeting: Meeting): Task<Void> {
+    fun createMeeting(meetingData: Map<String, Any>, parentStudyId: String): Task<Void> {
         val batch = firestore.batch()
         val newMeetingRef = meetingsCollection.document()
 
-        // Firestore에 저장할 데이터를 Map 형태로 수동으로 만듭니다.
-        val meetingData = hashMapOf(
-            "parentStudyId" to meeting.parentStudyId,
-            "title" to meeting.title,
-            "date" to meeting.date,
-            "time" to meeting.time,
-            "isOffline" to meeting.isOffline,
-            "location" to meeting.location,
-            "description" to meeting.description,
-            "maxParticipants" to meeting.maxParticipants,
-            "applicants" to meeting.applicants,
-            "confirmedParticipants" to meeting.confirmedParticipants,
-            "timestamp" to FieldValue.serverTimestamp() // 서버 시간을 사용해 시간 불일치 방지
-        )
-        // 객체가 아닌 Map 데이터를 저장합니다.
+        // ViewModel에서 전달받은 Map 데이터를 저장합니다.
         batch.set(newMeetingRef, meetingData)
 
-        // studies 문서에 요약 정보를 업데이트하는 로직은 동일합니다.
-        val parentStudyRef = studiesCollection.document(meeting.parentStudyId)
+        // studies 문서에 요약 정보를 업데이트합니다.
+        val parentStudyRef = studiesCollection.document(parentStudyId)
         val meetingSummary = mapOf(
             "meetingId" to newMeetingRef.id,
-            "title" to meeting.title,
-            "date" to meeting.date
+            "title" to (meetingData["title"] ?: ""),
+            "date" to (meetingData["date"] ?: "")
         )
         batch.update(parentStudyRef, "meetingSummaries", FieldValue.arrayUnion(meetingSummary))
 
         return batch.commit()
     }
 
+    suspend fun getMeetingById(meetingId: String): Meeting? {
+        return try {
+            meetingsCollection.document(meetingId).get().await().toObject(Meeting::class.java)
+        } catch (e: Exception) {
+            null
+        }
+    }
+
+    fun updateMeeting(meetingId: String, meetingData: Map<String, Any>): Task<Void> {
+        // TODO: studies 컬렉션의 meetingSummaries도 함께 업데이트하는 로직 추가 필요
+        return meetingsCollection.document(meetingId).update(meetingData)
+    }
+
+    fun deleteMeeting(meeting: Meeting): Task<Void> {
+        val batch = firestore.batch()
+
+        // 1. meetings 컬렉션에서 모임 문서 삭제
+        val meetingRef = meetingsCollection.document(meeting.meetingId)
+        batch.delete(meetingRef)
+
+        // 2. studies 컬렉션의 메인 스터디 문서에서 모임 요약 정보 삭제
+        val parentStudyRef = studiesCollection.document(meeting.parentStudyId)
+        val meetingSummary = mapOf(
+            "meetingId" to meeting.meetingId,
+            "title" to meeting.title,
+            "date" to meeting.date
+        )
+        batch.update(parentStudyRef, "meetingSummaries", FieldValue.arrayRemove(meetingSummary))
+
+        return batch.commit()
+    }
     suspend fun getMeetingsForStudy(studyId: String): List<Meeting> {
         return try {
             val snapshot = meetingsCollection

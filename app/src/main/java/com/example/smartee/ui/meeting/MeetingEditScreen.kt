@@ -1,4 +1,4 @@
-package com.example.smartee.ui
+package com.example.smartee.ui.meeting
 
 import android.app.DatePickerDialog
 import android.app.TimePickerDialog
@@ -15,7 +15,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.example.smartee.viewmodel.MeetingCreationViewModel
+import com.example.smartee.viewmodel.MeetingEditViewModel
 import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.LocalTime
@@ -24,23 +24,31 @@ import java.util.Calendar
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun MeetingCreationScreen(
+fun MeetingEditScreen(
     parentStudyId: String,
+    meetingId: String?,
     onNavigateBack: () -> Unit,
-    viewModel: MeetingCreationViewModel = viewModel()
+    viewModel: MeetingEditViewModel = viewModel()
 ) {
+    LaunchedEffect(key1 = meetingId) {
+        if (meetingId != null) {
+            viewModel.loadMeeting(meetingId)
+        }
+    }
+
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
+    val isEditMode = meetingId != null
 
     LaunchedEffect(Unit) {
         viewModel.uiEvent.collect { event ->
             when (event) {
-                is MeetingCreationViewModel.UiEvent.ShowSnackbar -> {
+                is MeetingEditViewModel.UiEvent.ShowSnackbar -> {
                     scope.launch {
                         snackbarHostState.showSnackbar(event.message)
                     }
                 }
-                is MeetingCreationViewModel.UiEvent.NavigateBack -> {
+                is MeetingEditViewModel.UiEvent.NavigateBack -> {
                     onNavigateBack()
                 }
             }
@@ -49,7 +57,7 @@ fun MeetingCreationScreen(
 
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
-        topBar = { TopAppBar(title = { Text("세부 모임 만들기") }) }
+        topBar = { TopAppBar(title = { Text(if (isEditMode) "세부 모임 수정" else "세부 모임 만들기") }) }
     ) { padding ->
         Column(
             modifier = Modifier
@@ -90,8 +98,8 @@ fun MeetingCreationScreen(
             OutlinedTextField(value = viewModel.description, onValueChange = { viewModel.description = it }, label = { Text("간단한 설명") }, modifier = Modifier.fillMaxWidth().height(120.dp))
             Spacer(modifier = Modifier.height(16.dp))
 
-            Button(onClick = { viewModel.createMeeting(parentStudyId) }, modifier = Modifier.fillMaxWidth()) {
-                Text("모임 생성 완료")
+            Button(onClick = { viewModel.saveMeeting(parentStudyId) }, modifier = Modifier.fillMaxWidth()) {
+                Text(if (isEditMode) "수정 완료" else "생성 완료")
             }
         }
     }

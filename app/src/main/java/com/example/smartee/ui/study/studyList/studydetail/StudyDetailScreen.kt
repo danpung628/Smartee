@@ -1,6 +1,7 @@
 package com.example.smartee.ui.study.studyList.studydetail
 
 import android.util.Log
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -13,20 +14,19 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
-import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.example.smartee.model.Meeting
 import com.example.smartee.navigation.Screen
 import com.example.smartee.viewmodel.StudyDetailViewModel
 import com.example.smartee.viewmodel.UserRole
+import androidx.compose.ui.platform.LocalLifecycleOwner
 
 @Composable
 fun StudyDetailScreen(
     studyId: String,
     navController: NavController
 ) {
-
     val viewModel: StudyDetailViewModel = viewModel()
     val studyData by viewModel.studyData.collectAsState()
     val userRole by viewModel.userRole.collectAsState()
@@ -34,15 +34,13 @@ fun StudyDetailScreen(
     val isLoading by viewModel.isLoading.collectAsState()
     val timeUntilNextMeeting by viewModel.timeUntilNextMeeting.collectAsState()
 
-
-    Log.d("MEETING_DEBUG", "화면 재구성됨. meetings 리스트 크기: ${meetings.size}")
-
     val eventState by viewModel.userEvent.collectAsState()
     val showDialog = remember { mutableStateOf<String?>(null) }
+    var showManagementDialog by remember { mutableStateOf<Meeting?>(null) }
+    var showDeleteConfirmDialog by remember { mutableStateOf<Meeting?>(null) }
 
     val lifecycleOwner = LocalLifecycleOwner.current
 
-    // 화면이 다시 활성화될 때마다(예: 이전 화면에서 돌아올 때) 데이터를 새로고침
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
             if (event == Lifecycle.Event.ON_RESUME) {
@@ -92,6 +90,41 @@ fun StudyDetailScreen(
         )
     }
 
+    if (showManagementDialog != null) {
+        MeetingManagementDialog(
+            onDismiss = { showManagementDialog = null },
+            onEdit = {
+                val meeting = showManagementDialog!!
+                navController.navigate("meeting_edit/${meeting.parentStudyId}?meetingId=${meeting.meetingId}")
+                showManagementDialog = null
+            },
+            onDelete = {
+                showDeleteConfirmDialog = showManagementDialog
+                showManagementDialog = null
+            }
+        )
+    }
+
+    if (showDeleteConfirmDialog != null) {
+        AlertDialog(
+            onDismissRequest = { showDeleteConfirmDialog = null },
+            title = { Text("모임 삭제") },
+            text = { Text("정말로 이 모임을 삭제하시겠습니까?") },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        viewModel.deleteMeeting(showDeleteConfirmDialog!!)
+                        showDeleteConfirmDialog = null
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
+                ) { Text("삭제") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDeleteConfirmDialog = null }) { Text("취소") }
+            }
+        )
+    }
+
     val study = studyData
     if (isLoading && study == null) {
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -104,7 +137,15 @@ fun StudyDetailScreen(
                 StudyContent(study)
 
                 if (userRole == UserRole.OWNER || userRole == UserRole.PARTICIPANT) {
-                    MeetingListSection(meetings = meetings)
+                    MeetingListSection(
+                        meetings = meetings,
+                        isOwner = userRole == UserRole.OWNER,
+                        onMeetingClick = { meeting ->
+                            if (userRole == UserRole.OWNER) {
+                                showManagementDialog = meeting
+                            }
+                        }
+                    )
                 }
             }
 
@@ -120,6 +161,87 @@ fun StudyDetailScreen(
         StudyNotFound()
     }
 }
+
+
+@Composable
+fun MeetingListSection(
+    meetings: List<Meeting>,
+    isOwner: Boolean,
+    onMeetingClick: (Meeting) -> Unit
+) {
+    Column(modifier = Modifier.padding(16.dp)) {
+        Text("예정된 모임", style = MaterialTheme.typography.titleLarge)
+        Spacer(modifier = Modifier.height(8.dp))
+        if (meetings.isEmpty()) {
+            Text("예정된 모임이 없습니다.")
+        } else {
+            meetings.forEach { meeting ->
+                MeetingItem(
+                    meeting = meeting,
+                    onClick = {
+                        if (isOwner) {
+                            onMeetingClick(meeting)
+                        }
+                    }
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun MeetingItem(meeting: Meeting, onClick: () -> Unit) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp)
+            .clickable(onClick = onClick)
+    ) {
+        Column(modifier = Modifier.padding(12.dp)) {
+            Text(meeting.title, style = MaterialTheme.typography.titleMedium)
+            Text("날짜: ${meeting.date} 시간: ${meeting.time}")
+            Text("장소: ${meeting.location}")
+        }
+    }
+}
+
+@Composable
+fun MeetingManagementDialog(
+    onDismiss: () -> Unit,
+    onEdit: () -> Unit,
+    onDelete: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("모임 관리") },
+        text = { Text("수행할 작업을 선택해주세요.") },
+        confirmButton = {
+            Button(onClick = {
+                onEdit()
+                onDismiss()
+            }) { Text("수정") }
+        },
+        dismissButton = {
+            Button(
+                onClick = {
+                    onDelete()
+                    onDismiss()
+                },
+                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary)
+            ) { Text("삭제") }
+        }
+    )
+}
+@Composable
+private fun StudyNotFound() {
+    Box(
+        modifier = Modifier.fillMaxSize(),
+        contentAlignment = Alignment.Center
+    ) {
+        Text("스터디 정보를 찾을 수 없습니다.")
+    }
+}
+
 
 @Composable
 fun OwnerButtons(navController: NavController, studyId: String) {
@@ -173,39 +295,3 @@ fun GuestButtons(viewModel: StudyDetailViewModel, isLoading: Boolean) {
         }
     }
 }
-
-@Composable
-fun MeetingListSection(meetings: List<Meeting>) {
-    Column(modifier = Modifier.padding(16.dp)) {
-        Text("예정된 모임", style = MaterialTheme.typography.titleLarge)
-        Spacer(modifier = Modifier.height(8.dp))
-        if (meetings.isEmpty()) {
-            Text("예정된 모임이 없습니다.")
-        } else {
-            meetings.forEach { meeting ->
-                MeetingItem(meeting = meeting)
-            }
-        }
-    }
-}
-
-@Composable
-fun MeetingItem(meeting: Meeting) {
-    Card(modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
-        Column(modifier = Modifier.padding(12.dp)) {
-            Text(meeting.title, style = MaterialTheme.typography.titleMedium)
-            Text("날짜: ${meeting.date} 시간: ${meeting.time}")
-            Text("장소: ${meeting.location}")
-        }
-    }
-}
-@Composable
-private fun StudyNotFound() {
-    Box(
-        modifier = Modifier.fillMaxSize(),
-        contentAlignment = Alignment.Center
-    ) {
-        Text("스터디 정보를 찾을 수 없습니다.")
-    }
-}
-

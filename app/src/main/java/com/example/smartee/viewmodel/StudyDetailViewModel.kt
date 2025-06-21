@@ -75,6 +75,15 @@ class StudyDetailViewModel : ViewModel() {
         }
     }
 
+    fun deleteMeeting(meeting: Meeting) {
+        viewModelScope.launch {
+            studyRepository.deleteMeeting(meeting).addOnSuccessListener {
+                // 삭제 성공 후, 목록을 다시 불러와 UI를 즉시 갱신합니다.
+                loadStudy(meeting.parentStudyId)
+            }
+        }
+    }
+
     private fun findNextMeetingAndStartTimer(meetings: List<Meeting>) {
         if (isTimerRunning) return
 
@@ -113,7 +122,7 @@ class StudyDetailViewModel : ViewModel() {
     }
 
     fun requestToJoinStudy() {
-        if (_isLoading.value) return // 중복 요청 방지
+        if (_isLoading.value) return
 
         val study = _studyData.value ?: return
         val currentUserId = UserRepository.getCurrentUserId() ?: return
@@ -154,7 +163,6 @@ class StudyDetailViewModel : ViewModel() {
 
     fun reportStudy(studyId: String) {
         Log.d("StudyDetailViewModel", "Reporting study: $studyId")
-        // TODO: 스터디 신고 로직 구현
     }
 
     fun eventConsumed() {
