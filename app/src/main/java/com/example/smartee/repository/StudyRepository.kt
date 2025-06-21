@@ -1,11 +1,13 @@
 package com.example.smartee.repository
 
 import com.example.smartee.model.JoinRequest
+import com.example.smartee.model.Meeting
 import com.example.smartee.model.StudyData
 import com.google.android.gms.tasks.Task
 import com.google.firebase.firestore.FieldPath
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.Query
 import kotlinx.coroutines.tasks.await
 
 class StudyRepository(
@@ -14,6 +16,20 @@ class StudyRepository(
     private val studiesCollection = firestore.collection("studies")
     private val joinRequestsCollection = firestore.collection("joinRequests")
     private val usersCollection = firestore.collection("users")
+    private val meetingsCollection = firestore.collection("meetings")
+
+    suspend fun getMeetingsForStudy(studyId: String): List<Meeting> {
+        return try {
+            val snapshot = meetingsCollection
+                .whereEqualTo("parentStudyId", studyId)
+                .orderBy("date", Query.Direction.ASCENDING)
+                .get()
+                .await()
+            snapshot.toObjects(Meeting::class.java)
+        } catch (e: Exception) {
+            emptyList()
+        }
+    }
 
     suspend fun getPendingRequestsForStudy(studyId: String): List<JoinRequest> {
         return try {

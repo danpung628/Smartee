@@ -12,8 +12,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
+import com.example.smartee.model.Meeting
 import com.example.smartee.navigation.Screen
 import com.example.smartee.viewmodel.StudyDetailViewModel
+import com.example.smartee.viewmodel.UserRole
 
 @Composable
 fun StudyDetailScreen(
@@ -22,17 +24,20 @@ fun StudyDetailScreen(
 ) {
     val viewModel: StudyDetailViewModel = viewModel()
     val studyData by viewModel.studyData.collectAsState()
-    val userEvent by viewModel.userEvent.collectAsState()
+    val userRole by viewModel.userRole.collectAsState()
+    val meetings by viewModel.meetings.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
-    val isOwner by viewModel.isOwner.collectAsState()
+    val timeUntilNextMeeting by viewModel.timeUntilNextMeeting.collectAsState()
+
+    val eventState by viewModel.userEvent.collectAsState()
     val showDialog = remember { mutableStateOf<String?>(null) }
 
     LaunchedEffect(key1 = studyId) {
         viewModel.loadStudy(studyId)
     }
 
-    LaunchedEffect(key1 = userEvent) {
-        when (val event = userEvent) {
+    LaunchedEffect(key1 = eventState) {
+        when (val event = eventState) {
             is StudyDetailViewModel.UserEvent.RequestSentSuccessfully -> {
                 showDialog.value = "스터디 가입 신청이 완료되었습니다."
             }
@@ -69,42 +74,106 @@ fun StudyDetailScreen(
     }
 
     val study = studyData
-    if (isLoading) {
+    if (isLoading && study == null) { // 초기 로딩 시에만 전체 화면 로딩 표시
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             CircularProgressIndicator()
         }
     } else if (study != null) {
-        Column(modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
-            StudyHeader(study, onReportStudy = viewModel::reportStudy)
-            StudyContent(study)
-            Spacer(modifier = Modifier.weight(1f))
+        Column(modifier = Modifier.fillMaxSize()) {
+            Column(modifier = Modifier.weight(1f).verticalScroll(rememberScrollState())) {
+                StudyHeader(study, onReportStudy = viewModel::reportStudy)
+                StudyContent(study)
 
-            if (isOwner) {
-                Row(modifier = Modifier.padding(horizontal = 16.dp)) {
-                    Button(onClick = { navController.navigate("request_list/${study.studyId}") }, modifier = Modifier.weight(1f)) {
-                        Text("가입 요청 관리")
-                    }
-                    Spacer(modifier = Modifier.width(8.dp))
-                    OutlinedButton(onClick = { navController.navigate(Screen.StudyEdit.route + "?studyID=${study.studyId}") }, modifier = Modifier.weight(1f)) {
-                        Text("스터디 편집")
-                    }
-                }
-            } else {
-                Button(
-                    onClick = { viewModel.requestToJoinStudy() },
-                    modifier = Modifier.fillMaxWidth().height(56.dp).padding(horizontal = 16.dp),
-                    shape = RoundedCornerShape(8.dp),
-                ) {
-                    Text("스터디 참가하기", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                if (userRole == UserRole.OWNER || userRole == UserRole.PARTICIPANT) {
+                    MeetingListSection(meetings = meetings)
                 }
             }
-            Spacer(modifier = Modifier.height(32.dp))
+
+            Box(modifier = Modifier.padding(bottom = 32.dp, start = 16.dp, end = 16.dp)) {
+                when (userRole) {
+                    UserRole.OWNER -> OwnerButtons(navController, study.studyId)
+                    UserRole.PARTICIPANT -> ParticipantButtons(timeUntilNextMeeting)
+                    UserRole.GUEST -> GuestButtons(viewModel, isLoading)
+                }
+            }
         }
     } else {
         StudyNotFound()
     }
 }
 
+@Composable
+fun OwnerButtons(navController: NavController, studyId: String) {
+    Column {
+        Button(onClick = { /* TODO: 세부 모임 생성 화면으로 이동 */ }, modifier = Modifier.fillMaxWidth()) {
+            Text("세부 모임 추가")
+        }
+        Spacer(modifier = Modifier.height(8.dp))
+        Row {
+            Button(onClick = { navController.navigate("request_list/$studyId") }, modifier = Modifier.weight(1f)) {
+                Text("가입 요청 관리")
+            }
+            Spacer(modifier = Modifier.width(8.dp))
+            OutlinedButton(onClick = { navController.navigate(Screen.StudyEdit.route + "?studyID=$studyId") }, modifier = Modifier.weight(1f)) {
+                Text("스터디 편집")
+            }
+        }
+    }
+}
+
+@Composable
+fun ParticipantButtons(timeUntilNextMeeting: String) {
+    Button(
+        onClick = { /* TODO: 출석 체크 로직 실행 */ },
+        enabled = timeUntilNextMeeting == "출석 가능",
+        modifier = Modifier.fillMaxWidth().height(56.dp)
+    ) {
+        val buttonText = if (timeUntilNextMeeting.isNotEmpty()) "출석하기 ($timeUntilNextMeeting)" else "예정된 모임 없음"
+        Text(buttonText, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+    }
+}
+
+@Composable
+fun GuestButtons(viewModel: StudyDetailViewModel, isLoading: Boolean) {
+    Button(
+        onClick = { viewModel.requestToJoinStudy() },
+        enabled = !isLoading,
+        modifier = Modifier.fillMaxWidth().height(56.dp),
+        shape = RoundedCornerShape(8.dp),
+    ) {
+        if (isLoading) {
+            CircularProgressIndicator(color = MaterialTheme.colorScheme.onPrimary)
+        } else {
+            Text("스터디 참가하기", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+        }
+    }
+}
+
+@Composable
+fun MeetingListSection(meetings: List<Meeting>) {
+    Column(modifier = Modifier.padding(16.dp)) {
+        Text("예정된 모임", style = MaterialTheme.typography.titleLarge)
+        Spacer(modifier = Modifier.height(8.dp))
+        if (meetings.isEmpty()) {
+            Text("예정된 모임이 없습니다.")
+        } else {
+            meetings.forEach { meeting ->
+                MeetingItem(meeting = meeting)
+            }
+        }
+    }
+}
+
+@Composable
+fun MeetingItem(meeting: Meeting) {
+    Card(modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
+        Column(modifier = Modifier.padding(12.dp)) {
+            Text(meeting.title, style = MaterialTheme.typography.titleMedium)
+            Text("날짜: ${meeting.date} 시간: ${meeting.time}")
+            Text("장소: ${meeting.location}")
+        }
+    }
+}
 @Composable
 private fun StudyNotFound() {
     Box(
@@ -114,3 +183,4 @@ private fun StudyNotFound() {
         Text("스터디 정보를 찾을 수 없습니다.")
     }
 }
+
