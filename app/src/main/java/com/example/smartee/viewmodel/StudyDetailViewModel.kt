@@ -24,6 +24,9 @@ class StudyDetailViewModel : ViewModel() {
     private val _isLoading = MutableStateFlow(true)
     val isLoading = _isLoading.asStateFlow()
 
+    private val _isOwner = MutableStateFlow(false)
+    val isOwner = _isOwner.asStateFlow()
+
     private val _userEvent = MutableStateFlow<UserEvent?>(null)
     val userEvent = _userEvent.asStateFlow()
 
@@ -31,7 +34,10 @@ class StudyDetailViewModel : ViewModel() {
         viewModelScope.launch {
             _isLoading.value = true
             try {
-                _studyData.value = studyRepository.getStudyById(studyId)
+                val study = studyRepository.getStudyById(studyId)
+                _studyData.value = study
+                val currentUserId = UserRepository.getCurrentUserId()
+                _isOwner.value = study?.ownerId == currentUserId
             } finally {
                 _isLoading.value = false
             }

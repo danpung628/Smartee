@@ -13,6 +13,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
 import com.example.smartee.ui.LocalAuthViewModel
+import com.example.smartee.ui.request.RequestListScreen
 import com.example.smartee.ui.attendance.AttendanceScreen
 import com.example.smartee.ui.attendance.ParticipantScreen
 import com.example.smartee.ui.login.LoginScreen
@@ -60,7 +61,6 @@ fun SmarteeNavGraph(navController: NavHostController, modifier: Modifier = Modif
         composable(Screen.StudyCreate.route) {
             StudyCreationScreen(navController)
         }
-
         composable(
             route = Screen.StudyList.route
         ) {
@@ -87,7 +87,8 @@ fun SmarteeNavGraph(navController: NavHostController, modifier: Modifier = Modif
             )
         ) {
             StudyDetailScreen(
-                studyId = it.arguments!!.getString("ID")!!
+                studyId = it.arguments!!.getString("ID")!!,
+                navController = navController
             )
         }
         composable(
@@ -102,7 +103,6 @@ fun SmarteeNavGraph(navController: NavHostController, modifier: Modifier = Modif
                 studyId = it.arguments!!.getString("ID")!!
             )
         }
-
         composable(Screen.Attendance.route) {
             AttendanceScreen(navController)
         }
@@ -115,10 +115,20 @@ fun SmarteeNavGraph(navController: NavHostController, modifier: Modifier = Modif
             ParticipantScreen(navController, randomCode.value)
         }
         composable("my_study") {
-            MyStudyScreen()
+            MyStudyScreen(
+                onStudyClick = { studyId ->
+                    navController.navigate(Screen.Detail.route + "?studyID=$studyId")
+                }
+            )
         }
         composable("map") {
             NaverMapScreen()
+        }
+        composable(
+            route = "request_list/{studyId}",
+            arguments = listOf(navArgument("studyId") { type = NavType.StringType })
+        ) { backStackEntry ->
+            RequestListScreen(studyId = backStackEntry.arguments?.getString("studyId") ?: "")
         }
     }
 }

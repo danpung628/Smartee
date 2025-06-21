@@ -1,44 +1,30 @@
 package com.example.smartee.ui.study.studyList.studydetail
 
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavController
+import com.example.smartee.navigation.Screen
 import com.example.smartee.viewmodel.StudyDetailViewModel
 
 @Composable
 fun StudyDetailScreen(
     studyId: String,
+    navController: NavController
 ) {
     val viewModel: StudyDetailViewModel = viewModel()
     val studyData by viewModel.studyData.collectAsState()
     val userEvent by viewModel.userEvent.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
-
+    val isOwner by viewModel.isOwner.collectAsState()
     val showDialog = remember { mutableStateOf<String?>(null) }
 
     LaunchedEffect(key1 = studyId) {
@@ -82,44 +68,40 @@ fun StudyDetailScreen(
         )
     }
 
+    val study = studyData
     if (isLoading) {
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             CircularProgressIndicator()
         }
-    } else {
-        studyData?.let { study ->
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .verticalScroll(rememberScrollState())
-            ) {
-                StudyHeader(study, onReportStudy = viewModel::reportStudy)
-                StudyContent(study)
+    } else if (study != null) {
+        Column(modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
+            StudyHeader(study, onReportStudy = viewModel::reportStudy)
+            StudyContent(study)
+            Spacer(modifier = Modifier.weight(1f))
 
-                Spacer(modifier = Modifier.weight(1f))
-
+            if (isOwner) {
+                Row(modifier = Modifier.padding(horizontal = 16.dp)) {
+                    Button(onClick = { navController.navigate("request_list/${study.studyId}") }, modifier = Modifier.weight(1f)) {
+                        Text("가입 요청 관리")
+                    }
+                    Spacer(modifier = Modifier.width(8.dp))
+                    OutlinedButton(onClick = { navController.navigate(Screen.StudyEdit.route + "?studyID=${study.studyId}") }, modifier = Modifier.weight(1f)) {
+                        Text("스터디 편집")
+                    }
+                }
+            } else {
                 Button(
                     onClick = { viewModel.requestToJoinStudy() },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(56.dp)
-                        .padding(horizontal = 16.dp),
+                    modifier = Modifier.fillMaxWidth().height(56.dp).padding(horizontal = 16.dp),
                     shape = RoundedCornerShape(8.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.primary
-                    )
                 ) {
-                    Text(
-                        "스터디 참가하기",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold
-                    )
+                    Text("스터디 참가하기", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                 }
-                Spacer(modifier = Modifier.height(32.dp))
             }
-        } ?: run {
-            StudyNotFound()
+            Spacer(modifier = Modifier.height(32.dp))
         }
+    } else {
+        StudyNotFound()
     }
 }
 
