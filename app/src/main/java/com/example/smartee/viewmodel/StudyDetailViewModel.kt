@@ -168,7 +168,18 @@ class StudyDetailViewModel : ViewModel() {
     fun eventConsumed() {
         _userEvent.value = null
     }
-
+    fun joinMeeting(meeting: Meeting) {
+        val currentUserId = UserRepository.getCurrentUserId() ?: return
+        viewModelScope.launch {
+            try {
+                studyRepository.addCurrentUserToMeeting(meeting.meetingId, currentUserId).await()
+                // 성공 후, 모임 목록을 다시 불러와 UI를 갱신
+                loadStudy(meeting.parentStudyId)
+            } catch (e: Exception) {
+                _userEvent.value = UserEvent.Error("모임 가입 중 오류가 발생했습니다.")
+            }
+        }
+    }
     sealed class UserEvent {
         object RequestSentSuccessfully : UserEvent()
         object JoinConditionsNotMet : UserEvent()
