@@ -6,10 +6,15 @@ import AttendanceHostDialog
 import android.util.Log
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Cancel
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.People
 import androidx.compose.material.icons.filled.Settings
@@ -17,6 +22,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -25,11 +31,15 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
+import coil3.compose.AsyncImage
 import com.example.smartee.model.Meeting
+import com.example.smartee.model.ParticipantStatus
 import com.example.smartee.navigation.Screen
 import com.example.smartee.repository.UserRepository
+import com.example.smartee.viewmodel.MeetingStatusViewModel
 import com.example.smartee.viewmodel.StudyDetailViewModel
 import com.example.smartee.viewmodel.UserRole
 
@@ -59,6 +69,7 @@ fun StudyDetailScreen(
 
     var meetingToJoin by remember { mutableStateOf<Meeting?>(null) }
     var meetingToShowInfo by remember { mutableStateOf<Meeting?>(null) }
+    var meetingToShowStatus by remember { mutableStateOf<Meeting?>(null) }
 
     val lifecycleOwner = LocalLifecycleOwner.current
 
@@ -112,6 +123,12 @@ fun StudyDetailScreen(
         )
     }
 
+    if (meetingToShowStatus != null) {
+        MeetingStatusDialog(
+            meeting = meetingToShowStatus!!,
+            onDismiss = { meetingToShowStatus = null }
+        )
+    }
 
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
@@ -200,10 +217,16 @@ fun StudyDetailScreen(
                         currentUserId = currentUserId,
                         pendingRequestCounts = pendingRequestCounts,
                         onMeetingClick = { clickedMeeting ->
+                            val isJoined = clickedMeeting.confirmedParticipants.contains(currentUserId)
                             if (userRole == UserRole.OWNER) {
-                                meetingToShowInfo = clickedMeeting
-                            } else {
-                                if (!clickedMeeting.confirmedParticipants.contains(currentUserId)) {
+                                // 관리자는 클릭 시 모임 현황 또는 정보 다이얼로그를 띄움
+                                meetingToShowStatus = clickedMeeting
+                            } else if (userRole == UserRole.PARTICIPANT) {
+                                if (isJoined) {
+                                    // 참여자도 가입한 모임은 현황 다이얼로그를 봄
+                                    meetingToShowStatus = clickedMeeting
+                                } else {
+                                    // 가입하지 않은 모임은 가입 신청 다이얼로그를 봄
                                     meetingToJoin = clickedMeeting
                                 }
                             }
@@ -272,6 +295,65 @@ fun MeetingInfoDialog(
                     overflow = TextOverflow.Ellipsis
                 )
             }
+        }
+    }
+}
+
+@Composable
+fun MeetingStatusDialog(
+    meeting: Meeting,
+    onDismiss: () -> Unit
+) {
+    val viewModel: MeetingStatusViewModel = viewModel(factory = object : androidx.lifecycle.ViewModelProvider.Factory {
+        override fun <T : ViewModel> create(modelClass: Class<T>): T {
+            return MeetingStatusViewModel(meeting) as T
+        }
+    })
+
+    val participantStatusList by viewModel.participantStatusList.collectAsState()
+    val isLoading by viewModel.isLoading.collectAsState()
+
+    Dialog(onDismissRequest = onDismiss) {
+        Card(shape = RoundedCornerShape(16.dp)) {
+            Column(modifier = Modifier.padding(24.dp)) {
+                Text(meeting.title, style = MaterialTheme.typography.headlineSmall)
+                Spacer(modifier = Modifier.height(8.dp))
+                Text("날짜: ${meeting.date} 시간: ${meeting.time}", style = MaterialTheme.typography.bodyMedium)
+                Spacer(modifier = Modifier.height(16.dp))
+
+                if (isLoading) {
+                    Box(modifier = Modifier.fillMaxWidth().height(100.dp), contentAlignment = Alignment.Center) {
+                        CircularProgressIndicator()
+                    }
+                } else {
+                    LazyColumn(modifier = Modifier.heightIn(max = 300.dp)) {
+                        items(participantStatusList) { participant ->
+                            ParticipantStatusCard(participant = participant)
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun ParticipantStatusCard(participant: ParticipantStatus) {
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        AsyncImage(
+            model = participant.thumbnailUrl,
+            contentDescription = "${participant.name}의 프로필 사진",
+            modifier = Modifier.size(40.dp).clip(CircleShape)
+        )
+        Spacer(modifier = Modifier.width(16.dp))
+        Text(participant.name, modifier = Modifier.weight(1f))
+        if (participant.isPresent) {
+            Icon(Icons.Filled.CheckCircle, contentDescription = "출석 완료", tint = MaterialTheme.colorScheme.primary)
+        } else {
+            Icon(Icons.Filled.Cancel, contentDescription = "미출석", tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f))
         }
     }
 }
@@ -387,6 +469,7 @@ fun MeetingManagementDialog(
         dismissButton = {}
     )
 }
+
 @Composable
 private fun StudyNotFound() {
     Box(
@@ -396,6 +479,7 @@ private fun StudyNotFound() {
         Text("스터디 정보를 찾을 수 없습니다.")
     }
 }
+
 @Composable
 fun OwnerButtons(navController: NavController, studyId: String) {
     Column {
@@ -420,6 +504,7 @@ fun OwnerButtons(navController: NavController, studyId: String) {
         }
     }
 }
+
 @Composable
 fun GuestButtons(viewModel: StudyDetailViewModel, isLoading: Boolean) {
     Button(
