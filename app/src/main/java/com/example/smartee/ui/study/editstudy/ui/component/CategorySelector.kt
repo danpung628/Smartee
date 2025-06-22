@@ -1,5 +1,4 @@
-
-package study_edit.ui.component
+package com.example.smartee.ui.study.editstudy.ui.component
 
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow

@@ -1,4 +1,4 @@
-package com.example.smartee.ui.component
+package com.example.smartee.ui.study.creatstudy.ui.component
 
 import android.app.DatePickerDialog
 import androidx.compose.material3.OutlinedButton

@@ -1,4 +1,4 @@
-package study_edit.ui.component
+package com.example.smartee.ui.study.editstudy.ui.component
 
 import android.app.DatePickerDialog
 import android.widget.DatePicker

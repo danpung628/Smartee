@@ -1,4 +1,4 @@
-package com.example.smartee.ui.screen
+package com.example.smartee.ui.study.creatstudy.ui.screen
 
 import android.widget.Toast
 import androidx.compose.foundation.layout.Column
@@ -23,6 +23,10 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -31,7 +35,9 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.example.smartee.ui.LocalNavGraphViewModelStoreOwner
-import com.example.smartee.ui.component.DatePickerField
+import com.example.smartee.ui.study.creatstudy.ui.component.DatePickerField
+import com.example.smartee.ui.signup.RegionDropdown
+import com.example.smartee.ui.signup.loadRegionData
 import com.example.smartee.viewmodel.StudyCreationViewModel
 
 
@@ -43,6 +49,12 @@ fun StudyCreationScreen(navController: NavController) {
 
     val context = LocalContext.current
     val categories = listOf("CS", "자격증", "코딩", "운동", "토익", "면접", "영어", "자기계발", "기타")
+
+
+    val regionData = remember { loadRegionData(context) }
+
+    var selectedSido by remember { mutableStateOf("") }
+    var selectedSigungu by remember { mutableStateOf("") }
 
     Column(
         modifier = Modifier
@@ -58,6 +70,20 @@ fun StudyCreationScreen(navController: NavController) {
         Spacer(modifier = Modifier.height(8.dp))
         DatePickerField("종료일", viewModel.endDate) { viewModel.endDate = it }
         Spacer(modifier = Modifier.height(16.dp))
+
+        RegionDropdown(
+            regionData = regionData,
+            selectedSido = selectedSido,
+            selectedSigungu = selectedSigungu,
+            onSidoSelected = {
+                selectedSido = it
+                selectedSigungu = "" // 시/도 바뀌면 시군구 초기화
+            },
+            onSigunguSelected = {
+                selectedSigungu = it
+                viewModel.address = "$selectedSido $it"
+            }
+        )
 
         OutlinedTextField(value = viewModel.maxParticipants, onValueChange = { viewModel.maxParticipants = it }, label = { Text("최대 인원수") })
         Spacer(modifier = Modifier.height(16.dp))
