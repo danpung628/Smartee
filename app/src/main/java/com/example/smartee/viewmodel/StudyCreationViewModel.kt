@@ -1,3 +1,4 @@
+// smartee/viewmodel/StudyCreationViewModel.kt
 package com.example.smartee.viewmodel
 
 import android.util.Log
@@ -8,6 +9,7 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.smartee.model.StudyData
+import com.example.smartee.model.UserData
 import com.google.firebase.Timestamp
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FieldValue
@@ -17,13 +19,9 @@ import kotlinx.coroutines.tasks.await
 import java.time.LocalDate
 
 class StudyCreationViewModel : ViewModel() {
-    // Firebase 연동
     private val db = FirebaseFirestore.getInstance()
     private val auth = FirebaseAuth.getInstance()
 
-    private val studyCollectionRef = db.collection("studies")
-
-    // 스터디 생성 폼 필드
     var title by mutableStateOf("")
     var startDate by mutableStateOf<LocalDate?>(null)
     var endDate by mutableStateOf<LocalDate?>(null)
@@ -36,14 +34,12 @@ class StudyCreationViewModel : ViewModel() {
     var punishment by mutableStateOf("")
     var description by mutableStateOf("반갑습니다 ㅎㅎ")
     var address by mutableStateOf("")
-
     var errorMessage by mutableStateOf<String?>(null)
-
-    // 누적 저장 리스트
     var submittedStudies = mutableStateListOf<StudyData>()
         private set
 
     fun validate(): Boolean {
+        // ... (기존 validate 함수와 동일)
         return title.isNotBlank() &&
                 startDate != null &&
                 endDate != null &&
@@ -59,25 +55,22 @@ class StudyCreationViewModel : ViewModel() {
             errorMessage = "로그인이 필요합니다."
             return
         }
-
-        val userEmail = FirebaseAuth.getInstance().currentUser?.email ?: ""
         if (!validate()) {
             errorMessage = "입력값을 확인해주세요."
             return
         }
         errorMessage = null
 
-        // StudyData 객체로 변환
         val newStudy = StudyData(
+            // ... (기존 StudyData 객체 생성 로직과 동일)
             ownerId = currentUser.uid,
             participantIds = listOf(currentUser.uid),
             title = title,
-            category = selectedCategories.joinToString(","), // 카테고리 문자열로 변환
-            dateTimestamp = Timestamp.now(), // 현재 시간
+            category = selectedCategories.joinToString(","),
+            dateTimestamp = Timestamp.now(),
             startDate = startDate.toString(),
             endDate = endDate.toString(),
             isRegular = isRegular,
-            //currentMemberCount = 0, // 초기 멤버 수는 0
             maxMemberCount = maxParticipants.toIntOrNull() ?: 0,
             isOffline = isOffline,
             minInkLevel = minInk.toIntOrNull() ?: 0,
@@ -85,48 +78,61 @@ class StudyCreationViewModel : ViewModel() {
             punishment = punishment,
             description = description,
             address = address,
-            // 기본값 설정
             commentCount = 0,
             likeCount = 0,
-            thumbnailModel = "https://picsum.photos/300/200" // 랜덤 이미지 URL
+            thumbnailModel = "https://picsum.photos/300/200"
         )
-
-        // Firebase에 저장
         addStudyToFirebase(newStudy)
-
-        // 로컬 리스트에도 추가
-        submittedStudies.add(newStudy)
-
-        // 디버깅용
-        Log.d("StudyDebug", "===== 현재까지 생성된 스터디 목록 =====")
-        submittedStudies.forEachIndexed { index, study ->
-            Log.d("StudyDebug", "${index + 1}. 이름: ${study.title}, 카테고리: ${study.category}")
-        }
-
-        // 폼 초기화
-        clearForm()
     }
 
     private fun addStudyToFirebase(study: StudyData) {
         viewModelScope.launch {
             try {
                 val currentUser = auth.currentUser ?: return@launch
-
-                //  Firestore의 Batched Write를 사용해 두 개의 작업을 하나로 묶음
-                val batch = db.batch()
-
-                // 작업 1: 새로운 스터디 문서 생성
-                val newStudyRef = db.collection("studies").document()
-                batch.set(newStudyRef, study)
-
-                // 작업 2: 사용자 문서에 새로 만든 스터디 ID 추가
                 val userRef = db.collection("users").document(currentUser.uid)
-                batch.update(userRef, "createdStudyIds", FieldValue.arrayUnion(newStudyRef.id))
+                val newStudyRef = db.collection("studies").document()
 
-                batch.commit().await()
+                // Firestore Transaction을 사용하여 여러 작업을 원자적으로 처리
+                db.runTransaction { transaction ->
+                    val userDoc = transaction.get(userRef)
 
-                Log.d("StudyDebug", "스터디 저장 및 유저 정보 업데이트 성공: ${newStudyRef.id}")
+                    // 1. 스터디 생성 카운트 업데이트
+                    val createdCount = userDoc.getLong("createdStudiesCount") ?: 0
+                    val newCreatedCount = createdCount + 1
+
+                    // 2. 획득한 뱃지 목록 가져오기
+                    val earnedBadges = (userDoc.get("earnedBadgeIds") as? List<String> ?: emptyList()).toMutableSet()
+                    var newBadgeEarned = false
+
+                    // 3. '스터디 생성' 관련 뱃지 획득 조건 검사
+                    if (newCreatedCount == 1L && !earnedBadges.contains("first_study_create")) {
+                        earnedBadges.add("first_study_create")
+                        newBadgeEarned = true
+                    }
+                    if (newCreatedCount == 5L && !earnedBadges.contains("five_studies_create")) {
+                        earnedBadges.add("five_studies_create")
+                        newBadgeEarned = true
+                    }
+
+                    // 4. 새로운 스터디 문서 생성
+                    transaction.set(newStudyRef, study.copy(studyId = newStudyRef.id))
+
+                    // 5. 사용자 문서 업데이트 내용 구성
+                    val userUpdateData = mutableMapOf<String, Any>(
+                        "createdStudyIds" to FieldValue.arrayUnion(newStudyRef.id),
+                        "createdStudiesCount" to newCreatedCount
+                    )
+                    if (newBadgeEarned) {
+                        userUpdateData["earnedBadgeIds"] = earnedBadges.toList()
+                    }
+                    transaction.update(userRef, userUpdateData)
+
+                    null // 트랜잭션 성공
+                }.await()
+
+                Log.d("StudyDebug", "스터디 저장 및 뱃지 처리 성공: ${newStudyRef.id}")
                 clearForm()
+                submittedStudies.add(study.copy(studyId = newStudyRef.id))
 
             } catch (e: Exception) {
                 Log.e("StudyDebug", "스터디 저장 실패", e)
@@ -135,6 +141,7 @@ class StudyCreationViewModel : ViewModel() {
         }
     }
 
+    // ... (clearForm, toggleCategory 함수는 기존과 동일)
     private fun clearForm() {
         title = ""
         startDate = null

@@ -3,6 +3,7 @@ package com.example.smartee.navigation
 sealed class Screen(val route: String) {
     object Login : Screen("login")
     object SignUp : Screen("SignUp")
+    data object Badge : Screen("badge_screen") // <-- 이 줄을 추가
 
     //스터디 목록 관련
     object StudyList : Screen("study_list")
