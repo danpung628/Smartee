@@ -1,3 +1,5 @@
+// smartee/ui/attendance/HostScreen.kt
+
 import android.bluetooth.BluetoothAdapter
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -20,6 +22,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.smartee.bluetooth.BluetoothServerService
+import com.example.smartee.model.Meeting
 import com.example.smartee.model.StudyData
 import com.example.smartee.ui.attendance.AttendanceInfo
 import com.example.smartee.viewmodel.MyStudyViewModel
@@ -27,30 +30,29 @@ import com.example.smartee.viewmodel.MyStudyViewModel
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AttendanceHostDialog(
+    study: StudyData, // [수정] StudyData 객체를 직접 받음
+    meeting: Meeting, // [수정] Meeting 객체를 직접 받음
     randomCode: Int,
     onCodeGenerated: (Int) -> Unit,
     onDismissRequest: () -> Unit
 ) {
     val viewModel: MyStudyViewModel = viewModel()
 
-    // ViewModel로부터 생성한 스터디 목록과 선택된 스터디의 멤버 목록을 가져옵니다.
-    val createdStudies by viewModel.myCreatedStudies.collectAsState()
+    // ViewModel로부터 선택된 스터디의 멤버 목록을 가져옵니다.
     val selectedStudyMembers by viewModel.selectedStudyMembers.collectAsState()
 
-    // UI 상태 관리를 위한 변수들을 선언합니다.
-    var selectedStudy by remember { mutableStateOf<StudyData?>(null) }
-    var expanded by remember { mutableStateOf(false) }
+    // UI 상태 관리를 위한 변수
     var sessionStarted by remember { mutableStateOf(false) }
 
-    // Composable이 처음 로드될 때 내가 생성한 스터디 목록을 불러옵니다.
-    LaunchedEffect(Unit) {
-        viewModel.loadMyStudies()
+    // Composable이 처음 로드될 때 전달받은 studyId로 멤버 목록을 불러옵니다.
+    LaunchedEffect(key1 = study.studyId) {
+        viewModel.loadMembersForStudy(study.studyId)
     }
 
     val context = LocalContext.current
     // 출석 세션이 시작되면 블루투스 서버 서비스를 실행합니다.
-    LaunchedEffect(sessionStarted, selectedStudy) {
-        if (sessionStarted && selectedStudy != null) {
+    LaunchedEffect(sessionStarted, study) {
+        if (sessionStarted) {
             BluetoothServerService(context).start()
         }
     }
@@ -70,50 +72,18 @@ fun AttendanceHostDialog(
                     .padding(24.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Text("관리자 출석", style = MaterialTheme.typography.titleLarge)
+                // [수정] 다이얼로그 제목을 동적으로 변경
+                Text(
+                    text = "'${meeting.title}' 출석 관리",
+                    style = MaterialTheme.typography.titleLarge
+                )
                 Spacer(modifier = Modifier.height(24.dp))
 
-                // 출석 세션이 시작되지 않았을 때만 스터디 선택 드롭다운을 표시합니다.
+                // [삭제] 스터디 선택 드롭다운 메뉴 전체 삭제
+                // if (!sessionStarted) { ... }
+
+                // 세션이 시작되지 않았을 때
                 if (!sessionStarted) {
-                    ExposedDropdownMenuBox(
-                        expanded = expanded,
-                        onExpandedChange = { expanded = !expanded }
-                    ) {
-                        OutlinedTextField(
-                            value = selectedStudy?.title ?: "스터디 선택",
-                            onValueChange = {},
-                            readOnly = true,
-                            label = { Text("스터디 선택") },
-                            trailingIcon = {
-                                ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded)
-                            },
-                            modifier = Modifier
-                                .menuAnchor()
-                                .fillMaxWidth()
-                        )
-
-                        ExposedDropdownMenu(
-                            expanded = expanded,
-                            onDismissRequest = { expanded = false }
-                        ) {
-                            createdStudies.forEach { study ->
-                                DropdownMenuItem(
-                                    text = { Text(study.title) },
-                                    onClick = {
-                                        selectedStudy = study
-                                        viewModel.loadMembersForStudy(study.studyId)
-                                        expanded = false
-                                    }
-                                )
-                            }
-                        }
-                    }
-                    Spacer(modifier = Modifier.height(16.dp))
-                }
-
-
-                // 스터디가 선택되었고 세션이 시작되지 않았을 때
-                if (selectedStudy != null && !sessionStarted) {
                     if (!isBluetoothOn) {
                         Text("📵 블루투스가 꺼져 있습니다. 켠 후 다시 시도해주세요.", color = MaterialTheme.colorScheme.error)
                     } else {
@@ -122,9 +92,7 @@ fun AttendanceHostDialog(
                                 sessionStarted = true
                                 val code = (100..999).random()
                                 onCodeGenerated(code)
-                                selectedStudy?.let {
-                                    viewModel.startSession(it.studyId, code)
-                                }
+                                viewModel.startSession(study.studyId, code)
                             },
                             enabled = isBluetoothOn // 블루투스가 켜져있을 때만 버튼 활성화
                         ) {
@@ -159,9 +127,11 @@ fun AttendanceHostDialog(
                     }
 
                     Spacer(modifier = Modifier.height(32.dp))
-                    Button(onClick = onDismissRequest) {
-                        Text("← 돌아가기")
-                    }
+                }
+
+                // "돌아가기" 버튼은 항상 표시되도록 조건문 밖으로 이동
+                Button(onClick = onDismissRequest) {
+                    Text("← 돌아가기")
                 }
             }
         }
