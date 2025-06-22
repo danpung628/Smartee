@@ -5,6 +5,7 @@ package com.example.smartee.repository
 import com.example.smartee.model.JoinRequest
 import com.example.smartee.model.Meeting
 import com.example.smartee.model.MeetingJoinRequest
+import com.example.smartee.model.ParticipantStatus
 import com.example.smartee.model.StudyData
 import com.example.smartee.ui.attendance.AttendanceInfo
 import com.google.android.gms.tasks.Task
@@ -12,6 +13,9 @@ import com.google.firebase.firestore.FieldPath
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.Query
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.tasks.await
 
 class StudyRepository(
@@ -24,7 +28,38 @@ class StudyRepository(
     private val attendanceSessionsCollection = firestore.collection("attendanceSessions")
     private val meetingJoinRequestsCollection = firestore.collection("meetingJoinRequests")
 
-    // [추가] 특정 모임의 '대기중'인 신청 목록 가져오기
+    suspend fun getMeetingAttendanceStatus(meeting: Meeting): List<ParticipantStatus> {
+        val participantIds = meeting.confirmedParticipants
+        if (participantIds.isEmpty()) return emptyList()
+
+        return try {
+            coroutineScope {
+                val userProfileJobs = participantIds.map { userId ->
+                    async { usersCollection.document(userId).get().await() }
+                }
+                val userProfiles = userProfileJobs.awaitAll()
+
+                val attendanceJobs = participantIds.map { userId ->
+                    async { meetingsCollection.document(meeting.meetingId).collection("attendance").document(userId).get().await() }
+                }
+                val attendanceSnaps = attendanceJobs.awaitAll()
+
+                participantIds.mapIndexed { index, userId ->
+                    val userProfile = userProfiles[index]
+                    val attendanceSnap = attendanceSnaps[index]
+                    ParticipantStatus(
+                        userId = userId,
+                        name = userProfile.getString("nickname") ?: "알 수 없음",
+                        thumbnailUrl = userProfile.getString("profileImageUrl") ?: "",
+                        isPresent = attendanceSnap.exists() && attendanceSnap.getBoolean("isPresent") == true
+                    )
+                }
+            }
+        } catch (e: Exception) {
+            emptyList()
+        }
+    }
+
     suspend fun getPendingRequestsForMeeting(meetingId: String): List<MeetingJoinRequest> {
         return try {
             val snapshot = meetingJoinRequestsCollection
@@ -38,7 +73,6 @@ class StudyRepository(
         }
     }
 
-    // [추가] 특정 스터디의 모든 '대기중'인 모임 신청 목록 가져오기 (뱃지 카운트용)
     suspend fun getPendingMeetingRequestsForStudy(studyId: String): List<MeetingJoinRequest> {
         return try {
             val snapshot = meetingJoinRequestsCollection
@@ -52,19 +86,15 @@ class StudyRepository(
         }
     }
 
-    // [추가] 모임 참여 신청 승인
     fun approveMeetingJoinRequest(request: MeetingJoinRequest): Task<Void> {
         val batch = firestore.batch()
-        // 1. 신청서 상태 변경
         val requestRef = meetingJoinRequestsCollection.document(request.requestId)
         batch.update(requestRef, "status", "approved")
-        // 2. 모임의 확정된 참여자 목록에 추가
         val meetingRef = meetingsCollection.document(request.meetingId)
         batch.update(meetingRef, "confirmedParticipants", FieldValue.arrayUnion(request.requesterId))
         return batch.commit()
     }
 
-    // [추가] 모임 참여 신청 거절
     fun rejectMeetingJoinRequest(requestId: String): Task<Void> {
         return meetingJoinRequestsCollection.document(requestId).update("status", "rejected")
     }
@@ -78,13 +108,11 @@ class StudyRepository(
         return meetingRef.update("confirmedParticipants", FieldValue.arrayUnion(userId))
     }
 
-    fun markUserAsPresent(studyId: String, userId: String): Task<Void> {
-        val memberRef = studiesCollection.document(studyId).collection("members").document(userId)
-        val batch = firestore.batch()
-        batch.update(memberRef, "present", true)
-        batch.update(memberRef, "currentCount", FieldValue.increment(1))
-        return batch.commit()
+    fun markUserAsPresent(meetingId: String, userId: String): Task<Void> {
+        val attendanceRef = meetingsCollection.document(meetingId).collection("attendance").document(userId)
+        return attendanceRef.set(mapOf("isPresent" to true))
     }
+
     suspend fun getAttendanceInfoForStudy(studyId: String): List<AttendanceInfo> {
         return try {
             val snapshot = studiesCollection
@@ -137,7 +165,6 @@ class StudyRepository(
         val meetingRef = meetingsCollection.document(meetingId)
         val batch = firestore.batch()
 
-        // 1. 기존 모임 정보를 가져와서 oldSummary를 만듦
         val oldMeetingSnapshot = meetingRef.get().await()
         val oldMeeting = oldMeetingSnapshot.toObject(Meeting::class.java)
 
@@ -147,25 +174,21 @@ class StudyRepository(
                 "title" to oldMeeting.title,
                 "date" to oldMeeting.date
             )
-            // 2. 부모 study 문서에서 oldSummary를 제거
             val parentStudyRef = studiesCollection.document(oldMeeting.parentStudyId)
             batch.update(parentStudyRef, "meetingSummaries", FieldValue.arrayRemove(oldSummary))
         }
 
-        // 3. 새로운 요약 정보(newSummary)를 만듦
         val newSummary = mapOf(
             "meetingId" to meetingId,
             "title" to (meetingData["title"] ?: ""),
             "date" to (meetingData["date"] ?: "")
         )
-        // 4. 부모 study 문서에 newSummary를 추가
         val parentStudyId = meetingData["parentStudyId"] as? String ?: oldMeeting?.parentStudyId
         if (parentStudyId != null) {
             val parentStudyRef = studiesCollection.document(parentStudyId)
             batch.update(parentStudyRef, "meetingSummaries", FieldValue.arrayUnion(newSummary))
         }
 
-        // 5. meeting 문서 자체를 업데이트
         batch.update(meetingRef, meetingData)
 
         return batch.commit()
