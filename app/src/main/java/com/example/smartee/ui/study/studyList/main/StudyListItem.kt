@@ -126,7 +126,7 @@ fun StudyListItem(
                         text = if (item.maxMemberCount == Int.MAX_VALUE)
                             "인원 제한 없음"
                         else
-                            "${item.currentMemberCount}/${item.maxMemberCount}명",
+                            "${item.participantIds.size}/${item.maxMemberCount}명", // 참여자 리스트의 크기를 직접 사용
                         style = MaterialTheme.typography.bodyMedium
                     )
 

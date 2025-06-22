@@ -77,7 +77,7 @@ class StudyCreationViewModel : ViewModel() {
             startDate = startDate.toString(),
             endDate = endDate.toString(),
             isRegular = isRegular,
-            currentMemberCount = 0, // 초기 멤버 수는 0
+            //currentMemberCount = 0, // 초기 멤버 수는 0
             maxMemberCount = maxParticipants.toIntOrNull() ?: 0,
             isOffline = isOffline,
             minInkLevel = minInk.toIntOrNull() ?: 0,
