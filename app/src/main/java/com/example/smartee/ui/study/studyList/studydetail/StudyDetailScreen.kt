@@ -1,5 +1,6 @@
 package com.example.smartee.ui.study.studyList.studydetail
 
+import AttendanceHostDialog
 import android.util.Log
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -10,6 +11,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
@@ -20,12 +22,12 @@ import com.example.smartee.model.Meeting
 import com.example.smartee.navigation.Screen
 import com.example.smartee.viewmodel.StudyDetailViewModel
 import com.example.smartee.viewmodel.UserRole
-import androidx.compose.ui.platform.LocalLifecycleOwner
-
 @Composable
 fun StudyDetailScreen(
     studyId: String,
-    navController: NavController
+    navController: NavController,
+    randomCode: Int, // [추가]
+    onCodeGenerated: (Int) -> Unit // [추가]
 ) {
     val viewModel: StudyDetailViewModel = viewModel()
     val studyData by viewModel.studyData.collectAsState()
@@ -37,9 +39,20 @@ fun StudyDetailScreen(
     val eventState by viewModel.userEvent.collectAsState()
     val showDialog = remember { mutableStateOf<String?>(null) }
     var showManagementDialog by remember { mutableStateOf<Meeting?>(null) }
-    var showDeleteConfirmDialog by remember { mutableStateOf<Meeting?>(null) }
+
+    // [추가] 출석 다이얼로그 상태 관리
+    var showAttendanceDialog by remember { mutableStateOf(false) }
 
     val lifecycleOwner = LocalLifecycleOwner.current
+
+    // [추가] 출석 다이얼로그 표시
+    if (showAttendanceDialog) {
+        AttendanceHostDialog(
+            randomCode = randomCode,
+            onCodeGenerated = onCodeGenerated,
+            onDismissRequest = { showAttendanceDialog = false }
+        )
+    }
 
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
@@ -98,29 +111,10 @@ fun StudyDetailScreen(
                 navController.navigate("meeting_edit/${meeting.parentStudyId}?meetingId=${meeting.meetingId}")
                 showManagementDialog = null
             },
-            onDelete = {
-                showDeleteConfirmDialog = showManagementDialog
+            onAttendanceCheck = {
+                // [수정] 네비게이션 대신 다이얼로그를 띄우도록 변경
+                showAttendanceDialog = true
                 showManagementDialog = null
-            }
-        )
-    }
-
-    if (showDeleteConfirmDialog != null) {
-        AlertDialog(
-            onDismissRequest = { showDeleteConfirmDialog = null },
-            title = { Text("모임 삭제") },
-            text = { Text("정말로 이 모임을 삭제하시겠습니까?") },
-            confirmButton = {
-                Button(
-                    onClick = {
-                        viewModel.deleteMeeting(showDeleteConfirmDialog!!)
-                        showDeleteConfirmDialog = null
-                    },
-                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
-                ) { Text("삭제") }
-            },
-            dismissButton = {
-                TextButton(onClick = { showDeleteConfirmDialog = null }) { Text("취소") }
             }
         )
     }
@@ -161,8 +155,6 @@ fun StudyDetailScreen(
         StudyNotFound()
     }
 }
-
-
 @Composable
 fun MeetingListSection(
     meetings: List<Meeting>,
@@ -205,33 +197,29 @@ fun MeetingItem(meeting: Meeting, onClick: () -> Unit) {
     }
 }
 
+// [수정] MeetingManagementDialog Composable
 @Composable
 fun MeetingManagementDialog(
     onDismiss: () -> Unit,
     onEdit: () -> Unit,
-    onDelete: () -> Unit
+    onAttendanceCheck: () -> Unit // onDelete -> onAttendanceCheck 로 변경
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text("모임 관리") },
         text = { Text("수행할 작업을 선택해주세요.") },
         confirmButton = {
-            Button(onClick = {
-                onEdit()
-                onDismiss()
-            }) { Text("수정") }
+            Button(onClick = onEdit) { Text("수정") }
         },
         dismissButton = {
             Button(
-                onClick = {
-                    onDelete()
-                    onDismiss()
-                },
-                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary)
-            ) { Text("삭제") }
+                onClick = onAttendanceCheck,
+                colors = ButtonDefaults.buttonColors() // 기본 색상으로 변경
+            ) { Text("출석 체크") } // "삭제" -> "출석 체크"로 텍스트 변경
         }
     )
 }
+
 @Composable
 private fun StudyNotFound() {
     Box(
@@ -268,6 +256,7 @@ fun OwnerButtons(navController: NavController, studyId: String) {
         }
     }
 }
+
 @Composable
 fun ParticipantButtons(timeUntilNextMeeting: String) {
     Button(

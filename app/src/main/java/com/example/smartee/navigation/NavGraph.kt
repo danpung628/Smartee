@@ -1,6 +1,8 @@
+// smartee/navigation/NavGraph.kt
+
 package com.example.smartee.navigation
 
-import HostScreen
+// HostScreen import는 이제 필요 없습니다.
 import android.util.Log
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -42,7 +44,9 @@ fun SmarteeNavGraph(navController: NavHostController, modifier: Modifier = Modif
         Screen.SignUp.route
     }
 
+    // 이 상태값은 ParticipantScreen과 공유해야 하므로 여기 유지합니다.
     val randomCode = remember { mutableStateOf((100..999).random()) }
+
     NavHost(
         navController = navController,
         startDestination = Screen.SignUp.route,
@@ -88,9 +92,12 @@ fun SmarteeNavGraph(navController: NavHostController, modifier: Modifier = Modif
                 }
             )
         ) {
+            // [수정] StudyDetailScreen에 파라미터 전달
             StudyDetailScreen(
                 studyId = it.arguments!!.getString("ID")!!,
-                navController = navController
+                navController = navController,
+                randomCode = randomCode.value,
+                onCodeGenerated = { newCode -> randomCode.value = newCode }
             )
         }
         composable(
@@ -108,11 +115,10 @@ fun SmarteeNavGraph(navController: NavHostController, modifier: Modifier = Modif
         composable(Screen.Attendance.route) {
             AttendanceScreen(navController)
         }
-        composable(Screen.Host.route) {
-            HostScreen(navController, randomCode.value) { newCode ->
-                randomCode.value = newCode
-            }
-        }
+
+        // [삭제] HostScreen 경로 삭제
+        // composable(Screen.Host.route) { ... }
+
         composable(Screen.Participant.route) {
             ParticipantScreen(navController, randomCode.value)
         }

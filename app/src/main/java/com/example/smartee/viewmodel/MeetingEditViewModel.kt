@@ -10,6 +10,7 @@ import com.example.smartee.repository.StudyRepository
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.tasks.await
 import java.time.LocalDate
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
@@ -88,6 +89,33 @@ class MeetingEditViewModel : ViewModel() {
         }.addOnFailureListener {
             viewModelScope.launch {
                 _uiEvent.emit(UiEvent.ShowSnackbar("오류가 발생했습니다: ${it.message}"))
+            }
+        }
+    }
+
+    // [수정] 모임 삭제 함수
+    fun deleteMeeting() {
+        val currentMeetingId = meetingId
+        if (currentMeetingId == null) {
+            viewModelScope.launch { _uiEvent.emit(UiEvent.ShowSnackbar("삭제할 수 없는 모임입니다.")) }
+            return
+        }
+
+        viewModelScope.launch {
+            try {
+                // 1. ID를 사용해 Repository에서 Meeting 객체를 가져옴
+                val meetingToDelete = studyRepository.getMeetingById(currentMeetingId)
+
+                if (meetingToDelete != null) {
+                    // 2. 가져온 Meeting 객체를 파라미터로 전달하여 삭제 실행
+                    studyRepository.deleteMeeting(meetingToDelete).await() // .await()으로 작업 완료 대기
+                    _uiEvent.emit(UiEvent.ShowSnackbar("모임이 삭제되었습니다."))
+                    _uiEvent.emit(UiEvent.NavigateBack)
+                } else {
+                    _uiEvent.emit(UiEvent.ShowSnackbar("삭제할 모임 정보를 찾을 수 없습니다."))
+                }
+            } catch (e: Exception) {
+                _uiEvent.emit(UiEvent.ShowSnackbar("삭제 중 오류가 발생했습니다: ${e.message}"))
             }
         }
     }
