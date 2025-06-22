@@ -18,6 +18,7 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.tasks.await
 import kotlin.jvm.java
+import com.example.smartee.model.UserData
 
 class StudyRepository(
     private val firestore: FirebaseFirestore = FirebaseFirestore.getInstance()
@@ -330,5 +331,34 @@ class StudyRepository(
     fun createJoinRequest(request: JoinRequest): Task<Void> {
         val newRequestRef = joinRequestsCollection.document()
         return newRequestRef.set(request)
+    }
+    suspend fun createStudyWithBadgeCheck(studyData: StudyData, ownerId: String) {
+        // 1. 기존 스터디 생성 로직 (예시)
+        studiesCollection.add(studyData).await()
+
+        // 2. 뱃지 획득 로직 추가
+        val userRef = usersCollection.document(ownerId)
+        try {
+            firestore.runTransaction { transaction ->
+                val userDoc = transaction.get(userRef)
+                val createdCount = userDoc.getLong("createdStudiesCount") ?: 0
+                val newCreatedCount = createdCount + 1
+
+                val earnedBadges = (userDoc.get("earnedBadgeIds") as? List<String> ?: emptyList()).toMutableSet()
+
+                if (newCreatedCount == 1L) {
+                    earnedBadges.add("first_study_create") // 예시 뱃지 ID
+                }
+                if (newCreatedCount == 5L) {
+                    earnedBadges.add("five_studies_create") // 예시 뱃지 ID
+                }
+
+                transaction.update(userRef, "createdStudiesCount", newCreatedCount)
+                transaction.update(userRef, "earnedBadgeIds", earnedBadges.toList())
+                null
+            }.await()
+        } catch (e: Exception) {
+            // 오류 처리
+        }
     }
 }

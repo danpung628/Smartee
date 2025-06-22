@@ -1,3 +1,5 @@
+// smartee/ui/profile/ProfileScreen.kt
+
 package com.example.smartee.ui.profile
 
 import android.app.Application
@@ -31,7 +33,6 @@ fun ProfileScreen(navController: NavController) {
     val authViewModel = LocalAuthViewModel.current
     val currentUser by authViewModel.currentUser.collectAsState()
 
-    // UserViewModel 초기화 및 사용자 프로필 데이터 가져오기
     val userViewModel: UserViewModel = viewModel(
         viewModelStoreOwner = LocalNavGraphViewModelStoreOwner.current,
         factory = UserViewModelFactory(LocalContext.current.applicationContext as Application)

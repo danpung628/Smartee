@@ -34,6 +34,7 @@ module.exports = {
       "@typescript-eslint/no-unused-vars": "warn", // 사용하지 않는 변수 오류를 경고로 변경
       "eol-last": "off", // 파일 끝에 개행 문자 강제 끄기
        "padded-blocks": "off",
+    "@typescript-eslint/no-explicit-any": "off",
 
     },
 };
