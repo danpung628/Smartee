@@ -23,6 +23,7 @@ import com.example.smartee.ui.login.LoginScreen
 import com.example.smartee.ui.Map.NaverMapScreen
 import com.example.smartee.ui.meeting.MeetingEditScreen
 import com.example.smartee.ui.profile.ProfileScreen
+import com.example.smartee.ui.request.MeetingRequestListScreen
 import com.example.smartee.ui.screen.MyStudyScreen
 import com.example.smartee.ui.screen.StudyCreationScreen
 import com.example.smartee.ui.signup.FillProfileScreen
@@ -151,5 +152,17 @@ fun SmarteeNavGraph(navController: NavHostController, modifier: Modifier = Modif
                 onNavigateBack = { navController.popBackStack() }
             )
         }
+
+        composable(
+            route = "meeting_request_list/{meetingId}",
+            arguments = listOf(navArgument("meetingId") { type = NavType.StringType })
+        ) { backStackEntry ->
+            MeetingRequestListScreen(
+                meetingId = backStackEntry.arguments?.getString("meetingId") ?: "",
+                navController = navController
+            )
+        }
+
+
     }
 }
