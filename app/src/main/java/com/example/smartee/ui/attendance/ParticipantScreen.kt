@@ -10,6 +10,10 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.example.smartee.model.StudyData
 import com.example.smartee.viewmodel.MyStudyViewModel
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.smartee.bluetooth.BluetoothClientService
+import com.example.smartee.repository.UserRepository
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -26,6 +30,7 @@ fun ParticipantScreen(
     var result by remember { mutableStateOf<String?>(null) }
 
     val context = LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
 
     LaunchedEffect(Unit) {
         viewModel.loadMyStudies()
@@ -78,14 +83,18 @@ fun ParticipantScreen(
         Button(
             enabled = selectedStudy != null,
             onClick = {
+                if (selectedStudy == null) return@Button
                 result = "블루투스 출석 시도 중..."
-                BluetoothClientService.sendAttendance(
-                    context = context,
-                    studyId = selectedStudy!!.studyId,
-                    userId = UserRepository.getCurrentUserId() ?: "anonymous",
-                    code = codeInput.toIntOrNull() ?: 0
-                )
-                result = "출석되었습니다! (블루투스)"
+
+                coroutineScope.launch {
+                    val service = BluetoothClientService(context)
+                    service.sendAttendance(
+                        studyId = selectedStudy!!.studyId,
+                        userId = UserRepository.getCurrentUserId() ?: "anonymous",
+                        code = codeInput.toIntOrNull() ?: 0
+                    )
+                    result = "출석되었습니다! (블루투스)"
+                }
             }
         ) {
             Text("블루투스 출석")
@@ -126,3 +135,4 @@ fun ParticipantScreen(
         }
     }
 }
+

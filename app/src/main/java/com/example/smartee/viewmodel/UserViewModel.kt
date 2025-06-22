@@ -13,8 +13,13 @@ class UserViewModel(
     private val auth: FirebaseAuth
 ) : ViewModel() {
 
-    private val _userData = MutableLiveData<UserData>() // UserProfile → UserData
-    val userData: LiveData<UserData> = _userData // UserProfile → UserData
+    private val _userData = MutableLiveData<UserData>()
+    val userData: LiveData<UserData> = _userData
+
+    init {
+        // 🔥 이거 추가: ViewModel 생성될 때 유저 프로필 로드
+        loadUserProfile()
+    }
 
     private fun loadUserProfile() {
         val currentUser = auth.currentUser ?: return
@@ -22,19 +27,18 @@ class UserViewModel(
         userRepository.getUserProfile(currentUser.uid)
             .addOnSuccessListener { document ->
                 if (document.exists()) {
-                    _userData.value =
-                        document.toObject(UserData::class.java) // UserProfile → UserData
+                    _userData.value = document.toObject(UserData::class.java)
                 } else {
-                    val newProfile = UserData( // UserProfile → UserData
+                    val newProfile = UserData(
                         uid = currentUser.uid,
-                        name = currentUser.displayName ?: "", // displayName → name
+                        name = currentUser.displayName ?: "",
                         email = currentUser.email ?: "",
                         interests = listOf(),
-                        ink = 50, // inkLevel → ink
-                        pen = 2 // penCount → pen
+                        ink = 50,
+                        pen = 2
                     )
                     _userData.value = newProfile
-                    userRepository.saveUserProfile(newProfile) // 메서드명은 그대로
+                    userRepository.saveUserProfile(newProfile)
                 }
             }
     }
