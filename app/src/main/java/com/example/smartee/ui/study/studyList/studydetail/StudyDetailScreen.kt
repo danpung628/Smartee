@@ -1,6 +1,8 @@
+// smartee/ui/study/studyList/studydetail/StudyDetailScreen.kt
+
 package com.example.smartee.ui.study.studyList.studydetail
 
-import AttendanceHostDialog
+import AttendanceHostDialog // AttendanceHostDialog가 다른 패키지에 있다면 정확한 import 경로 필요
 import android.util.Log
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -20,10 +22,9 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.example.smartee.model.Meeting
 import com.example.smartee.navigation.Screen
+import com.example.smartee.repository.UserRepository // [추가] UserRepository import
 import com.example.smartee.viewmodel.StudyDetailViewModel
 import com.example.smartee.viewmodel.UserRole
-
-
 
 @Composable
 fun StudyDetailScreen(
@@ -44,12 +45,13 @@ fun StudyDetailScreen(
     var showManagementDialog by remember { mutableStateOf<Meeting?>(null) }
 
     var showAttendanceDialog by remember { mutableStateOf(false) }
-    // [추가] 출석 체크를 진행할 모임을 저장하는 상태
     var meetingForAttendance by remember { mutableStateOf<Meeting?>(null) }
+
+    // [수정] 현재 사용자 ID를 가져오는 코드 추가
+    val currentUserId = UserRepository.getCurrentUserId()
 
     val lifecycleOwner = LocalLifecycleOwner.current
 
-    // 출석 다이얼로그 표시
     val currentStudyData = studyData
     if (showAttendanceDialog && meetingForAttendance != null && currentStudyData != null) {
         AttendanceHostDialog(
@@ -111,19 +113,26 @@ fun StudyDetailScreen(
     }
 
     if (showManagementDialog != null) {
+        val meeting = showManagementDialog!!
+        // 이제 currentUserId를 사용할 수 있으므로 오류가 발생하지 않습니다.
+        val hasJoined = meeting.confirmedParticipants.contains(currentUserId)
+
         MeetingManagementDialog(
             onDismiss = { showManagementDialog = null },
             onEdit = {
-                val meeting = showManagementDialog!!
                 navController.navigate("meeting_edit/${meeting.parentStudyId}?meetingId=${meeting.meetingId}")
                 showManagementDialog = null
             },
             onAttendanceCheck = {
-                // [수정] 클릭된 모임을 상태에 저장하고 다이얼로그를 띄움
-                meetingForAttendance = showManagementDialog
+                meetingForAttendance = meeting
                 showAttendanceDialog = true
                 showManagementDialog = null
-            }
+            },
+            onJoinMeeting = {
+                viewModel.joinMeeting(meeting)
+                showManagementDialog = null
+            },
+            hasJoinedMeeting = hasJoined
         )
     }
 
@@ -164,7 +173,7 @@ fun StudyDetailScreen(
     }
 }
 
-
+// 이하 다른 Composable 함수들은 이전과 동일합니다.
 @Composable
 fun MeetingListSection(
     meetings: List<Meeting>,
@@ -207,26 +216,36 @@ fun MeetingItem(meeting: Meeting, onClick: () -> Unit) {
     }
 }
 
-// [수정] MeetingManagementDialog Composable
 @Composable
 fun MeetingManagementDialog(
     onDismiss: () -> Unit,
     onEdit: () -> Unit,
-    onAttendanceCheck: () -> Unit // onDelete -> onAttendanceCheck 로 변경
+    onAttendanceCheck: () -> Unit,
+    onJoinMeeting: () -> Unit,
+    hasJoinedMeeting: Boolean
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text("모임 관리") },
         text = { Text("수행할 작업을 선택해주세요.") },
         confirmButton = {
-            Button(onClick = onEdit) { Text("수정") }
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                if (!hasJoinedMeeting) {
+                    Button(onClick = onJoinMeeting, modifier = Modifier.fillMaxWidth()) {
+                        Text("모임 가입")
+                    }
+                    Spacer(modifier = Modifier.height(8.dp))
+                }
+                Button(onClick = onAttendanceCheck, modifier = Modifier.fillMaxWidth()) {
+                    Text("출석 체크")
+                }
+                Spacer(modifier = Modifier.height(8.dp))
+                OutlinedButton(onClick = onEdit, modifier = Modifier.fillMaxWidth()) {
+                    Text("수정")
+                }
+            }
         },
-        dismissButton = {
-            Button(
-                onClick = onAttendanceCheck,
-                colors = ButtonDefaults.buttonColors() // 기본 색상으로 변경
-            ) { Text("출석 체크") } // "삭제" -> "출석 체크"로 텍스트 변경
-        }
+        dismissButton = {}
     )
 }
 
@@ -246,7 +265,6 @@ fun OwnerButtons(navController: NavController, studyId: String) {
     Column {
         Button(
             onClick = {
-                // 네비게이션 직전에 studyId 값을 로그로 출력
                 Log.d("ID_TRACE", "StudyDetailScreen에서 전달하는 ID: $studyId")
                 navController.navigate("create_meeting/$studyId")
             },

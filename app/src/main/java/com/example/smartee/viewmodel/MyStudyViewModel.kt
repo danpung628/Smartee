@@ -1,3 +1,5 @@
+// smartee/viewmodel/MyStudyViewModel.kt
+
 package com.example.smartee.viewmodel
 
 import androidx.lifecycle.ViewModel
@@ -10,6 +12,7 @@ import com.example.smartee.ui.attendance.AttendanceInfo
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 
@@ -66,6 +69,33 @@ class MyStudyViewModel : ViewModel() {
     fun startSession(studyId: String, code: Int) {
         viewModelScope.launch {
             studyRepository.createAttendanceSession(studyId, code)
+        }
+    }
+
+    // [추가] 관리자 본인 출석 처리 함수
+    fun markCurrentUserAsPresent(studyId: String) {
+        val currentUserId = UserRepository.getCurrentUserId() ?: return
+        viewModelScope.launch {
+            try {
+                // DB 업데이트
+                studyRepository.markUserAsPresent(studyId, currentUserId).await()
+
+                // 로컬 상태 즉시 업데이트
+                _selectedStudyMembers.update { currentList ->
+                    currentList.map { member ->
+                        if (member.userId == currentUserId) {
+                            member.copy(
+                                isPresent = true,
+                                currentCount = member.currentCount + 1
+                            )
+                        } else {
+                            member
+                        }
+                    }
+                }
+            } catch (e: Exception) {
+                // TODO: 스낵바 등으로 에러 알림
+            }
         }
     }
 }

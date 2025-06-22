@@ -1,3 +1,5 @@
+// smartee/repository/StudyRepository.kt
+
 package com.example.smartee.repository
 
 import com.example.smartee.model.JoinRequest
@@ -18,15 +20,62 @@ class StudyRepository(
     private val joinRequestsCollection = firestore.collection("joinRequests")
     private val usersCollection = firestore.collection("users")
     private val meetingsCollection = firestore.collection("meetings")
+    private val attendanceSessionsCollection = firestore.collection("attendanceSessions")
 
+    fun markUserAsPresent(studyId: String, userId: String): Task<Void> {
+        val memberRef = studiesCollection.document(studyId).collection("members").document(userId)
+        val batch = firestore.batch()
+
+        batch.update(memberRef, "present", true)
+        batch.update(memberRef, "currentCount", FieldValue.increment(1))
+
+        return batch.commit()
+    }
+
+    suspend fun getAttendanceInfoForStudy(studyId: String): List<AttendanceInfo> {
+        return try {
+            val snapshot = studiesCollection
+                .document(studyId)
+                .collection("members")
+                .get()
+                .await()
+
+            snapshot.documents.mapNotNull { doc ->
+                val userData = usersCollection.document(doc.id).get().await()
+                val name = userData.getString("name") ?: "이름없음"
+
+                // [수정] AttendanceInfo 생성 시 userId 필드 추가
+                AttendanceInfo(
+                    userId = doc.id, // 문서의 ID를 userId로 사용
+                    studyName = doc.getString("studyName") ?: "",
+                    name = name,
+                    isPresent = doc.getBoolean("present") ?: false,
+                    currentCount = (doc.getLong("currentCount") ?: 0).toInt(),
+                    totalCount = (doc.getLong("totalCount") ?: 0).toInt(),
+                    absentCount = (doc.getLong("absentCount") ?: 0).toInt()
+                )
+            }
+        } catch (e: Exception) {
+            emptyList()
+        }
+    }
+
+    fun createAttendanceSession(studyId: String, code: Int): Task<Void> {
+        val sessionData = mapOf(
+            "code" to code,
+            "startedAt" to System.currentTimeMillis()
+        )
+
+        return attendanceSessionsCollection
+            .document(studyId)
+            .set(sessionData)
+    }
+
+    // 이하 다른 함수들은 기존과 동일합니다...
     fun createMeeting(meetingData: Map<String, Any>, parentStudyId: String): Task<Void> {
         val batch = firestore.batch()
         val newMeetingRef = meetingsCollection.document()
-
-        // ViewModel에서 전달받은 Map 데이터를 저장합니다.
         batch.set(newMeetingRef, meetingData)
-
-        // studies 문서에 요약 정보를 업데이트합니다.
         val parentStudyRef = studiesCollection.document(parentStudyId)
         val meetingSummary = mapOf(
             "meetingId" to newMeetingRef.id,
@@ -34,7 +83,6 @@ class StudyRepository(
             "date" to (meetingData["date"] ?: "")
         )
         batch.update(parentStudyRef, "meetingSummaries", FieldValue.arrayUnion(meetingSummary))
-
         return batch.commit()
     }
 
@@ -47,18 +95,13 @@ class StudyRepository(
     }
 
     fun updateMeeting(meetingId: String, meetingData: Map<String, Any>): Task<Void> {
-        // TODO: studies 컬렉션의 meetingSummaries도 함께 업데이트하는 로직 추가 필요
         return meetingsCollection.document(meetingId).update(meetingData)
     }
 
     fun deleteMeeting(meeting: Meeting): Task<Void> {
         val batch = firestore.batch()
-
-        // 1. meetings 컬렉션에서 모임 문서 삭제
         val meetingRef = meetingsCollection.document(meeting.meetingId)
         batch.delete(meetingRef)
-
-        // 2. studies 컬렉션의 메인 스터디 문서에서 모임 요약 정보 삭제
         val parentStudyRef = studiesCollection.document(meeting.parentStudyId)
         val meetingSummary = mapOf(
             "meetingId" to meeting.meetingId,
@@ -66,7 +109,6 @@ class StudyRepository(
             "date" to meeting.date
         )
         batch.update(parentStudyRef, "meetingSummaries", FieldValue.arrayRemove(meetingSummary))
-
         return batch.commit()
     }
     suspend fun getMeetingsForStudy(studyId: String): List<Meeting> {
@@ -97,16 +139,12 @@ class StudyRepository(
 
     fun approveJoinRequest(request: JoinRequest): Task<Void> {
         val batch = firestore.batch()
-
         val requestRef = joinRequestsCollection.document(request.requestId)
         batch.update(requestRef, "status", "approved")
-
         val studyRef = studiesCollection.document(request.studyId)
         batch.update(studyRef, "participantIds", FieldValue.arrayUnion(request.requesterId))
-
         val userRef = usersCollection.document(request.requesterId)
         batch.update(userRef, "joinedStudyIds", FieldValue.arrayUnion(request.studyId))
-
         return batch.commit()
     }
 
@@ -149,44 +187,12 @@ class StudyRepository(
             !snapshot.isEmpty
         } catch (e: Exception) { false }
     }
-
+    fun addCurrentUserToMeeting(meetingId: String, userId: String): Task<Void> {
+        val meetingRef = meetingsCollection.document(meetingId)
+        return meetingRef.update("confirmedParticipants", FieldValue.arrayUnion(userId))
+    }
     fun createJoinRequest(request: JoinRequest): Task<Void> {
         val newRequestRef = joinRequestsCollection.document()
         return newRequestRef.set(request)
-    }
-
-    suspend fun getAttendanceInfoForStudy(studyId: String): List<AttendanceInfo> {
-        return try {
-            val snapshot = firestore.collection("studies")
-                .document(studyId)
-                .collection("members")
-                .get()
-                .await()
-
-            snapshot.documents.map { doc ->
-                AttendanceInfo(
-                    studyName = doc.getString("studyName") ?: "",
-                    name = doc.getString("name") ?: "이름없음",
-                    isPresent = doc.getBoolean("isPresent") ?: false,
-                    currentCount = (doc.getLong("currentCount") ?: 0).toInt(),
-                    totalCount = (doc.getLong("totalCount") ?: 0).toInt(),
-                    absentCount = (doc.getLong("absentCount") ?: 0).toInt()
-                )
-            }
-        } catch (e: Exception) {
-            emptyList()
-        }
-    }
-
-    suspend fun createAttendanceSession(studyId: String, code: Int) {
-        val sessionData = mapOf(
-            "code" to code,
-            "startedAt" to System.currentTimeMillis()
-        )
-
-        firestore.collection("attendanceSessions")
-            .document(studyId)
-            .set(sessionData)
-            .await()
     }
 }
