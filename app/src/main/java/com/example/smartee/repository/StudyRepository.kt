@@ -17,6 +17,7 @@ import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.tasks.await
+import kotlin.jvm.java
 
 class StudyRepository(
     private val firestore: FirebaseFirestore = FirebaseFirestore.getInstance()
@@ -230,15 +231,56 @@ class StudyRepository(
             emptyList()
         }
     }
-    fun approveJoinRequest(request: JoinRequest): Task<Void> {
-        val batch = firestore.batch()
-        val requestRef = joinRequestsCollection.document(request.requestId)
-        batch.update(requestRef, "status", "approved")
+    suspend fun approveJoinRequest(request: JoinRequest): Task<Void> {
         val studyRef = studiesCollection.document(request.studyId)
-        batch.update(studyRef, "participantIds", FieldValue.arrayUnion(request.requesterId))
         val userRef = usersCollection.document(request.requesterId)
-        batch.update(userRef, "joinedStudyIds", FieldValue.arrayUnion(request.studyId))
-        return batch.commit()
+        val requestRef = joinRequestsCollection.document(request.requestId)
+
+        // runTransaction을 사용하여 여러 데이터 읽기/쓰기를 원자적으로 처리
+        return firestore.runTransaction { transaction ->
+            // 1. 스터디 정보와 사용자 정보를 트랜잭션 안에서 읽기
+            val studySnapshot = transaction.get(studyRef)
+            val userSnapshot = transaction.get(userRef)
+
+            val studyData = studySnapshot.toObject(StudyData::class.java)
+                ?: throw Exception("스터디 정보를 찾을 수 없습니다.")
+            val userData = userSnapshot.toObject(UserData::class.java) // UserData 모델이 있다고 가정
+                ?: throw Exception("사용자 정보를 찾을 수 없습니다.")
+
+            // 2. 가입 조건 및 재화 확인
+            // 2-1. 잉크 레벨 조건 확인
+            if (userData.ink < studyData.minInkLevel) {
+                throw Exception("가입에 필요한 최소 잉크 레벨(${studyData.minInkLevel})을 만족하지 못했습니다.")
+            }
+            // 2-2. 만년필(비용) 확인
+            if (userData.pen < studyData.penCount) {
+                throw Exception("가입에 필요한 만년필(${studyData.penCount}개)이 부족합니다.")
+            }
+
+            // 3. 재화 차감 및 데이터 업데이트
+            val newPenCount = userData.pen - studyData.penCount
+
+            // 3-1. 사용자 재화(만년필) 차감 및 참여 스터디 목록 추가
+            transaction.update(userRef, "pen", newPenCount)
+            transaction.update(userRef, "joinedStudyIds", FieldValue.arrayUnion(request.studyId))
+
+            // 3-2. 스터디 참여자 목록에 추가
+            transaction.update(studyRef, "participantIds", FieldValue.arrayUnion(request.requesterId))
+
+            // 3-3. 가입 요청 상태 변경
+            transaction.update(requestRef, "status", "approved")
+
+            // 트랜잭션 성공 시 null 반환
+            null
+        }.continueWithTask { task ->
+            if (task.isSuccessful) {
+                // Firestore 트랜잭션이 성공적으로 완료되었을 때의 Task 반환
+                com.google.android.gms.tasks.Tasks.forResult(null)
+            } else {
+                // 실패 시 예외를 포함하는 Task 반환
+                com.google.android.gms.tasks.Tasks.forException(task.exception ?: Exception("알 수 없는 트랜잭션 오류"))
+            }
+        }
     }
     fun rejectJoinRequest(requestId: String): Task<Void> {
         val requestRef = joinRequestsCollection.document(requestId)
