@@ -7,6 +7,8 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -21,6 +23,7 @@ import java.time.LocalDate
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
 import java.util.Calendar
+
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -39,6 +42,33 @@ fun MeetingEditScreen(
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
     val isEditMode = meetingId != null
+    var showDeleteDialog by remember { mutableStateOf(false) } // [추가] 삭제 확인 다이얼로그 상태
+
+    // [추가] 삭제 확인 다이얼로그
+    if (showDeleteDialog) {
+        AlertDialog(
+            onDismissRequest = { showDeleteDialog = false },
+            title = { Text("모임 삭제") },
+            text = { Text("정말로 이 모임을 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.") },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        viewModel.deleteMeeting()
+                        showDeleteDialog = false
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
+                ) {
+                    Text("삭제")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDeleteDialog = false }) {
+                    Text("취소")
+                }
+            }
+        )
+    }
+
 
     LaunchedEffect(Unit) {
         viewModel.uiEvent.collect { event ->
@@ -57,7 +87,20 @@ fun MeetingEditScreen(
 
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
-        topBar = { TopAppBar(title = { Text(if (isEditMode) "세부 모임 수정" else "세부 모임 만들기") }) }
+        topBar = {
+            TopAppBar(
+                title = { Text(if (isEditMode) "세부 모임 수정" else "세부 모임 만들기") },
+                // [추가] 뒤로가기 버튼
+                navigationIcon = {
+                    IconButton(onClick = onNavigateBack) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "뒤로가기"
+                        )
+                    }
+                }
+            )
+        }
     ) { padding ->
         Column(
             modifier = Modifier
@@ -101,10 +144,21 @@ fun MeetingEditScreen(
             Button(onClick = { viewModel.saveMeeting(parentStudyId) }, modifier = Modifier.fillMaxWidth()) {
                 Text(if (isEditMode) "수정 완료" else "생성 완료")
             }
+
+            // [추가] 수정 모드일 때만 삭제 버튼 표시
+            if (isEditMode) {
+                Spacer(modifier = Modifier.height(8.dp))
+                OutlinedButton(
+                    onClick = { showDeleteDialog = true },
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error)
+                ) {
+                    Text("모임 삭제")
+                }
+            }
         }
     }
 }
-
 @Composable
 fun DateSelector(label: String, selectedDate: LocalDate?, onDateSelected: (LocalDate) -> Unit) {
     val context = LocalContext.current
