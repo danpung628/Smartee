@@ -22,12 +22,15 @@ import com.example.smartee.model.Meeting
 import com.example.smartee.navigation.Screen
 import com.example.smartee.viewmodel.StudyDetailViewModel
 import com.example.smartee.viewmodel.UserRole
+
+
+
 @Composable
 fun StudyDetailScreen(
     studyId: String,
     navController: NavController,
-    randomCode: Int, // [추가]
-    onCodeGenerated: (Int) -> Unit // [추가]
+    randomCode: Int,
+    onCodeGenerated: (Int) -> Unit
 ) {
     val viewModel: StudyDetailViewModel = viewModel()
     val studyData by viewModel.studyData.collectAsState()
@@ -40,14 +43,18 @@ fun StudyDetailScreen(
     val showDialog = remember { mutableStateOf<String?>(null) }
     var showManagementDialog by remember { mutableStateOf<Meeting?>(null) }
 
-    // [추가] 출석 다이얼로그 상태 관리
     var showAttendanceDialog by remember { mutableStateOf(false) }
+    // [추가] 출석 체크를 진행할 모임을 저장하는 상태
+    var meetingForAttendance by remember { mutableStateOf<Meeting?>(null) }
 
     val lifecycleOwner = LocalLifecycleOwner.current
 
-    // [추가] 출석 다이얼로그 표시
-    if (showAttendanceDialog) {
+    // 출석 다이얼로그 표시
+    val currentStudyData = studyData
+    if (showAttendanceDialog && meetingForAttendance != null && currentStudyData != null) {
         AttendanceHostDialog(
+            study = currentStudyData,
+            meeting = meetingForAttendance!!,
             randomCode = randomCode,
             onCodeGenerated = onCodeGenerated,
             onDismissRequest = { showAttendanceDialog = false }
@@ -112,7 +119,8 @@ fun StudyDetailScreen(
                 showManagementDialog = null
             },
             onAttendanceCheck = {
-                // [수정] 네비게이션 대신 다이얼로그를 띄우도록 변경
+                // [수정] 클릭된 모임을 상태에 저장하고 다이얼로그를 띄움
+                meetingForAttendance = showManagementDialog
                 showAttendanceDialog = true
                 showManagementDialog = null
             }
@@ -155,6 +163,8 @@ fun StudyDetailScreen(
         StudyNotFound()
     }
 }
+
+
 @Composable
 fun MeetingListSection(
     meetings: List<Meeting>,
