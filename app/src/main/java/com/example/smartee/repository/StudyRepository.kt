@@ -3,6 +3,7 @@ package com.example.smartee.repository
 import com.example.smartee.model.JoinRequest
 import com.example.smartee.model.Meeting
 import com.example.smartee.model.StudyData
+import com.example.smartee.ui.attendance.AttendanceInfo
 import com.google.android.gms.tasks.Task
 import com.google.firebase.firestore.FieldPath
 import com.google.firebase.firestore.FieldValue
@@ -152,5 +153,40 @@ class StudyRepository(
     fun createJoinRequest(request: JoinRequest): Task<Void> {
         val newRequestRef = joinRequestsCollection.document()
         return newRequestRef.set(request)
+    }
+
+    suspend fun getAttendanceInfoForStudy(studyId: String): List<AttendanceInfo> {
+        return try {
+            val snapshot = firestore.collection("studies")
+                .document(studyId)
+                .collection("members")
+                .get()
+                .await()
+
+            snapshot.documents.map { doc ->
+                AttendanceInfo(
+                    studyName = doc.getString("studyName") ?: "",
+                    name = doc.getString("name") ?: "이름없음",
+                    isPresent = doc.getBoolean("isPresent") ?: false,
+                    currentCount = (doc.getLong("currentCount") ?: 0).toInt(),
+                    totalCount = (doc.getLong("totalCount") ?: 0).toInt(),
+                    absentCount = (doc.getLong("absentCount") ?: 0).toInt()
+                )
+            }
+        } catch (e: Exception) {
+            emptyList()
+        }
+    }
+
+    suspend fun createAttendanceSession(studyId: String, code: Int) {
+        val sessionData = mapOf(
+            "code" to code,
+            "startedAt" to System.currentTimeMillis()
+        )
+
+        firestore.collection("attendanceSessions")
+            .document(studyId)
+            .set(sessionData)
+            .await()
     }
 }
