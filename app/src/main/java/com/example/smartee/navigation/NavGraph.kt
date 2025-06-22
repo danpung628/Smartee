@@ -3,7 +3,6 @@
 package com.example.smartee.navigation
 
 // HostScreen import는 이제 필요 없습니다.
-import android.util.Log
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -25,7 +24,7 @@ import com.example.smartee.ui.meeting.MeetingEditScreen
 import com.example.smartee.ui.profile.ProfileScreen
 import com.example.smartee.ui.request.MeetingRequestListScreen
 import com.example.smartee.ui.screen.MyStudyScreen
-import com.example.smartee.ui.screen.StudyCreationScreen
+import com.example.smartee.ui.study.creatstudy.ui.screen.StudyCreationScreen
 import com.example.smartee.ui.signup.FillProfileScreen
 import com.example.smartee.ui.signup.SignUpScreen
 import com.example.smartee.ui.study.editstudy.ui.StudyEditScreen

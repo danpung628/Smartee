@@ -21,14 +21,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.example.smartee.model.StudyData
 import com.example.smartee.viewmodel.StudyEditViewModel
 import com.example.smartee.ui.study.editstudy.util.validateStudy
-import com.google.firebase.Timestamp
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.launch
-import study_edit.ui.component.CategorySelector
-import study_edit.ui.component.DatePickerField
+import com.example.smartee.ui.study.editstudy.ui.component.CategorySelector
+import com.example.smartee.ui.study.editstudy.ui.component.DatePickerField
 
 @Composable
 fun StudyEditScreen(studyId: String,
