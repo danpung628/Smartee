@@ -51,8 +51,7 @@ class VertexAIRecommendationService {
                     category = (recommendedStudy["category"] as? String) ?: "",
                     minInkLevel = (recommendedStudy["minInkLevel"] as? Number)?.toInt() ?: 0,
                     description = (recommendedStudy["description"] as? String) ?: "",
-                    currentMemberCount = (recommendedStudy["currentMemberCount"] as? Number)?.toInt()
-                        ?: 0,
+                    //currentMemberCount = (recommendedStudy["currentMemberCount"] as? Number)?.toInt()?: 0,
                     maxMemberCount = (recommendedStudy["maxMemberCount"] as? Number)?.toInt() ?: 0,
                     likeCount = (recommendedStudy["likeCount"] as? Number)?.toInt() ?: 0,
                     commentCount = (recommendedStudy["commentCount"] as? Number)?.toInt() ?: 0,

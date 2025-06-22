@@ -87,7 +87,7 @@ class StudyEditViewModel : ViewModel() {
             startDate = startDate?.toString() ?: "",  // LocalDate를 String으로 변환
             endDate = endDate?.toString() ?: "",      // LocalDate를 String으로 변환
             isRegular = isRegular,
-            currentMemberCount = 0, // 새 스터디는 현재 멤버 0명으로 시작
+            //currentMemberCount = 0, // 새 스터디는 현재 멤버 0명으로 시작
             maxMemberCount = maxMemberCount.toIntOrNull() ?: 0,
             isOffline = isOffline,
             minInkLevel = minInkLevel.toIntOrNull() ?: 0,

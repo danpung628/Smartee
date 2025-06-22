@@ -17,7 +17,7 @@ object StudyEditProvider {
             startDate = LocalDate.now().toString(),
             endDate = LocalDate.now().plusDays(14).toString(),
             isRegular = false,
-            currentMemberCount = 0,
+            //currentMemberCount = 0,
             maxMemberCount = 10,
             isOffline = true,
             minInkLevel = 50,

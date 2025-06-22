@@ -29,7 +29,7 @@ data class StudyData(
 // 비정기 스터디의 경우
     var irregularDateTimes: List<String> = listOf(), // "2025-05-20 15:00~17:00" 등의 날짜/시간
 
-    var currentMemberCount: Int = 0,
+    //var currentMemberCount: Int = 0, 유저 가입된 배열의 사이즈로 판단하는것이 더 편리할듯
     var maxMemberCount: Int = 0,
     var isOffline: Boolean = true,
     //잉크 조건

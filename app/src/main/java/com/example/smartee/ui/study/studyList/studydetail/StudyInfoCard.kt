@@ -50,9 +50,9 @@ fun StudyInfoCard(study: StudyData) {
             InfoRow(
                 icon = Icons.Default.People,
                 text = if (study.maxMemberCount == Int.MAX_VALUE)
-                    "인원 제한 없음 (현재 ${study.currentMemberCount}명)"
+                    "인원 제한 없음 (현재 ${study.participantIds.size}명)"
                 else
-                    "${study.currentMemberCount}/${study.maxMemberCount}명"
+                    "${study.participantIds.size}/${study.maxMemberCount}명"
             )
 
             // 날짜 정보
