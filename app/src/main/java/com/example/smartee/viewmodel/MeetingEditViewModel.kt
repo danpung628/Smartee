@@ -72,23 +72,21 @@ class MeetingEditViewModel : ViewModel() {
         )
 
         val currentMeetingId = meetingId
-        val task = if (currentMeetingId == null) {
-            // 생성 모드
-            studyRepository.createMeeting(meetingMap, parentStudyId)
-        } else {
-            // 수정 모드
-            studyRepository.updateMeeting(currentMeetingId, meetingMap)
-        }
 
-        task.addOnSuccessListener {
-            viewModelScope.launch {
-                val message = if (currentMeetingId == null) "모임 생성 완료!" else "모임 수정 완료!"
-                _uiEvent.emit(UiEvent.ShowSnackbar(message))
+        viewModelScope.launch {
+            try {
+                if (currentMeetingId == null) {
+                    // 생성 모드
+                    studyRepository.createMeeting(meetingMap, parentStudyId).await()
+                    _uiEvent.emit(UiEvent.ShowSnackbar("모임 생성 완료!"))
+                } else {
+                    // 수정 모드 [수정]
+                    studyRepository.updateMeeting(currentMeetingId, meetingMap).await()
+                    _uiEvent.emit(UiEvent.ShowSnackbar("모임 수정 완료!"))
+                }
                 _uiEvent.emit(UiEvent.NavigateBack)
-            }
-        }.addOnFailureListener {
-            viewModelScope.launch {
-                _uiEvent.emit(UiEvent.ShowSnackbar("오류가 발생했습니다: ${it.message}"))
+            } catch (e: Exception) {
+                _uiEvent.emit(UiEvent.ShowSnackbar("오류가 발생했습니다: ${e.message}"))
             }
         }
     }
