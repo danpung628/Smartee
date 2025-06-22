@@ -246,9 +246,19 @@ class StudyRepository(
     }
     suspend fun getStudyById(studyId: String): StudyData? {
         return try {
-            val snapshot = studiesCollection.document(studyId).get().await()
-            snapshot.toObject(StudyData::class.java)?.copy(studyId = snapshot.id)
-        } catch (e: Exception) { null }
+            val studySnapshot = studiesCollection.document(studyId).get().await()
+            val study = studySnapshot.toObject(StudyData::class.java)
+
+            if (study != null) {
+                val ownerSnapshot = usersCollection.document(study.ownerId).get().await()
+                val ownerNickname = ownerSnapshot.getString("nickname") ?: ""
+                study.copy(studyId = studySnapshot.id, ownerNickname = ownerNickname)
+            } else {
+                null
+            }
+        } catch (e: Exception) {
+            null
+        }
     }
     suspend fun getAllStudies(): List<StudyData> {
         return try {

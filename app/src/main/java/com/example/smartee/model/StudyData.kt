@@ -8,6 +8,7 @@ import java.time.ZoneId
 data class StudyData(
     val ownerId: String = "",
     val participantIds: List<String> = emptyList(),
+    val ownerNickname: String = "", // [추가]
 
 
 
