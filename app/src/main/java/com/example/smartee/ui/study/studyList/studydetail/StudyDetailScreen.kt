@@ -3,7 +3,6 @@
 package com.example.smartee.ui.study.studyList.studydetail
 
 import AttendanceHostDialog
-import android.util.Log
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -37,6 +36,7 @@ import androidx.navigation.NavController
 import coil3.compose.AsyncImage
 import com.example.smartee.model.Meeting
 import com.example.smartee.model.ParticipantStatus
+import com.example.smartee.model.StudyData
 import com.example.smartee.navigation.Screen
 import com.example.smartee.repository.UserRepository
 import com.example.smartee.viewmodel.MeetingStatusViewModel
@@ -106,6 +106,8 @@ fun StudyDetailScreen(
         )
     }
 
+    // [수정] 관리자용 정보 다이얼로그와 참여자용 현황 다이얼로그를 구분하기 위해
+    // 관리자 전용 meetingToShowInfo 상태를 사용
     if (meetingToShowInfo != null) {
         val meeting = meetingToShowInfo!!
         MeetingInfoDialog(
@@ -219,14 +221,14 @@ fun StudyDetailScreen(
                         onMeetingClick = { clickedMeeting ->
                             val isJoined = clickedMeeting.confirmedParticipants.contains(currentUserId)
                             if (userRole == UserRole.OWNER) {
-                                // 관리자는 클릭 시 모임 현황 또는 정보 다이얼로그를 띄움
-                                meetingToShowStatus = clickedMeeting
+                                // [수정] 관리자는 정보/관리 다이얼로그를 띄움
+                                meetingToShowInfo = clickedMeeting
                             } else if (userRole == UserRole.PARTICIPANT) {
                                 if (isJoined) {
-                                    // 참여자도 가입한 모임은 현황 다이얼로그를 봄
+                                    // 참여자는 가입한 모임 클릭 시 현황 다이얼로그를 띄움
                                     meetingToShowStatus = clickedMeeting
                                 } else {
-                                    // 가입하지 않은 모임은 가입 신청 다이얼로그를 봄
+                                    // 가입하지 않은 모임은 가입 신청 다이얼로그를 띄움
                                     meetingToJoin = clickedMeeting
                                 }
                             }
@@ -295,65 +297,6 @@ fun MeetingInfoDialog(
                     overflow = TextOverflow.Ellipsis
                 )
             }
-        }
-    }
-}
-
-@Composable
-fun MeetingStatusDialog(
-    meeting: Meeting,
-    onDismiss: () -> Unit
-) {
-    val viewModel: MeetingStatusViewModel = viewModel(factory = object : androidx.lifecycle.ViewModelProvider.Factory {
-        override fun <T : ViewModel> create(modelClass: Class<T>): T {
-            return MeetingStatusViewModel(meeting) as T
-        }
-    })
-
-    val participantStatusList by viewModel.participantStatusList.collectAsState()
-    val isLoading by viewModel.isLoading.collectAsState()
-
-    Dialog(onDismissRequest = onDismiss) {
-        Card(shape = RoundedCornerShape(16.dp)) {
-            Column(modifier = Modifier.padding(24.dp)) {
-                Text(meeting.title, style = MaterialTheme.typography.headlineSmall)
-                Spacer(modifier = Modifier.height(8.dp))
-                Text("날짜: ${meeting.date} 시간: ${meeting.time}", style = MaterialTheme.typography.bodyMedium)
-                Spacer(modifier = Modifier.height(16.dp))
-
-                if (isLoading) {
-                    Box(modifier = Modifier.fillMaxWidth().height(100.dp), contentAlignment = Alignment.Center) {
-                        CircularProgressIndicator()
-                    }
-                } else {
-                    LazyColumn(modifier = Modifier.heightIn(max = 300.dp)) {
-                        items(participantStatusList) { participant ->
-                            ParticipantStatusCard(participant = participant)
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
-
-@Composable
-fun ParticipantStatusCard(participant: ParticipantStatus) {
-    Row(
-        modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        AsyncImage(
-            model = participant.thumbnailUrl,
-            contentDescription = "${participant.name}의 프로필 사진",
-            modifier = Modifier.size(40.dp).clip(CircleShape)
-        )
-        Spacer(modifier = Modifier.width(16.dp))
-        Text(participant.name, modifier = Modifier.weight(1f))
-        if (participant.isPresent) {
-            Icon(Icons.Filled.CheckCircle, contentDescription = "출석 완료", tint = MaterialTheme.colorScheme.primary)
-        } else {
-            Icon(Icons.Filled.Cancel, contentDescription = "미출석", tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f))
         }
     }
 }
@@ -485,8 +428,8 @@ fun OwnerButtons(navController: NavController, studyId: String) {
     Column {
         Button(
             onClick = {
-                Log.d("ID_TRACE", "StudyDetailScreen에서 전달하는 ID: $studyId")
-                navController.navigate("create_meeting/$studyId")
+                // [수정] "create_meeting" -> "meeting_edit"으로 경로 수정
+                navController.navigate("meeting_edit/$studyId")
             },
             modifier = Modifier.fillMaxWidth()
         ) {
@@ -517,6 +460,67 @@ fun GuestButtons(viewModel: StudyDetailViewModel, isLoading: Boolean) {
             CircularProgressIndicator(color = MaterialTheme.colorScheme.onPrimary)
         } else {
             Text("스터디 참가하기", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+        }
+    }
+}
+
+
+@Composable
+fun MeetingStatusDialog(
+    meeting: Meeting,
+    onDismiss: () -> Unit
+) {
+    val viewModel: MeetingStatusViewModel = viewModel(factory = object : androidx.lifecycle.ViewModelProvider.Factory {
+        override fun <T : ViewModel> create(modelClass: Class<T>): T {
+            @Suppress("UNCHECKED_CAST")
+            return MeetingStatusViewModel(meeting) as T
+        }
+    })
+
+    val participantStatusList by viewModel.participantStatusList.collectAsState()
+    val isLoading by viewModel.isLoading.collectAsState()
+
+    Dialog(onDismissRequest = onDismiss) {
+        Card(shape = RoundedCornerShape(16.dp)) {
+            Column(modifier = Modifier.padding(24.dp)) {
+                Text(meeting.title, style = MaterialTheme.typography.headlineSmall)
+                Spacer(modifier = Modifier.height(8.dp))
+                Text("날짜: ${meeting.date} 시간: ${meeting.time}", style = MaterialTheme.typography.bodyMedium)
+                Spacer(modifier = Modifier.height(16.dp))
+
+                if (isLoading) {
+                    Box(modifier = Modifier.fillMaxWidth().height(100.dp), contentAlignment = Alignment.Center) {
+                        CircularProgressIndicator()
+                    }
+                } else {
+                    LazyColumn(modifier = Modifier.heightIn(max = 300.dp)) {
+                        items(participantStatusList) { participant ->
+                            ParticipantStatusCard(participant = participant)
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun ParticipantStatusCard(participant: ParticipantStatus) {
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        AsyncImage(
+            model = participant.thumbnailUrl,
+            contentDescription = "${participant.name}의 프로필 사진",
+            modifier = Modifier.size(40.dp).clip(CircleShape)
+        )
+        Spacer(modifier = Modifier.width(16.dp))
+        Text(participant.name, modifier = Modifier.weight(1f))
+        if (participant.isPresent) {
+            Icon(Icons.Filled.CheckCircle, contentDescription = "출석 완료", tint = MaterialTheme.colorScheme.primary)
+        } else {
+            Icon(Icons.Filled.Cancel, contentDescription = "미출석", tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f))
         }
     }
 }
