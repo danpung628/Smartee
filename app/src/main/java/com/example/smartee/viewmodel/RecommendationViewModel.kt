@@ -106,20 +106,46 @@ class RecommendationViewModel(
     ): String {
         val reasons = mutableListOf<String>()
 
-        if (userCategories.any { study.category.contains(it, ignoreCase = true) }) {
-            reasons.add("관심 분야와 일치")
+        // 매칭된 관심사 구체적으로 표시
+        val matchedCategory = userCategories.find { study.category.contains(it, ignoreCase = true) }
+        if (matchedCategory != null) {
+            reasons.add("'${matchedCategory}' 관심사 일치")
         }
+
+        // 지역 매칭 구체적으로 표시
         if (study.address.contains(userLocation, ignoreCase = true)) {
-            reasons.add("근처 지역")
+            reasons.add("'${userLocation}' 지역")
+        } else {
+            // 광역시도만 같은 경우도 체크
+            val userFirstWord = userLocation.split(" ").firstOrNull()?.take(2)
+            val studyFirstWord = study.address.split(" ").firstOrNull()?.take(2)
+            if (userFirstWord != null && studyFirstWord != null &&
+                userFirstWord == studyFirstWord && userFirstWord.length >= 2
+            ) {
+                reasons.add("'${userFirstWord}' 지역 인근")
+            }
         }
+
+        // 잉크 조건 정보
+        if (study.minInkLevel > 0) {
+            reasons.add("최소 잉크 ${study.minInkLevel} 충족")
+        }
+
+        // 인기도 구체적으로 표시
         if (study.likeCount > 10) {
-            reasons.add("인기 스터디")
+            reasons.add("좋아요 ${study.likeCount}개")
+        }
+
+        // 참가자 규모 정보
+        val currentMembers = study.participantIds.size
+        if (currentMembers >= 3) {
+            reasons.add("${currentMembers}명 참여 중")
         }
 
         return if (reasons.isNotEmpty()) {
-            "${reasons.joinToString(", ")}해서 추천드려요!"
+            "${reasons.joinToString(" + ")}으로 추천!"
         } else {
-            "잉크 레벨에 맞는 스터디입니다!"
+            "회원님께 적합한 스터디입니다!"
         }
     }
 }
