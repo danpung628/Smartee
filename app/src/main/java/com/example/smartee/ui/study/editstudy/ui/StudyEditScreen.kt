@@ -145,6 +145,16 @@ fun StudyEditScreen(
                     }
                 }
 
+                // 소개
+                EditSection(title = "스터디 소개") {
+                    OutlinedTextField(
+                        value = vm.description,
+                        onValueChange = { vm.description = it },
+                        label = { Text("스터디 소개") },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+
                 // 카테고리 섹션
                 EditSection(title = "카테고리 (최대 5개)") {
                     CategorySelector(

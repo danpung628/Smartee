@@ -160,6 +160,15 @@ fun StudyCreationScreen(navController: NavController) {
                     )
                 }
 
+                CreationSection(title = "스터디 소개") {
+                    OutlinedTextField(
+                        value = viewModel.description,
+                        onValueChange = { viewModel.description = it },
+                        label = { Text("스터디 소개") },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+
                 CreationSection(title = "추가 정보") {
                     OutlinedTextField(
                         value = viewModel.punishment,

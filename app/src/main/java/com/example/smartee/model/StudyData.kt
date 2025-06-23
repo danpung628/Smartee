@@ -39,7 +39,7 @@ data class StudyData(
     //벌칙
     var punishment: String = "",
     //스터디 설명
-    var description: String = "반갑습니다 ㅎㅎ",
+    var description: String = "",
 
     var address: String = "",
     //스터디 댓글
