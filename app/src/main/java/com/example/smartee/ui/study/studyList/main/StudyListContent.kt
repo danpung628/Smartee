@@ -96,7 +96,7 @@ fun StudyListContent(
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
                                     Text(
-                                        text = "AI 추천",
+                                        text = "추천",
                                         style = MaterialTheme.typography.titleMedium,
                                         fontWeight = FontWeight.Bold
                                     )
@@ -157,7 +157,7 @@ private fun extractReasonTags(reason: String?): List<String> {
     // 실제 generateRecommendationReason에서 생성하는 패턴에 맞춰서
     if (reason.contains("관심사 일치")) tags.add("관심사 매칭")
     if (reason.contains("지역 정확 매칭")) tags.add("위치 정확")
-    else if (reason.contains("광역시도 매칭")) tags.add("광역 근접")
+    else if (reason.contains("광역시도 매칭")) tags.add("위치 근접")
     if (reason.contains("잉크") && reason.contains("충족")) tags.add("잉크 충족")
     if (reason.contains("만년필") && reason.contains("충족")) tags.add("만년필 충족")
     if (reason.contains("정원") && reason.contains("여유")) tags.add("여석 있음")
