@@ -55,9 +55,7 @@ fun ProfileScreen(navController: NavController) {
                         }
                         IconButton(onClick = {
                             authViewModel.signOut()
-                            navController.navigate(Screen.SignUp.route) {
-                                popUpTo(Screen.SignUp.route) { inclusive = true }
-                            }
+                            // navigate 부분을 삭제!
                         }) {
                             Icon(Icons.AutoMirrored.Filled.Logout, contentDescription = "로그아웃")
                         }
