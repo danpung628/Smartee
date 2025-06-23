@@ -2,23 +2,23 @@
 
 package com.example.smartee.repository
 
+import android.util.Log
 import com.example.smartee.model.JoinRequest
 import com.example.smartee.model.Meeting
 import com.example.smartee.model.MeetingJoinRequest
 import com.example.smartee.model.ParticipantStatus
 import com.example.smartee.model.StudyData
+import com.example.smartee.model.UserData
 import com.example.smartee.ui.attendance.AttendanceInfo
 import com.google.android.gms.tasks.Task
 import com.google.firebase.firestore.FieldPath
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.Query
-import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.tasks.await
-import kotlin.jvm.java
-import com.example.smartee.model.UserData
 
 class StudyRepository(
     private val firestore: FirebaseFirestore = FirebaseFirestore.getInstance()
@@ -248,7 +248,7 @@ class StudyRepository(
             emptyList()
         }
     }
-    suspend fun approveJoinRequest(request: JoinRequest): Task<Void> {
+    fun approveJoinRequest(request: JoinRequest): Task<Void> {
         val studyRef = studiesCollection.document(request.studyId)
         val userRef = usersCollection.document(request.requesterId)
         val requestRef = joinRequestsCollection.document(request.requestId)
@@ -305,18 +305,32 @@ class StudyRepository(
     }
     suspend fun getStudyById(studyId: String): StudyData? {
         return try {
+            Log.d("StudyRepository", "스터디 조회 시작: $studyId")
+
             val studySnapshot = studiesCollection.document(studyId).get().await()
+
+            Log.d("StudyRepository", "문서 존재 여부: ${studySnapshot.exists()}")
+            Log.d("StudyRepository", "문서 데이터: ${studySnapshot.data}")
+
+            if (!studySnapshot.exists()) {
+                Log.w("StudyRepository", "문서가 존재하지 않음: $studyId")
+                throw Exception("스터디 정보를 찾을 수 없습니다.")
+            }
+
             val study = studySnapshot.toObject(StudyData::class.java)
 
-            if (study != null) {
-                val ownerSnapshot = usersCollection.document(study.ownerId).get().await()
-                val ownerNickname = ownerSnapshot.getString("nickname") ?: ""
-                study.copy(studyId = studySnapshot.id, ownerNickname = ownerNickname)
-            } else {
-                null
+            Log.d("StudyRepository", "toObject 결과: $study")
+
+            if (study == null) {
+                Log.e("StudyRepository", "StudyData 변환 실패 - 필드 불일치 가능성")
+                throw Exception("스터디 정보를 찾을 수 없습니다.")
             }
+
+            study.copy(studyId = studySnapshot.id)
+
         } catch (e: Exception) {
-            null
+            Log.e("StudyRepository", "getStudyById 오류: ${e.message}", e)
+            throw e
         }
     }
     suspend fun getAllStudies(): List<StudyData> {
@@ -360,7 +374,12 @@ class StudyRepository(
                 val createdCount = userDoc.getLong("createdStudiesCount") ?: 0
                 val newCreatedCount = createdCount + 1
 
-                val earnedBadges = (userDoc.get("earnedBadgeIds") as? List<String> ?: emptyList()).toMutableSet()
+                val earnedBadges = try {
+                    @Suppress("UNCHECKED_CAST")
+                    (userDoc.get("earnedBadgeIds") as? List<String> ?: emptyList()).toMutableSet()
+                } catch (e: ClassCastException) {
+                    mutableSetOf<String>()
+                }
 
                 if (newCreatedCount == 1L) {
                     earnedBadges.add("first_study_create") // 예시 뱃지 ID
