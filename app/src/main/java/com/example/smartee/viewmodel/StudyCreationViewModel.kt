@@ -9,10 +9,7 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.smartee.model.StudyData
-import com.example.smartee.model.UserData
-import com.google.firebase.Timestamp
 import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
@@ -49,25 +46,25 @@ class StudyCreationViewModel : ViewModel() {
                 penCount.toIntOrNull() != null
     }
 
-    fun submit() {
+    // [수정] 저장 결과를 처리할 수 있도록 콜백 함수를 파라미터로 추가합니다.
+    fun submit(onSuccess: (String) -> Unit, onFailure: (String) -> Unit) {
         val currentUser = auth.currentUser
         if (currentUser == null) {
-            errorMessage = "로그인이 필요합니다."
+            onFailure("로그인이 필요합니다.")
             return
         }
         if (!validate()) {
-            errorMessage = "입력값을 확인해주세요."
+            onFailure("입력값을 확인해주세요.")
             return
         }
         errorMessage = null
 
         val newStudy = StudyData(
-            // ... (기존 StudyData 객체 생성 로직과 동일)
             ownerId = currentUser.uid,
             participantIds = listOf(currentUser.uid),
             title = title,
             category = selectedCategories.joinToString(","),
-            dateTimestamp = Timestamp.now(),
+            dateTimestamp = com.google.firebase.Timestamp.now(), // Timestamp 클래스 경로 명시
             startDate = startDate.toString(),
             endDate = endDate.toString(),
             isRegular = isRegular,
@@ -82,29 +79,26 @@ class StudyCreationViewModel : ViewModel() {
             likeCount = 0,
             thumbnailModel = "https://picsum.photos/300/200"
         )
-        addStudyToFirebase(newStudy)
+
+        // [수정] addStudyToFirebase 함수에 콜백을 전달합니다.
+        addStudyToFirebase(newStudy, onSuccess, onFailure)
     }
 
-    private fun addStudyToFirebase(study: StudyData) {
+    // [수정] addStudyToFirebase 함수도 콜백을 받도록 수정합니다.
+    private fun addStudyToFirebase(study: StudyData, onSuccess: (String) -> Unit, onFailure: (String) -> Unit) {
         viewModelScope.launch {
             try {
                 val currentUser = auth.currentUser ?: return@launch
                 val userRef = db.collection("users").document(currentUser.uid)
                 val newStudyRef = db.collection("studies").document()
 
-                // Firestore Transaction을 사용하여 여러 작업을 원자적으로 처리
                 db.runTransaction { transaction ->
                     val userDoc = transaction.get(userRef)
-
-                    // 1. 스터디 생성 카운트 업데이트
                     val createdCount = userDoc.getLong("createdStudiesCount") ?: 0
                     val newCreatedCount = createdCount + 1
-
-                    // 2. 획득한 뱃지 목록 가져오기
                     val earnedBadges = (userDoc.get("earnedBadgeIds") as? List<String> ?: emptyList()).toMutableSet()
                     var newBadgeEarned = false
 
-                    // 3. '스터디 생성' 관련 뱃지 획득 조건 검사
                     if (newCreatedCount == 1L && !earnedBadges.contains("first_study_create")) {
                         earnedBadges.add("first_study_create")
                         newBadgeEarned = true
@@ -114,12 +108,10 @@ class StudyCreationViewModel : ViewModel() {
                         newBadgeEarned = true
                     }
 
-                    // 4. 새로운 스터디 문서 생성
                     transaction.set(newStudyRef, study.copy(studyId = newStudyRef.id))
 
-                    // 5. 사용자 문서 업데이트 내용 구성
                     val userUpdateData = mutableMapOf<String, Any>(
-                        "createdStudyIds" to FieldValue.arrayUnion(newStudyRef.id),
+                        "createdStudyIds" to com.google.firebase.firestore.FieldValue.arrayUnion(newStudyRef.id),
                         "createdStudiesCount" to newCreatedCount
                     )
                     if (newBadgeEarned) {
@@ -127,16 +119,16 @@ class StudyCreationViewModel : ViewModel() {
                     }
                     transaction.update(userRef, userUpdateData)
 
-                    null // 트랜잭션 성공
+                    null
                 }.await()
 
                 Log.d("StudyDebug", "스터디 저장 및 뱃지 처리 성공: ${newStudyRef.id}")
                 clearForm()
-                submittedStudies.add(study.copy(studyId = newStudyRef.id))
+                onSuccess(study.title) // [수정] 성공 콜백 호출
 
             } catch (e: Exception) {
                 Log.e("StudyDebug", "스터디 저장 실패", e)
-                errorMessage = "저장 실패: ${e.message}"
+                onFailure("저장 실패: ${e.message}") // [수정] 실패 콜백 호출
             }
         }
     }

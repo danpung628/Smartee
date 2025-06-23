@@ -8,7 +8,6 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.smartee.model.StudyData
-import com.google.firebase.Timestamp
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.toObject
 import kotlinx.coroutines.launch
@@ -31,7 +30,7 @@ class StudyEditViewModel : ViewModel() {
     var thumbnailModel by mutableStateOf("")
     var selectedCategories = mutableStateListOf<String>()
     private val db = FirebaseFirestore.getInstance()
-    fun loadStudyFromFirebase(studyId: String) {
+    fun loadStudyFromFirebase(studyId: String, onComplete: () -> Unit) {
         this.studyId = studyId
         viewModelScope.launch {
             db.collection("studies").document(studyId)
@@ -51,6 +50,11 @@ class StudyEditViewModel : ViewModel() {
                 }
                 .addOnFailureListener {
                     Log.e("StudyEditViewModel", "❌ Firestore 불러오기 실패", it)
+                }
+                // [추가] 작업이 성공하든 실패하든 항상 onComplete 콜백을 호출하여
+                // 화면에 로딩이 끝났음을 알려줍니다.
+                .addOnCompleteListener {
+                    onComplete()
                 }
         }
     }
@@ -73,31 +77,32 @@ class StudyEditViewModel : ViewModel() {
         thumbnailModel = data.thumbnailModel
         selectedCategories.clear()
         if (data.category.isNotEmpty()) {
-            selectedCategories.addAll(data.category.split(","))
+            // [수정] 각 카테고리 문자열의 앞뒤 공백을 제거합니다.
+            selectedCategories.addAll(data.category.split(",").map { it.trim() })
         }
     }
 
 
-    fun toStudyData(): StudyData {
-        return StudyData(
-            studyId = studyId, // 기존 ID 유지 (수정 시)
-            title = title,
-            category = selectedCategories.joinToString(","),
-            dateTimestamp = Timestamp.now(), // 현재 시간으로 설정
-            startDate = startDate?.toString() ?: "",  // LocalDate를 String으로 변환
-            endDate = endDate?.toString() ?: "",      // LocalDate를 String으로 변환
-            isRegular = isRegular,
-            //currentMemberCount = 0, // 새 스터디는 현재 멤버 0명으로 시작
-            maxMemberCount = maxMemberCount.toIntOrNull() ?: 0,
-            isOffline = isOffline,
-            minInkLevel = minInkLevel.toIntOrNull() ?: 0,
-            penCount = penCount.toIntOrNull() ?: 0,
-            punishment = punishment,
-            description = description,
-            address = address,
-            thumbnailModel = thumbnailModel
+    // [수정] 이 함수를 수정하여 업데이트할 데이터만 Map으로 반환하도록 합니다.
+    fun toStudyData(): Map<String, Any> {
+        return mapOf(
+            "title" to title,
+            "category" to selectedCategories.joinToString(","),
+            "startDate" to (startDate?.toString() ?: ""),
+            "endDate" to (endDate?.toString() ?: ""),
+            "isRegular" to isRegular,
+            "maxMemberCount" to (maxMemberCount.toIntOrNull() ?: 0),
+            "isOffline" to isOffline,
+            "minInkLevel" to (minInkLevel.toIntOrNull() ?: 0),
+            "penCount" to (penCount.toIntOrNull() ?: 0),
+            "punishment" to punishment,
+            "description" to description,
+            "address" to address,
+            "thumbnailModel" to thumbnailModel
+            // ownerId, participantIds 등 기존 정보는 여기에 포함하지 않습니다.
         )
     }
+
     private fun parseLocalDate(dateStr: String): LocalDate? {
         return try {
             LocalDate.parse(dateStr)
@@ -116,4 +121,6 @@ class StudyEditViewModel : ViewModel() {
             }
         }
     }
+
+
 }
