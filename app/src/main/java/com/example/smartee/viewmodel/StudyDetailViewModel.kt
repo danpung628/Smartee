@@ -141,11 +141,11 @@ class StudyDetailViewModel(application: Application) : AndroidViewModel(applicat
         }
     }
     fun startDeviceScan() {
-        bluetoothClientService.startDiscovery()
+        bluetoothClientService.startScan()
     }
 
     fun stopDeviceScan() {
-        bluetoothClientService.stopDiscovery()
+        bluetoothClientService.stopScan()
     }
     // [추가] 블루투스 출석을 처리하는 함수
     fun performBluetoothAttendance(device: BluetoothDevice, meeting: Meeting) {

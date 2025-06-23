@@ -434,39 +434,80 @@ private fun DeviceScanDialog(
 
 @Composable
 private fun AttendanceHostDialog(
-    meeting: Meeting, generatedCode: Int?, attendees: List<ParticipantStatus>,
-    onDismissRequest: () -> Unit, onMarkSelfAsPresent: () -> Unit
+    meeting: Meeting,
+    generatedCode: Int?,
+    attendees: List<ParticipantStatus>,
+    onDismissRequest: () -> Unit,
+    onMarkSelfAsPresent: () -> Unit
 ) {
     val context = LocalContext.current
     val currentUserId = UserRepository.getCurrentUserId()
     val isSelfAttended = attendees.find { it.userId == currentUserId }?.isPresent == true
-    LaunchedEffect(Unit) { BluetoothServerService(context).start() }
+
+    // [수정] DisposableEffect를 사용하여 다이얼로그의 생명주기와 서버의 생명주기를 일치시킵니다.
+    DisposableEffect(meeting.meetingId) {
+        // 다이얼로그가 화면에 보일 때 서버와 광고를 시작합니다.
+        val serverService = BluetoothServerService(context)
+        serverService.start(meeting.meetingId)
+
+        onDispose {
+            // 다이얼로그가 화면에서 사라질 때 서버와 광고를 중지합니다. (배터리 및 리소스 절약)
+            serverService.stop()
+        }
+    }
+
     Dialog(onDismissRequest = onDismissRequest) {
-        Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp)) {
-            Column(modifier = Modifier.fillMaxWidth().padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(16.dp),
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(24.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
                 Text(text = "'${meeting.title}' 출석 관리", style = MaterialTheme.typography.titleLarge)
                 Spacer(modifier = Modifier.height(24.dp))
                 Text("출석 세션 시작됨", style = MaterialTheme.typography.bodyLarge)
                 Spacer(modifier = Modifier.height(16.dp))
+
                 if (generatedCode != null) {
-                    Text("랜덤 코드: $generatedCode", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
+                    Text(
+                        "랜덤 코드: $generatedCode",
+                        style = MaterialTheme.typography.headlineMedium,
+                        fontWeight = FontWeight.Bold
+                    )
                     Spacer(modifier = Modifier.height(8.dp))
                 }
                 Text("블루투스 기능 활성화됨", style = MaterialTheme.typography.bodyLarge)
                 Spacer(modifier = Modifier.height(24.dp))
-                Button(onClick = onMarkSelfAsPresent, enabled = !isSelfAttended) { Text(if (isSelfAttended) "✔ 본인 출석 완료" else "본인 출석하기") }
+
+                Button(
+                    onClick = onMarkSelfAsPresent,
+                    enabled = !isSelfAttended
+                ) {
+                    Text(if (isSelfAttended) "✔ 본인 출석 완료" else "본인 출석하기")
+                }
                 Spacer(modifier = Modifier.height(16.dp))
+
                 Text("출석 현황", style = MaterialTheme.typography.titleMedium)
                 Spacer(modifier = Modifier.height(12.dp))
+
                 if (attendees.isEmpty()) {
                     Text("아직 출석한 멤버가 없습니다.", modifier = Modifier.padding(vertical = 16.dp))
                 } else {
                     LazyColumn(modifier = Modifier.heightIn(max = 150.dp)) {
-                        items(attendees) { participant -> ParticipantStatusRow(participant = participant) }
+                        items(attendees) { participant ->
+                            ParticipantStatusRow(participant = participant)
+                        }
                     }
                 }
                 Spacer(modifier = Modifier.height(24.dp))
-                OutlinedButton(onClick = onDismissRequest, modifier = Modifier.fillMaxWidth()) { Text("닫기") }
+
+                OutlinedButton(onClick = onDismissRequest, modifier = Modifier.fillMaxWidth()) {
+                    Text("닫기")
+                }
             }
         }
     }
