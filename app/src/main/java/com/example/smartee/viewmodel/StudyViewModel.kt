@@ -113,4 +113,72 @@ class StudyViewModel(app: Application) : AndroidViewModel(app) {
             selectedCategory + category
         }
     }
+
+    fun toggleLike(studyId: String, userId: String) {
+        viewModelScope.launch {
+            try {
+                val studyRef = studyCollectionRef.document(studyId)
+
+                studyRef.get()
+                    .addOnSuccessListener { document ->
+                        if (document.exists()) {
+                            val study = document.toObject(StudyData::class.java)
+                                ?.copy(studyId = document.id)
+                            if (study != null) {
+                                val currentLikedUsers = study.likedByUsers.toMutableList()
+                                val isCurrentlyLiked = currentLikedUsers.contains(userId)
+
+                                if (isCurrentlyLiked) {
+                                    // 좋아요 취소
+                                    currentLikedUsers.remove(userId)
+                                    val newLikeCount = maxOf(0, study.likeCount - 1)
+
+                                    studyRef.update(
+                                        mapOf(
+                                            "likedByUsers" to currentLikedUsers,
+                                            "likeCount" to newLikeCount
+                                        )
+                                    ).addOnSuccessListener {
+                                        Log.d("StudyViewModel", "좋아요 취소 성공: $studyId")
+                                        updateLocalStudy(studyId, currentLikedUsers, newLikeCount)
+                                    }
+                                } else {
+                                    // 좋아요 추가
+                                    currentLikedUsers.add(userId)
+                                    val newLikeCount = study.likeCount + 1
+
+                                    studyRef.update(
+                                        mapOf(
+                                            "likedByUsers" to currentLikedUsers,
+                                            "likeCount" to newLikeCount
+                                        )
+                                    ).addOnSuccessListener {
+                                        Log.d("StudyViewModel", "좋아요 추가 성공: $studyId")
+                                        updateLocalStudy(studyId, currentLikedUsers, newLikeCount)
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    .addOnFailureListener { e ->
+                        Log.e("StudyViewModel", "스터디 조회 실패", e)
+                    }
+            } catch (e: Exception) {
+                Log.e("StudyViewModel", "좋아요 처리 중 오류", e)
+            }
+        }
+    }
+
+    // 로컬 데이터 즉시 업데이트
+    private fun updateLocalStudy(studyId: String, likedByUsers: List<String>, newLikeCount: Int) {
+        val currentList = _studyList.value ?: mutableListOf()
+        val updatedList = currentList.map { study ->
+            if (study.studyId == studyId) {
+                study.copy(likedByUsers = likedByUsers, likeCount = newLikeCount)
+            } else {
+                study
+            }
+        }.toMutableList()
+        _studyList.value = updatedList
+    }
 }
