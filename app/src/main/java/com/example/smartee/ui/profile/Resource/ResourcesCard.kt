@@ -177,9 +177,9 @@ private fun PenSection(penCount: Int) {
                             .padding(horizontal = 2.dp)
                     )
                 }
-                if (penCount > 5) {
+                if (penCount>=0) {
                     Text(
-                        "+${penCount - 5}",
+                        "+${penCount}",
                         color = Color(0xFF4CAF50),
                         fontWeight = FontWeight.Bold,
                         modifier = Modifier.padding(start = 4.dp)
