@@ -1,6 +1,7 @@
+@file:Suppress("DEPRECATION")
+
 package com.example.smartee.ui.signup
 
-import android.app.Activity
 import android.util.Log
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.IntentSenderRequest
@@ -23,7 +24,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -49,35 +49,9 @@ import com.google.firebase.firestore.FirebaseFirestore
 @Composable
 fun SignUpScreen(navController: NavController) {
     val context = LocalContext.current
-    val activity = context as Activity
     val auth = remember { FirebaseAuth.getInstance() }
     val oneTapClient = remember { Identity.getSignInClient(context) }
     var isLoading by remember { mutableStateOf(false) }
-
-    // 로그인된 유저가 있으면 바로 홈으로
-    LaunchedEffect(Unit) {
-        val currentUser = auth.currentUser
-        if (currentUser != null) {
-            val uid = currentUser.uid
-            val db = FirebaseFirestore.getInstance()
-
-            db.collection("users").document(uid).get()
-                .addOnSuccessListener { document ->
-                    if (!document.exists()) {
-//                        navController.navigate(Screen.FillProfile.route) {
-//                            popUpTo(Screen.SignUp.route) { inclusive = true }
-//                        }
-                    } else {
-                        navController.navigate(Screen.StudyList.route) {
-                            popUpTo(Screen.StudyList.route) { inclusive = true }
-                        }
-                    }
-                }
-                .addOnFailureListener { e ->
-                    Log.e("SignUpScreen", "자동 로그인 시 Firestore 조회 실패: ${e.message}")
-                }
-        }
-    }
 
     val signInRequest = remember {
         BeginSignInRequest.Builder()
