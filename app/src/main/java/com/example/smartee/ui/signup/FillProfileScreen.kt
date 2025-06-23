@@ -192,7 +192,7 @@ fun FillProfileScreen(navController: NavController) {
                         .addOnSuccessListener {
                             isLoading = false
                             Toast.makeText(context, "프로필 저장 완료!", Toast.LENGTH_SHORT).show()
-                            navController.navigate(Screen.Login.route)
+                            navController.navigate(Screen.StudyList.route)
                         }
                         .addOnFailureListener {
                             isLoading = false
