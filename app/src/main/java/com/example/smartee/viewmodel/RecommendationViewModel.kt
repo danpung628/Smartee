@@ -57,6 +57,14 @@ class RecommendationViewModel(
 
     // 스터디 목록이 변경될 때 추천 새로고침
     fun refreshRecommendation(studies: List<StudyData>) {
+        Log.d(TAG, "=== 추천 시작: 받은 스터디 개수 ${studies.size} ===")
+        studies.forEach { study ->
+            Log.d(TAG, "받은 스터디: ${study.title}, 카테고리: ${study.category}")
+        }
+
+        val readingStudies = studies.filter { it.category.contains("독서") }
+        Log.d(TAG, "독서 스터디 개수: ${readingStudies.size}")
+
         // 스터디 목록 저장
         this.availableStudies = studies
 
@@ -89,13 +97,13 @@ class RecommendationViewModel(
 
                 // 추천 이유 설정
                 val userName = authViewModel.currentUser.value?.displayName ?: "회원"
-                val category = recommendation?.category?.split(",")?.firstOrNull() ?: ""
+                val userInterest = userCategories.firstOrNull() ?: "관심"
                 val location = if (recommendation?.address?.isNotEmpty() == true)
                     "${recommendation.address} 지역의 "
                 else ""
 
                 _recommendationReason.value =
-                    "${userName}님이 관심 있는 ${category} 분야의 ${location}스터디입니다"
+                    "${userName}님이 관심 있는 ${userInterest} 분야의 ${location}스터디입니다"
 
                 Log.d(TAG, "추천 결과: ${recommendation?.title ?: "추천 없음"}")
             } catch (e: Exception) {

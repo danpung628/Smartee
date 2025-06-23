@@ -4,7 +4,6 @@ import android.util.Log
 import com.example.smartee.model.StudyData
 import com.google.firebase.functions.ktx.functions
 import com.google.firebase.ktx.Firebase
-import com.google.firebase.ktx.app
 import kotlinx.coroutines.tasks.await
 
 class VertexAIRecommendationService {
@@ -18,22 +17,26 @@ class VertexAIRecommendationService {
                 return null
             }
 
-            Log.d(TAG, "요청 데이터: 카테고리=$userCategories, 잉크레벨=$userInkLevel")
+            // ← 여기에 추가
+            Log.d(TAG, "=== 추천 요청 시작 ===")
+            Log.d(TAG, "사용자 카테고리: $userCategories")
+            Log.d(TAG, "사용자 잉크레벨: $userInkLevel")
 
             val data = mapOf(
                 "categories" to userCategories,
                 "inkLevel" to userInkLevel
             )
 
-            Log.d(TAG, "전송할 데이터 타입: ${userCategories.javaClass}")
-            Log.d(TAG, "전송할 데이터 내용: $userCategories")
-            Log.d(TAG, "최종 요청 데이터: $data")
-
-            Log.d(TAG, "Cloud Function 호출: ${Firebase.app.name}")
+            // ← 여기도 추가
+            Log.d(TAG, "요청 데이터: $data")
 
             // Cloud Function 호출
             val result = functions.getHttpsCallable("recommendStudy").call(data).await()
-            Log.d(TAG, "Cloud Function 응답: ${result.data}")
+
+            // ← 여기에 추가 (기존 로그 대체)
+            Log.d(TAG, "=== Cloud Function 응답 ===")
+            Log.d(TAG, "전체 응답: ${result.data}")
+
             // 응답 파싱
             val response = result.data as Map<*, *>
 
@@ -43,7 +46,15 @@ class VertexAIRecommendationService {
 
             // 추천 스터디 파싱
             val recommendedStudy = response["recommendedStudy"] as? Map<*, *>
+
+            // ← 여기에 추가
+            Log.d(TAG, "추천된 스터디 원본: $recommendedStudy")
+
             if (recommendedStudy != null) {
+                // ← 여기에 추가
+                Log.d(TAG, "추천된 스터디 제목: ${recommendedStudy["title"]}")
+                Log.d(TAG, "추천된 스터디 카테고리: ${recommendedStudy["category"]}")
+
                 // Map을 StudyData 객체로 변환
                 return StudyData(
                     studyId = (recommendedStudy["id"] as? String) ?: "",
