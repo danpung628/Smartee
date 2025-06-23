@@ -23,94 +23,94 @@ interface RecommendRequestData {
   inkLevel: number;
 }
 
-export const recommendStudy = onCall(async (request) => {
-  logger.info("recommendStudy called with data:", request.data);
-
-  if (!request.auth) {
-    throw new HttpsError(
-      "unauthenticated",
-      "The function must be called while authenticated.",
-    );
-  }
-
-  const {categories, inkLevel} = request.data as RecommendRequestData;
-  if (!categories || !Array.isArray(categories) || categories.length === 0) {
-    throw new HttpsError("invalid-argument", "카테고리 목록이 필요합니다.");
-  }
-
-  try {
-    const studiesSnapshot = await db
-      .collection("studies")
-      .where("minInkLevel", "<=", inkLevel)
-      .get();
-
-    if (studiesSnapshot.empty) {
-      return {recommendedStudyId: null, message: "조건에 맞는 스터디가 없습니다"};
-    }
-
-    const studies = studiesSnapshot.docs.map((doc, index) => {
-      const studyData = doc.data();
-      return {
-        index: index + 1,
-        id: doc.id,
-        title: studyData.title || "제목 없음",
-        category: studyData.category || "",
-        minInkLevel: studyData.minInkLevel || 0,
-        description: studyData.description || "설명 없음",
-        currentMemberCount: studyData.currentMemberCount || 0,
-        maxMemberCount: studyData.maxMemberCount || 0,
-        likeCount: studyData.likeCount || 0,
-        commentCount: studyData.commentCount || 0,
-      };
-    });
-
-    const prompt = `
-      사용자 프로필:
-      - 관심 카테고리: ${categories.join(", ")}
-      - 잉크 레벨: ${inkLevel}
-
-      다음 스터디 목록 중에서 이 사용자에게 가장 적합한 스터디를 하나만 선택해주세요:
-      ${studies.map((s) => `
-      [${s.index}] ID: ${s.id}, 제목: ${s.title}, 카테고리: ${s.category}, 필요 잉크: ${s.minInkLevel}
-      `).join("\n")}
-
-      중요: 반드시 위 목록에 있는 번호([1]-[${studies.length}]) 중 하나만 선택하고,
-      추천 이유를 JSON 형식으로 다음과 같이 반환해 주세요:
-      {"selectedIndex": 2, "reason": "추천 이유"}
-    `;
-
-    const aiRequest = {contents: [{role: "user", parts: [{text: prompt}]}]};
-    const result = await genAiModel.generateContent(aiRequest);
-    const textResponse = result.response.candidates?.[0]?.content?.parts?.[0]?.text;
-
-    if (!textResponse) throw new Error("AI 응답에서 텍스트를 찾을 수 없습니다.");
-    const jsonMatch = textResponse.match(/{[\s\S]*}/);
-    if (!jsonMatch) throw new Error("AI 응답에서 JSON을 찾을 수 없습니다.");
-
-    const aiResponse = JSON.parse(jsonMatch[0]);
-    const selectedIndex = aiResponse.selectedIndex;
-
-    if (selectedIndex && Number.isInteger(selectedIndex) &&
-        selectedIndex >= 1 && selectedIndex <= studies.length) {
-      const recommendedStudyId = studies[selectedIndex - 1].id;
-      const studyDoc = await db.collection("studies").doc(recommendedStudyId).get();
-      if (!studyDoc.exists) {
-        throw new HttpsError("not-found", "추천된 스터디를 찾을 수 없습니다.");
-      }
-      return {
-        recommendedStudyId: recommendedStudyId,
-        reason: aiResponse.reason || "사용자에게 적합한 스터디입니다.",
-        recommendedStudy: {id: studyDoc.id, ...studyDoc.data()},
-      };
-    } else {
-      throw new HttpsError("internal", "AI가 유효한 추천을 생성하지 못했습니다.");
-    }
-  } catch (error) {
-    logger.error("추천 오류:", error);
-    if (error instanceof HttpsError) throw error;
-    throw new HttpsError("internal", "추천 처리 중 오류 발생", error);
-  }
-});
+// export const recommendStudy = onCall(async (request) => {
+//   logger.info("recommendStudy called with data:", request.data);
+//
+//   if (!request.auth) {
+//     throw new HttpsError(
+//       "unauthenticated",
+//       "The function must be called while authenticated.",
+//     );
+//   }
+//
+//   const {categories, inkLevel} = request.data as RecommendRequestData;
+//   if (!categories || !Array.isArray(categories) || categories.length === 0) {
+//     throw new HttpsError("invalid-argument", "카테고리 목록이 필요합니다.");
+//   }
+//
+//   try {
+//     const studiesSnapshot = await db
+//       .collection("studies")
+//       .where("minInkLevel", "<=", inkLevel)
+//       .get();
+//
+//     if (studiesSnapshot.empty) {
+//       return {recommendedStudyId: null, message: "조건에 맞는 스터디가 없습니다"};
+//     }
+//
+//     const studies = studiesSnapshot.docs.map((doc, index) => {
+//       const studyData = doc.data();
+//       return {
+//         index: index + 1,
+//         id: doc.id,
+//         title: studyData.title || "제목 없음",
+//         category: studyData.category || "",
+//         minInkLevel: studyData.minInkLevel || 0,
+//         description: studyData.description || "설명 없음",
+//         currentMemberCount: studyData.currentMemberCount || 0,
+//         maxMemberCount: studyData.maxMemberCount || 0,
+//         likeCount: studyData.likeCount || 0,
+//         commentCount: studyData.commentCount || 0,
+//       };
+//     });
+//
+//     const prompt = `
+//       사용자 프로필:
+//       - 관심 카테고리: ${categories.join(", ")}
+//       - 잉크 레벨: ${inkLevel}
+//
+//       다음 스터디 목록 중에서 이 사용자에게 가장 적합한 스터디를 하나만 선택해주세요:
+//       ${studies.map((s) => `
+//       [${s.index}] ID: ${s.id}, 제목: ${s.title}, 카테고리: ${s.category}, 필요 잉크: ${s.minInkLevel}
+//       `).join("\n")}
+//
+//       중요: 반드시 위 목록에 있는 번호([1]-[${studies.length}]) 중 하나만 선택하고,
+//       추천 이유를 JSON 형식으로 다음과 같이 반환해 주세요:
+//       {"selectedIndex": 2, "reason": "추천 이유"}
+//     `;
+//
+//     const aiRequest = {contents: [{role: "user", parts: [{text: prompt}]}]};
+//     const result = await genAiModel.generateContent(aiRequest);
+//     const textResponse = result.response.candidates?.[0]?.content?.parts?.[0]?.text;
+//
+//     if (!textResponse) throw new Error("AI 응답에서 텍스트를 찾을 수 없습니다.");
+//     const jsonMatch = textResponse.match(/{[\s\S]*}/);
+//     if (!jsonMatch) throw new Error("AI 응답에서 JSON을 찾을 수 없습니다.");
+//
+//     const aiResponse = JSON.parse(jsonMatch[0]);
+//     const selectedIndex = aiResponse.selectedIndex;
+//
+//     if (selectedIndex && Number.isInteger(selectedIndex) &&
+//         selectedIndex >= 1 && selectedIndex <= studies.length) {
+//       const recommendedStudyId = studies[selectedIndex - 1].id;
+//       const studyDoc = await db.collection("studies").doc(recommendedStudyId).get();
+//       if (!studyDoc.exists) {
+//         throw new HttpsError("not-found", "추천된 스터디를 찾을 수 없습니다.");
+//       }
+//       return {
+//         recommendedStudyId: recommendedStudyId,
+//         reason: aiResponse.reason || "사용자에게 적합한 스터디입니다.",
+//         recommendedStudy: {id: studyDoc.id, ...studyDoc.data()},
+//       };
+//     } else {
+//       throw new HttpsError("internal", "AI가 유효한 추천을 생성하지 못했습니다.");
+//     }
+//   } catch (error) {
+//     logger.error("추천 오류:", error);
+//     if (error instanceof HttpsError) throw error;
+//     throw new HttpsError("internal", "추천 처리 중 오류 발생", error);
+//   }
+// });
 
 // ------------------------------------------------------------------
 // 스터디 종료 정산 및 뱃지 부여 함수 (v2 문법)
