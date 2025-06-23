@@ -32,6 +32,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import coil3.compose.AsyncImage
 import com.example.smartee.bluetooth.BluetoothClientService
+import com.example.smartee.bluetooth.BluetoothServerService
 import com.example.smartee.model.Meeting
 import com.example.smartee.model.ParticipantStatus
 import com.example.smartee.model.StudyData
@@ -58,6 +59,8 @@ fun StudyDetailScreen(
     val participantStatusList by viewModel.participantStatusList.collectAsState()
     val eventState by viewModel.userEvent.collectAsState()
     val currentUserId = UserRepository.getCurrentUserId()
+    // [추가] ViewModel에서 생성된 출석 코드를 구독합니다.
+    val generatedCode by viewModel.generatedAttendanceCode.collectAsState()
 
     val isRefreshing = isLoading
     val pullRefreshState = rememberPullRefreshState(
@@ -66,7 +69,9 @@ fun StudyDetailScreen(
     )
 
     var meetingForDialog by remember { mutableStateOf<Meeting?>(null) }
-    var showAttendanceHostDialog by remember { mutableStateOf<Meeting?>(null) }
+    var showHostSettingsMenu by remember { mutableStateOf(false) }
+    // [수정] 다이얼로그 상태 변수가 이제 Meeting 객체 자체를 저장합니다.
+    var meetingForHostAttendance by remember { mutableStateOf<Meeting?>(null) }
     val showInfoDialog = remember { mutableStateOf<String?>(null) }
 
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -115,7 +120,9 @@ fun StudyDetailScreen(
             currentUserId = currentUserId ?: "",
             onDismiss = { meetingForDialog = null },
             onStartAttendance = {
-                showAttendanceHostDialog = it
+                // [수정] 출석 세션 시작 시, ViewModel의 함수를 호출하고 다이얼로그를 엽니다.
+                viewModel.startAttendanceSession(it.meetingId)
+                meetingForHostAttendance = it
                 meetingForDialog = null
             },
             onWithdraw = { viewModel.withdrawFromMeeting(it.meetingId) },
@@ -140,11 +147,19 @@ fun StudyDetailScreen(
         )
     }
 
-    val study = studyData
-    if (showAttendanceHostDialog != null && study != null) {
-        AttendanceHostPlaceholderDialog(
-            meetingTitle = showAttendanceHostDialog!!.title,
-            onDismissRequest = { showAttendanceHostDialog = null }
+    // [수정] 플레이스홀더를 실제 다이얼로그로 교체하여 호출
+    if (meetingForHostAttendance != null) {
+        // 출석 현황은 UnifiedMeetingDialog와 동일한 participantStatusList를 사용합니다.
+        LaunchedEffect(meetingForHostAttendance) {
+            viewModel.listenForParticipantStatus(meetingForHostAttendance!!)
+        }
+
+        AttendanceHostDialog(
+            meeting = meetingForHostAttendance!!,
+            generatedCode = generatedCode,
+            attendees = participantStatusList,
+            onDismissRequest = { meetingForHostAttendance = null },
+            onMarkSelfAsPresent = { viewModel.markHostAsPresent(meetingForHostAttendance!!.meetingId) }
         )
     }
 
@@ -158,6 +173,7 @@ fun StudyDetailScreen(
     }
 
     Box(modifier = Modifier.fillMaxSize().pullRefresh(pullRefreshState)) {
+        val study = studyData
         if (isLoading && study == null) {
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 CircularProgressIndicator()
@@ -203,7 +219,7 @@ fun StudyDetailScreen(
 
 
 
-// 이하 모든 헬퍼 Composable들은 이전과 동일 (생략 없이 전체 포함)
+
 @Composable
 private fun MeetingListSection(
     meetings: List<Meeting>,
@@ -433,6 +449,83 @@ private fun GuestButtons(viewModel: StudyDetailViewModel, isLoading: Boolean) {
             CircularProgressIndicator(color = MaterialTheme.colorScheme.onPrimary)
         } else {
             Text("스터디 참가하기", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+        }
+    }
+}
+
+@Composable
+private fun AttendanceHostDialog(
+    meeting: Meeting,
+    generatedCode: Int?,
+    attendees: List<ParticipantStatus>,
+    onDismissRequest: () -> Unit,
+    onMarkSelfAsPresent: () -> Unit
+) {
+    val context = LocalContext.current
+    val currentUserId = UserRepository.getCurrentUserId()
+    val isSelfAttended = attendees.find { it.userId == currentUserId }?.isPresent == true
+
+    // 세션이 시작되면 블루투스 서버를 활성화
+    LaunchedEffect(Unit) {
+        BluetoothServerService(context).start()
+    }
+
+    Dialog(onDismissRequest = onDismissRequest) {
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(16.dp),
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(24.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text(
+                    text = "'${meeting.title}' 출석 세션",
+                    style = MaterialTheme.typography.titleLarge
+                )
+                Spacer(modifier = Modifier.height(24.dp))
+
+                Text("출석 세션 시작됨", style = MaterialTheme.typography.bodyLarge)
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // 랜덤 코드 표시
+                if (generatedCode != null) {
+                    Text("랜덤 코드: $generatedCode", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
+                    Spacer(modifier = Modifier.height(8.dp))
+                }
+                Text("블루투스 기능 활성화됨", style = MaterialTheme.typography.bodyLarge)
+                Spacer(modifier = Modifier.height(24.dp))
+
+                // 본인 출석하기 버튼
+                Button(
+                    onClick = onMarkSelfAsPresent,
+                    enabled = !isSelfAttended
+                ) {
+                    Text(if (isSelfAttended) "✔ 본인 출석 완료" else "본인 출석하기")
+                }
+                Spacer(modifier = Modifier.height(16.dp))
+
+                Text("출석 현황", style = MaterialTheme.typography.titleMedium)
+                Spacer(modifier = Modifier.height(12.dp))
+
+                // 실시간 출석 현황 목록
+                if (attendees.isEmpty()) {
+                    Text("아직 출석한 멤버가 없습니다.", modifier = Modifier.padding(vertical = 16.dp))
+                } else {
+                    LazyColumn(modifier = Modifier.heightIn(max = 150.dp)) {
+                        items(attendees) { participant ->
+                            ParticipantStatusRow(participant = participant)
+                        }
+                    }
+                }
+                Spacer(modifier = Modifier.height(24.dp))
+
+                OutlinedButton(onClick = onDismissRequest, modifier = Modifier.fillMaxWidth()) {
+                    Text("닫기")
+                }
+            }
         }
     }
 }
