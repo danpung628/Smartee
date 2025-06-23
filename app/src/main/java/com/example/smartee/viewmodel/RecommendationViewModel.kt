@@ -7,10 +7,8 @@ import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
-import androidx.lifecycle.viewModelScope
 import com.example.smartee.model.StudyData
-import com.example.smartee.service.VertexAIRecommendationService
-import kotlinx.coroutines.launch
+import com.example.smartee.service.SimpleRecommendationService
 
 class RecommendationViewModel(
     app: Application,
@@ -22,7 +20,7 @@ class RecommendationViewModel(
     private var availableStudies = listOf<StudyData>()
 
     // AI 추천 서비스
-    private val recommendationService = VertexAIRecommendationService()
+    private val recommendationService = SimpleRecommendationService()
 
     // 추천 스터디 및 상태
     private val _recommendedStudy = MutableLiveData<StudyData?>(null)
@@ -58,26 +56,17 @@ class RecommendationViewModel(
     // 스터디 목록이 변경될 때 추천 새로고침
     fun refreshRecommendation(studies: List<StudyData>) {
         Log.d(TAG, "=== 추천 시작: 받은 스터디 개수 ${studies.size} ===")
-        studies.forEach { study ->
-            Log.d(TAG, "받은 스터디: ${study.title}, 카테고리: ${study.category}")
-        }
 
-        val readingStudies = studies.filter { it.category.contains("독서") }
-        Log.d(TAG, "독서 스터디 개수: ${readingStudies.size}")
-
-        // 스터디 목록 저장
         this.availableStudies = studies
-
         if (studies.isEmpty()) return
 
         val userCategories = getUserCategories()
         val userInkLevel = getUserInkLevel()
+        val userLocation = getUserLocation() // 새로 추가
 
-        Log.d(TAG, "현재 사용자 카테고리: $userCategories")
-        Log.d(TAG, "현재 사용자 잉크레벨: $userInkLevel")
+        Log.d(TAG, "사용자 정보 - 카테고리: $userCategories, 잉크레벨: $userInkLevel, 위치: $userLocation")
 
         if (userCategories.isEmpty()) {
-            Log.e(TAG, "카테고리가 비어 있어서 추천이 불가능함")
             _errorMessage.value = "관심 카테고리를 설정해주세요"
             _isLoading.value = false
             return
@@ -86,32 +75,51 @@ class RecommendationViewModel(
         _isLoading.value = true
         _errorMessage.value = null
 
-        viewModelScope.launch {
-            try {
-                val recommendation = recommendationService.recommendStudy(
-                    userCategories,
-                    userInkLevel
-                )
+        // AI 호출 대신 바로 로컬에서 계산
+        val recommendation = recommendationService.recommendStudy(
+            userCategories,
+            userInkLevel,
+            userLocation,
+            studies
+        )
 
-                _recommendedStudy.value = recommendation
+        _recommendedStudy.value = recommendation
 
-                // 추천 이유 설정
-                val userName = authViewModel.currentUser.value?.displayName ?: "회원"
-                val userInterest = userCategories.firstOrNull() ?: "관심"
-                val location = if (recommendation?.address?.isNotEmpty() == true)
-                    "${recommendation.address} 지역의 "
-                else ""
+        // 추천 이유 생성
+        if (recommendation != null) {
+            val reason = generateRecommendationReason(recommendation, userCategories, userLocation)
+            _recommendationReason.value = reason
+        }
 
-                _recommendationReason.value =
-                    "${userName}님이 관심 있는 ${userInterest} 분야의 ${location}스터디입니다"
+        _isLoading.value = false
+        Log.d(TAG, "추천 완료: ${recommendation?.title ?: "추천 없음"}")
+    }
 
-                Log.d(TAG, "추천 결과: ${recommendation?.title ?: "추천 없음"}")
-            } catch (e: Exception) {
-                Log.e(TAG, "추천 실패", e)
-                _errorMessage.value = "추천을 가져오는 중 오류가 발생했습니다: ${e.message}"
-            } finally {
-                _isLoading.value = false
-            }
+    private fun getUserLocation(): String {
+        return userViewModel.userData.value?.region ?: ""  // location → region 변경
+    }
+
+    private fun generateRecommendationReason(
+        study: StudyData,
+        userCategories: List<String>,
+        userLocation: String
+    ): String {
+        val reasons = mutableListOf<String>()
+
+        if (userCategories.any { study.category.contains(it, ignoreCase = true) }) {
+            reasons.add("관심 분야와 일치")
+        }
+        if (study.address.contains(userLocation, ignoreCase = true)) {
+            reasons.add("근처 지역")
+        }
+        if (study.likeCount > 10) {
+            reasons.add("인기 스터디")
+        }
+
+        return if (reasons.isNotEmpty()) {
+            "${reasons.joinToString(", ")}해서 추천드려요!"
+        } else {
+            "잉크 레벨에 맞는 스터디입니다!"
         }
     }
 }
