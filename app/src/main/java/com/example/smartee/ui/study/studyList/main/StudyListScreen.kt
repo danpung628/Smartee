@@ -2,11 +2,17 @@ package com.example.smartee.ui.study.studyList.main
 
 import android.app.Application
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
-import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.smartee.ui.LocalAuthViewModel
 import com.example.smartee.ui.LocalNavGraphViewModelStoreOwner
@@ -16,9 +22,8 @@ import com.example.smartee.viewmodel.RecommendationViewModelFactory
 import com.example.smartee.viewmodel.StudyViewModel
 import com.example.smartee.viewmodel.UserViewModel
 import com.example.smartee.viewmodel.UserViewModelFactory
-import com.google.accompanist.swiperefresh.SwipeRefresh
-import com.google.accompanist.swiperefresh.rememberSwipeRefreshState
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun StudyListScreen(
     modifier: Modifier = Modifier,
@@ -41,9 +46,21 @@ fun StudyListScreen(
         )
     )
 
-    // ✅ 여기 추가
-    LaunchedEffect(Unit) {
-        studyViewModel.refreshStudyList()
+    // 현재 사용자 ID 가져오기
+    val currentUser by authViewModel.currentUser.collectAsState()
+    val currentUserId = currentUser?.uid ?: ""
+
+    val lifecycleOwner = androidx.lifecycle.compose.LocalLifecycleOwner.current
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                studyViewModel.refreshStudyList()
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+        }
     }
 
     DisposableEffect(studyViewModel) {
@@ -55,18 +72,20 @@ fun StudyListScreen(
         }
     }
 
-    val swipeState = rememberSwipeRefreshState(studyViewModel.isRefreshing)
-
     Column(modifier = modifier) {
         StudyListTopBar(onSearchNavigate = onSearchNavigate)
-        SwipeRefresh(
-            state = swipeState,
-            onRefresh = { studyViewModel.refreshStudyList() }
+
+        // ✅ 새로운 Material3 PullToRefresh 사용
+        PullToRefreshBox(
+            isRefreshing = studyViewModel.isRefreshing,
+            onRefresh = { studyViewModel.refreshStudyList() },
+            modifier = Modifier.fillMaxSize()
         ) {
             StudyListContent(
                 studyViewModel = studyViewModel,
                 onStudyDetailNavigate = onStudyDetailNavigate,
                 recommendationViewModel = recommendationViewModel,
+                currentUserId = currentUserId
             )
         }
     }

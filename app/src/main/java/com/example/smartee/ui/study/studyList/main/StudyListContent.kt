@@ -33,12 +33,15 @@ import androidx.compose.ui.unit.sp
 import com.example.smartee.viewmodel.RecommendationViewModel
 import com.example.smartee.viewmodel.StudyViewModel
 
+// app/src/main/java/com/example/smartee/ui/study/studyList/main/StudyListContent.kt 수정
+
 @Composable
 fun StudyListContent(
     modifier: Modifier = Modifier,
     studyViewModel: StudyViewModel,
     recommendationViewModel: RecommendationViewModel,
-    onStudyDetailNavigate: (String) -> Unit
+    onStudyDetailNavigate: (String) -> Unit,
+    currentUserId: String
 ) {
     val filteredStudyList = studyViewModel.filteredStudyList.observeAsState(initial = emptyList()).value
     val recommendedStudy = recommendationViewModel.recommendedStudy.observeAsState().value
@@ -126,6 +129,13 @@ fun StudyListContent(
                             StudyListItem(
                                 item = study,
                                 onClick = onStudyDetailNavigate,
+                                onLikeClick = { studyId, userId ->
+                                    studyViewModel.toggleLike(
+                                        studyId,
+                                        userId
+                                    )
+                                },
+                                currentUserId = currentUserId,
                                 isRecommended = true
                             )
                         }
@@ -134,11 +144,17 @@ fun StudyListContent(
 
                 // 기존 스터디 목록
                 items(filteredStudyList) { study ->
-                    // 추천 스터디와 동일한 항목은 중복 표시 방지
                     if (recommendedStudy == null || study.studyId != recommendedStudy.studyId) {
                         StudyListItem(
                             item = study,
                             onClick = onStudyDetailNavigate,
+                            onLikeClick = { studyId, userId ->
+                                studyViewModel.toggleLike(
+                                    studyId,
+                                    userId
+                                )
+                            },
+                            currentUserId = currentUserId, // 사용자 ID 전달
                             isRecommended = false
                         )
                     }

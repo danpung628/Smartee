@@ -46,6 +46,7 @@ data class StudyData(
     var commentCount: Int = 0,
     //스터디 좋아요
     var likeCount: Int = 0,
+    var likedByUsers: List<String> = emptyList(),
     //스터디 썸네일
     val meetingSummaries: List<Map<String, String>> = emptyList(), // "id", "title", "date" 요약 정보
     var thumbnailModel: String = "",

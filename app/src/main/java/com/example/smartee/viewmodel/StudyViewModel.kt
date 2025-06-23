@@ -14,6 +14,7 @@ import com.example.smartee.model.StudyData
 import com.example.smartee.model.factory.CategoryListFactory
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.tasks.await
 
 class StudyViewModel(app: Application) : AndroidViewModel(app) {
     //새로 고침 동작
@@ -111,6 +112,52 @@ class StudyViewModel(app: Application) : AndroidViewModel(app) {
             selectedCategory - category
         } else {
             selectedCategory + category
+        }
+    }
+
+    // [수정] '좋아요' 즉시 반영을 위한 로직 변경
+    fun toggleLike(studyId: String, userId: String) {
+        val originalList = _studyList.value ?: return
+        val studyIndex = originalList.indexOfFirst { it.studyId == studyId }
+        if (studyIndex == -1) return
+
+        val study = originalList[studyIndex]
+        val isCurrentlyLiked = study.likedByUsers.contains(userId)
+
+        // 1. 낙관적 업데이트를 위한 새로운 데이터 생성
+        val newLikedByUsers = study.likedByUsers.toMutableList()
+        val newLikeCount: Int
+
+        if (isCurrentlyLiked) {
+            newLikedByUsers.remove(userId)
+            newLikeCount = maxOf(0, study.likeCount - 1)
+        } else {
+            newLikedByUsers.add(userId)
+            newLikeCount = study.likeCount + 1
+        }
+
+        val updatedStudy = study.copy(likedByUsers = newLikedByUsers, likeCount = newLikeCount)
+
+        // 2. UI 즉시 업데이트
+        val newList = originalList.toMutableList()
+        newList[studyIndex] = updatedStudy
+        _studyList.value = newList
+
+        // 3. Firestore에 백그라운드 업데이트 요청
+        viewModelScope.launch {
+            try {
+                val studyRef = studyCollectionRef.document(studyId)
+                val dataToUpdate = mapOf(
+                    "likedByUsers" to newLikedByUsers,
+                    "likeCount" to newLikeCount
+                )
+                studyRef.update(dataToUpdate).await()
+                Log.d("StudyViewModel", "Firestore 좋아요 업데이트 성공: $studyId")
+            } catch (e: Exception) {
+                // 4. Firestore 업데이트 실패 시, UI 상태를 원래대로 롤백
+                Log.e("StudyViewModel", "Firestore 좋아요 업데이트 실패, 상태 롤백", e)
+                _studyList.value = originalList // 실패 시 원래 목록으로 복원
+            }
         }
     }
 }
