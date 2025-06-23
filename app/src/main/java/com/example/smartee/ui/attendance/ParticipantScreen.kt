@@ -1,3 +1,4 @@
+/*
 package com.example.smartee.ui.attendance
 
 import androidx.compose.foundation.layout.*
@@ -184,3 +185,4 @@ fun ParticipantScreen(
         }
     }
 }
+*/

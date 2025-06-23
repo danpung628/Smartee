@@ -3,6 +3,12 @@
 package com.example.smartee.ui.study.studyList.studydetail
 
 import android.app.Application
+import android.bluetooth.BluetoothAdapter
+import android.bluetooth.BluetoothDevice
+import android.content.Intent
+import android.content.pm.PackageManager
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -27,6 +33,7 @@ import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -42,6 +49,7 @@ import com.example.smartee.viewmodel.StudyDetailViewModel
 import com.example.smartee.viewmodel.StudyDetailViewModelFactory
 import com.example.smartee.viewmodel.UserRole
 import kotlinx.coroutines.launch
+import java.util.jar.Manifest
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterialApi::class)
 @Composable
@@ -63,30 +71,32 @@ fun StudyDetailScreen(
     val participantStatusList by viewModel.participantStatusList.collectAsState()
     val eventState by viewModel.userEvent.collectAsState()
     val currentUserId = UserRepository.getCurrentUserId()
-    // [추가] ViewModel에서 생성된 출석 코드를 구독합니다.
     val generatedCode by viewModel.generatedAttendanceCode.collectAsState()
     val pendingRequestCount by viewModel.pendingRequestCount.collectAsState()
     val isConnectingBluetooth by viewModel.isConnectingBluetooth.collectAsState()
+    val isScanning by viewModel.isScanning.collectAsState()
+    val discoveredDevices by viewModel.discoveredDevices.collectAsState()
 
-    val isRefreshing = isLoading
     val pullRefreshState = rememberPullRefreshState(
-        refreshing = isRefreshing,
+        refreshing = isLoading,
         onRefresh = { viewModel.loadStudy(studyId) }
     )
 
     var meetingForDialog by remember { mutableStateOf<Meeting?>(null) }
-    var showHostSettingsMenu by remember { mutableStateOf(false) }
-    // [수정] 다이얼로그 상태 변수가 이제 Meeting 객체 자체를 저장합니다.
+    var showDeviceScanDialog by remember { mutableStateOf<Meeting?>(null) }
     var meetingForHostAttendance by remember { mutableStateOf<Meeting?>(null) }
+    var showHostSettingsMenu by remember { mutableStateOf(false) }
     val showInfoDialog = remember { mutableStateOf<String?>(null) }
-
+    val discoverableLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.StartActivityForResult(),
+        onResult = { /* 결과 처리가 필요하다면 여기에 작성 */ }
+    )
     val lifecycleOwner = LocalLifecycleOwner.current
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
             if (event == Lifecycle.Event.ON_RESUME) {
                 viewModel.loadStudy(studyId)
                 viewModel.loadPendingRequestCount()
-
             }
         }
         lifecycleOwner.lifecycle.addObserver(observer)
@@ -95,12 +105,21 @@ fun StudyDetailScreen(
         }
     }
 
-    LaunchedEffect(meetingForDialog) {
-        val meeting = meetingForDialog
+    LaunchedEffect(meetingForDialog, meetingForHostAttendance) {
+        val meeting = meetingForDialog ?: meetingForHostAttendance
         if (meeting != null) {
             viewModel.listenForParticipantStatus(meeting)
         } else {
             viewModel.stopListeningForParticipantStatus()
+        }
+    }
+
+    DisposableEffect(showDeviceScanDialog) {
+        if (showDeviceScanDialog != null) {
+            viewModel.startDeviceScan()
+        }
+        onDispose {
+            viewModel.stopDeviceScan()
         }
     }
 
@@ -114,30 +133,43 @@ fun StudyDetailScreen(
                 meetingForDialog = null
                 viewModel.eventConsumed()
             }
+            is StudyDetailViewModel.UserEvent.ShowSnackbar -> {
+                showInfoDialog.value = event.message
+                if (event.message.contains("성공")) {
+                    showDeviceScanDialog = null
+                }
+            }
             is StudyDetailViewModel.UserEvent.Error -> showInfoDialog.value = event.message
             else -> {}
         }
     }
 
+    // --- 다이얼로그 렌더링 영역 ---
+
     if (meetingForDialog != null) {
         UnifiedMeetingDialog(
-
             meeting = meetingForDialog!!,
             userRole = userRole,
             isSessionActive = activeMeetingSessions[meetingForDialog!!.meetingId] ?: false,
             participantStatusList = participantStatusList,
             currentUserId = currentUserId ?: "",
-            onDismiss = { meetingForDialog = null },
             isConnecting = isConnectingBluetooth,
+            onDismiss = { meetingForDialog = null },
             onStartAttendance = {
-                // [수정] 출석 세션 시작 시, ViewModel의 함수를 호출하고 다이얼로그를 엽니다.
+                val discoverableIntent = Intent(BluetoothAdapter.ACTION_REQUEST_DISCOVERABLE).apply {
+                    putExtra(BluetoothAdapter.EXTRA_DISCOVERABLE_DURATION, 300) // 300초(5분) 동안
+                }
+                discoverableLauncher.launch(discoverableIntent)
+
+                // ViewModel의 기존 로직은 그대로 호출
                 viewModel.startAttendanceSession(it.meetingId)
                 meetingForHostAttendance = it
                 meetingForDialog = null
             },
             onWithdraw = { viewModel.withdrawFromMeeting(it.meetingId) },
             onAttend = { meeting ->
-                viewModel.performBluetoothAttendance(meeting)
+                showDeviceScanDialog = meeting
+                meetingForDialog = null
             },
             onManageRequests = {
                 navController.navigate("meeting_request_list/${it.meetingId}")
@@ -155,13 +187,20 @@ fun StudyDetailScreen(
         )
     }
 
+    if (showDeviceScanDialog != null) {
+        DeviceScanDialog(
+            isScanning = isScanning,
+            isConnecting = isConnectingBluetooth,
+            discoveredDevices = discoveredDevices,
+            onDeviceSelected = { device ->
+                viewModel.performBluetoothAttendance(device, showDeviceScanDialog!!)
+            },
+            onDismiss = { showDeviceScanDialog = null }
+        )
+    }
+
     // [수정] 플레이스홀더를 실제 다이얼로그로 교체하여 호출
     if (meetingForHostAttendance != null) {
-        // 출석 현황은 UnifiedMeetingDialog와 동일한 participantStatusList를 사용합니다.
-        LaunchedEffect(meetingForHostAttendance) {
-            viewModel.listenForParticipantStatus(meetingForHostAttendance!!)
-        }
-
         AttendanceHostDialog(
             meeting = meetingForHostAttendance!!,
             generatedCode = generatedCode,
@@ -180,6 +219,8 @@ fun StudyDetailScreen(
         )
     }
 
+    // --- UI 본문 ---
+
     Box(modifier = Modifier.fillMaxSize().pullRefresh(pullRefreshState)) {
         val study = studyData
         if (isLoading && study == null) {
@@ -191,21 +232,18 @@ fun StudyDetailScreen(
                 Column(modifier = Modifier.weight(1f).verticalScroll(rememberScrollState())) {
                     StudyHeader(study = study, onReportStudy = viewModel::reportStudy)
                     StudyContent(study = study)
-
                     if (userRole == UserRole.OWNER || userRole == UserRole.PARTICIPANT) {
                         MeetingListSection(
                             meetings = meetings,
                             activeMeetingSessions = activeMeetingSessions,
-                            onMeetingClick = { clickedMeeting ->
-                                meetingForDialog = clickedMeeting
-                            },
+                            onMeetingClick = { clickedMeeting -> meetingForDialog = clickedMeeting },
                             currentUserId = currentUserId
                         )
                     }
                 }
                 Box(modifier = Modifier.padding(bottom = 32.dp, start = 16.dp, end = 16.dp)) {
                     when (userRole) {
-                        UserRole.OWNER -> OwnerButtons(navController, study.studyId,pendingRequestCount)
+                        UserRole.OWNER -> OwnerButtons(navController, study.studyId, pendingRequestCount)
                         UserRole.GUEST -> GuestButtons(viewModel, isLoading)
                         UserRole.PARTICIPANT -> {}
                     }
@@ -218,15 +256,16 @@ fun StudyDetailScreen(
         }
 
         PullRefreshIndicator(
-            refreshing = isRefreshing,
+            refreshing = isLoading,
             state = pullRefreshState,
             modifier = Modifier.align(Alignment.TopCenter)
         )
     }
 }
 
-
-
+// =================================================================================
+// 이하 헬퍼 Composable 함수들
+// =================================================================================
 
 @Composable
 private fun MeetingListSection(
@@ -288,27 +327,15 @@ private fun MeetingItem(
     }
 }
 
-
 @Composable
 private fun UnifiedMeetingDialog(
-    meeting: Meeting,
-    userRole: UserRole,
-    isSessionActive: Boolean,
-    participantStatusList: List<ParticipantStatus>,
-    currentUserId: String,
-    onDismiss: () -> Unit,
-    onStartAttendance: (Meeting) -> Unit,
-    onWithdraw: (Meeting) -> Unit,
-    isConnecting: Boolean,
-    onAttend: (Meeting) -> Unit,
-    onManageRequests: (Meeting) -> Unit,
-    onEditMeeting: (Meeting) -> Unit,
-    onDeleteMeeting: (Meeting) -> Unit,
-    onRequestToJoin: (Meeting) -> Unit
+    meeting: Meeting, userRole: UserRole, isSessionActive: Boolean, participantStatusList: List<ParticipantStatus>, currentUserId: String, isConnecting: Boolean,
+    onDismiss: () -> Unit, onStartAttendance: (Meeting) -> Unit, onWithdraw: (Meeting) -> Unit, onAttend: (Meeting) -> Unit,
+    onManageRequests: (Meeting) -> Unit, onEditMeeting: (Meeting) -> Unit, onDeleteMeeting: (Meeting) -> Unit, onRequestToJoin: (Meeting) -> Unit
 ) {
+    var showHostSettingsMenu by remember { mutableStateOf(false) }
     val isJoined = meeting.confirmedParticipants.contains(currentUserId)
     val amIPresent = participantStatusList.find { it.userId == currentUserId }?.isPresent == true
-    var showHostSettingsMenu by remember { mutableStateOf(false) }
 
     Dialog(onDismissRequest = onDismiss) {
         Card(shape = RoundedCornerShape(16.dp)) {
@@ -317,76 +344,42 @@ private fun UnifiedMeetingDialog(
                     Text(meeting.title, style = MaterialTheme.typography.headlineSmall, modifier = Modifier.weight(1f))
                     if (userRole == UserRole.OWNER) {
                         IconButton(onClick = { onManageRequests(meeting) }) { Icon(Icons.Default.People, "신청자 목록") }
-
-                        // [수정] 설정 버튼과 드롭다운 메뉴를 Box로 함께 묶습니다.
                         Box {
-                            IconButton(onClick = { showHostSettingsMenu = true }) {
-                                Icon(Icons.Default.Settings, "설정")
-                            }
-                            DropdownMenu(
-                                expanded = showHostSettingsMenu,
-                                onDismissRequest = { showHostSettingsMenu = false }
-                            ) {
-                                DropdownMenuItem(
-                                    text = { Text("모임 수정") },
-                                    onClick = {
-                                        onEditMeeting(meeting)
-                                        showHostSettingsMenu = false
-                                    }
-                                )
-                                DropdownMenuItem(
-                                    text = { Text("모임 삭제") },
-                                    onClick = {
-                                        onDeleteMeeting(meeting)
-                                        showHostSettingsMenu = false
-                                    }
-                                )
+                            IconButton(onClick = { showHostSettingsMenu = true }) { Icon(Icons.Default.Settings, "설정") }
+                            DropdownMenu(expanded = showHostSettingsMenu, onDismissRequest = { showHostSettingsMenu = false }) {
+                                DropdownMenuItem(text = { Text("모임 수정") }, onClick = { onEditMeeting(meeting); showHostSettingsMenu = false })
+                                DropdownMenuItem(text = { Text("모임 삭제") }, onClick = { onDeleteMeeting(meeting); showHostSettingsMenu = false })
                             }
                         }
                     }
                 }
                 Text("날짜: ${meeting.date} 시간: ${meeting.time}", style = MaterialTheme.typography.bodyMedium)
                 Spacer(modifier = Modifier.height(16.dp))
-
                 Text("참여자 현황", style = MaterialTheme.typography.titleMedium)
                 Divider(modifier = Modifier.padding(vertical = 8.dp))
                 if (participantStatusList.isEmpty()) {
                     Text("참여자가 없습니다.", modifier = Modifier.padding(vertical = 16.dp))
                 } else {
                     LazyColumn(modifier = Modifier.heightIn(max = 200.dp)) {
-                        items(participantStatusList) { participant ->
-                            ParticipantStatusRow(participant = participant)
-                        }
+                        items(participantStatusList) { participant -> ParticipantStatusRow(participant = participant) }
                     }
                 }
                 Spacer(modifier = Modifier.height(16.dp))
-
                 if (userRole == UserRole.PARTICIPANT) {
                     if (isJoined) {
                         if (isSessionActive && !amIPresent) {
-                            // [수정] 연결 중일 때 버튼 비활성화 및 로딩 표시
-                            Button(
-                                onClick = { onAttend(meeting) },
-                                enabled = !isConnecting, // 연결 중에는 비활성화
-                                modifier = Modifier.fillMaxWidth()
-                            ) {
+                            Button(onClick = { onAttend(meeting) }, enabled = !isConnecting, modifier = Modifier.fillMaxWidth()) {
                                 if (isConnecting) {
                                     CircularProgressIndicator(modifier = Modifier.size(24.dp), strokeWidth = 2.dp)
                                     Spacer(modifier = Modifier.width(8.dp))
                                     Text("호스트와 연결 중...")
-                                } else {
-                                    Text("블루투스로 출석하기")
-                                }
+                                } else { Text("블루투스로 출석하기") }
                             }
                         }
                         Spacer(modifier = Modifier.height(8.dp))
-                        OutlinedButton(onClick = { onWithdraw(meeting) }, modifier = Modifier.fillMaxWidth()) {
-                            Text("참여 취소")
-                        }
+                        OutlinedButton(onClick = { onWithdraw(meeting) }, modifier = Modifier.fillMaxWidth()) { Text("참여 취소") }
                     } else {
-                        Button(onClick = { onRequestToJoin(meeting) }, modifier = Modifier.fillMaxWidth()) {
-                            Text("참여 요청하기")
-                        }
+                        Button(onClick = { onRequestToJoin(meeting) }, modifier = Modifier.fillMaxWidth()) { Text("참여 요청하기") }
                     }
                 }
                 if (userRole == UserRole.OWNER) {
@@ -398,12 +391,90 @@ private fun UnifiedMeetingDialog(
         }
     }
 }
+
+@Composable
+private fun DeviceScanDialog(
+    isScanning: Boolean, isConnecting: Boolean, discoveredDevices: List<BluetoothDevice>,
+    onDeviceSelected: (BluetoothDevice) -> Unit, onDismiss: () -> Unit
+) {
+    Dialog(onDismissRequest = onDismiss) {
+        Card(shape = RoundedCornerShape(16.dp), modifier = Modifier.heightIn(min = 200.dp, max = 400.dp)) {
+            Column(modifier = Modifier.padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                Text("호스트 기기 검색", style = MaterialTheme.typography.headlineSmall)
+                Spacer(modifier = Modifier.height(16.dp))
+                if (isConnecting) {
+                    CircularProgressIndicator()
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Text("호스트와 연결 중...")
+                } else {
+                    if (isScanning && discoveredDevices.isEmpty()) {
+                        CircularProgressIndicator()
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Text("검색 중...")
+                    } else {
+                        Text(if (discoveredDevices.isEmpty()) "검색된 기기가 없습니다." else "출석할 호스트 기기를 선택하세요.")
+                    }
+                    Spacer(modifier = Modifier.height(16.dp))
+                    LazyColumn {
+                        items(discoveredDevices) { device ->
+                            if (ContextCompat.checkSelfPermission(LocalContext.current, android.Manifest.permission.BLUETOOTH_CONNECT) == PackageManager.PERMISSION_GRANTED) {
+                                Row(modifier = Modifier.fillMaxWidth().clickable { onDeviceSelected(device) }.padding(vertical = 12.dp)) {
+                                    Icon(Icons.Default.PhoneAndroid, contentDescription = null)
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text(device.name ?: "이름 없음")
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun AttendanceHostDialog(
+    meeting: Meeting, generatedCode: Int?, attendees: List<ParticipantStatus>,
+    onDismissRequest: () -> Unit, onMarkSelfAsPresent: () -> Unit
+) {
+    val context = LocalContext.current
+    val currentUserId = UserRepository.getCurrentUserId()
+    val isSelfAttended = attendees.find { it.userId == currentUserId }?.isPresent == true
+    LaunchedEffect(Unit) { BluetoothServerService(context).start() }
+    Dialog(onDismissRequest = onDismissRequest) {
+        Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp)) {
+            Column(modifier = Modifier.fillMaxWidth().padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                Text(text = "'${meeting.title}' 출석 관리", style = MaterialTheme.typography.titleLarge)
+                Spacer(modifier = Modifier.height(24.dp))
+                Text("출석 세션 시작됨", style = MaterialTheme.typography.bodyLarge)
+                Spacer(modifier = Modifier.height(16.dp))
+                if (generatedCode != null) {
+                    Text("랜덤 코드: $generatedCode", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
+                    Spacer(modifier = Modifier.height(8.dp))
+                }
+                Text("블루투스 기능 활성화됨", style = MaterialTheme.typography.bodyLarge)
+                Spacer(modifier = Modifier.height(24.dp))
+                Button(onClick = onMarkSelfAsPresent, enabled = !isSelfAttended) { Text(if (isSelfAttended) "✔ 본인 출석 완료" else "본인 출석하기") }
+                Spacer(modifier = Modifier.height(16.dp))
+                Text("출석 현황", style = MaterialTheme.typography.titleMedium)
+                Spacer(modifier = Modifier.height(12.dp))
+                if (attendees.isEmpty()) {
+                    Text("아직 출석한 멤버가 없습니다.", modifier = Modifier.padding(vertical = 16.dp))
+                } else {
+                    LazyColumn(modifier = Modifier.heightIn(max = 150.dp)) {
+                        items(attendees) { participant -> ParticipantStatusRow(participant = participant) }
+                    }
+                }
+                Spacer(modifier = Modifier.height(24.dp))
+                OutlinedButton(onClick = onDismissRequest, modifier = Modifier.fillMaxWidth()) { Text("닫기") }
+            }
+        }
+    }
+}
+
 @Composable
 private fun ParticipantStatusRow(participant: ParticipantStatus) {
-    Row(
-        modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
+    Row(modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
         AsyncImage(
             model = participant.thumbnailUrl.ifEmpty { "https://picsum.photos/id/1/200" },
             contentDescription = "${participant.name}의 프로필 사진",
@@ -420,65 +491,23 @@ private fun ParticipantStatusRow(participant: ParticipantStatus) {
 }
 
 @Composable
-private fun AttendanceHostPlaceholderDialog(meetingTitle: String, onDismissRequest: () -> Unit) {
-    AlertDialog(
-        onDismissRequest = onDismissRequest,
-        title = { Text("'$meetingTitle' 출석 세션") },
-        text = { Text("이곳에 기존의 관리자 출석 화면(AttendanceHostDialog)의 실제 구현이 필요합니다.") },
-        confirmButton = { TextButton(onClick = onDismissRequest) { Text("닫기") } }
-    )
-}
-
-@Composable
 private fun StudyNotFound() {
-    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        Text("스터디 정보를 찾을 수 없습니다.")
-    }
+    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { Text("스터디 정보를 찾을 수 없습니다.") }
 }
 
 @Composable
-private fun OwnerButtons(
-    navController: NavController,
-    studyId: String,
-    pendingRequestCount: Int
-) {
+private fun OwnerButtons(navController: NavController, studyId: String, pendingRequestCount: Int) {
     Column {
-        Button(
-            onClick = { navController.navigate("meeting_edit/$studyId") },
-            modifier = Modifier.fillMaxWidth()
-        ) { Text("세부 모임 추가") }
+        Button(onClick = { navController.navigate("meeting_edit/$studyId") }, modifier = Modifier.fillMaxWidth()) { Text("세부 모임 추가") }
         Spacer(modifier = Modifier.height(8.dp))
-
-        // [수정] Row에 Arrangement를 추가하여 버튼 사이 간격을 줍니다.
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            // [수정] Box가 Row의 공간을 1만큼 차지하도록 weight(1f)를 적용합니다.
             Box(modifier = Modifier.weight(1f)) {
-                Button(
-                    onClick = { navController.navigate("request_list") },
-                    // Button은 Box 내부를 꽉 채웁니다.
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text("가입 요청 관리")
-                }
-
+                Button(onClick = { navController.navigate("request_list") }, modifier = Modifier.fillMaxWidth()) { Text("가입 요청 관리") }
                 if (pendingRequestCount > 0) {
-                    Badge(
-                        modifier = Modifier
-                            .align(Alignment.TopEnd)
-                            .padding(end = 4.dp, top = 4.dp)
-                    ) {
-                        Text("$pendingRequestCount")
-                    }
+                    Badge(modifier = Modifier.align(Alignment.TopEnd).padding(end = 4.dp, top = 4.dp)) { Text("$pendingRequestCount") }
                 }
             }
-
-            // [수정] OutlinedButton도 동일하게 weight(1f)를 적용하여 1:1 비율을 맞춥니다.
-            OutlinedButton(
-                onClick = { navController.navigate("study_edit?studyID=$studyId") },
-                modifier = Modifier.weight(1f)
-            ) {
-                Text("스터디 편집")
-            }
+            OutlinedButton(onClick = { navController.navigate("study_edit?studyID=$studyId") }, modifier = Modifier.weight(1f)) { Text("스터디 편집") }
         }
     }
 }
@@ -489,89 +518,12 @@ private fun GuestButtons(viewModel: StudyDetailViewModel, isLoading: Boolean) {
         onClick = { viewModel.requestToJoinStudy() },
         enabled = !isLoading,
         modifier = Modifier.fillMaxWidth().height(56.dp),
-        shape = RoundedCornerShape(8.dp),
+        shape = RoundedCornerShape(8.dp)
     ) {
         if (isLoading) {
             CircularProgressIndicator(color = MaterialTheme.colorScheme.onPrimary)
         } else {
             Text("스터디 참가하기", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-        }
-    }
-}
-
-@Composable
-private fun AttendanceHostDialog(
-    meeting: Meeting,
-    generatedCode: Int?,
-    attendees: List<ParticipantStatus>,
-    onDismissRequest: () -> Unit,
-    onMarkSelfAsPresent: () -> Unit
-) {
-    val context = LocalContext.current
-    val currentUserId = UserRepository.getCurrentUserId()
-    val isSelfAttended = attendees.find { it.userId == currentUserId }?.isPresent == true
-
-    // 세션이 시작되면 블루투스 서버를 활성화
-    LaunchedEffect(Unit) {
-        BluetoothServerService(context).start()
-    }
-
-    Dialog(onDismissRequest = onDismissRequest) {
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(16.dp),
-        ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(24.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                Text(
-                    text = "'${meeting.title}' 출석 세션",
-                    style = MaterialTheme.typography.titleLarge
-                )
-                Spacer(modifier = Modifier.height(24.dp))
-
-                Text("출석 세션 시작됨", style = MaterialTheme.typography.bodyLarge)
-                Spacer(modifier = Modifier.height(16.dp))
-
-                // 랜덤 코드 표시
-                if (generatedCode != null) {
-                    Text("랜덤 코드: $generatedCode", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
-                    Spacer(modifier = Modifier.height(8.dp))
-                }
-                Text("블루투스 기능 활성화됨", style = MaterialTheme.typography.bodyLarge)
-                Spacer(modifier = Modifier.height(24.dp))
-
-                // 본인 출석하기 버튼
-                Button(
-                    onClick = onMarkSelfAsPresent,
-                    enabled = !isSelfAttended
-                ) {
-                    Text(if (isSelfAttended) "✔ 본인 출석 완료" else "본인 출석하기")
-                }
-                Spacer(modifier = Modifier.height(16.dp))
-
-                Text("출석 현황", style = MaterialTheme.typography.titleMedium)
-                Spacer(modifier = Modifier.height(12.dp))
-
-                // 실시간 출석 현황 목록
-                if (attendees.isEmpty()) {
-                    Text("아직 출석한 멤버가 없습니다.", modifier = Modifier.padding(vertical = 16.dp))
-                } else {
-                    LazyColumn(modifier = Modifier.heightIn(max = 150.dp)) {
-                        items(attendees) { participant ->
-                            ParticipantStatusRow(participant = participant)
-                        }
-                    }
-                }
-                Spacer(modifier = Modifier.height(24.dp))
-
-                OutlinedButton(onClick = onDismissRequest, modifier = Modifier.fillMaxWidth()) {
-                    Text("닫기")
-                }
-            }
         }
     }
 }

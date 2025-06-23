@@ -3,6 +3,7 @@
 package com.example.smartee.viewmodel
 
 import android.app.Application
+import android.bluetooth.BluetoothDevice
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
@@ -61,8 +62,12 @@ class StudyDetailViewModel(application: Application) : AndroidViewModel(applicat
     private val _pendingRequestCount = MutableStateFlow(0)
     val pendingRequestCount = _pendingRequestCount.asStateFlow()
     private val _isConnectingBluetooth = MutableStateFlow(false)
-    val isConnectingBluetooth = _isConnectingBluetooth.asStateFlow()
 
+    val isConnectingBluetooth = _isConnectingBluetooth.asStateFlow()
+    private val bluetoothClientService = BluetoothClientService(application)
+
+    val isScanning = bluetoothClientService.isScanning
+    val discoveredDevices = bluetoothClientService.discoveredDevices
 
     fun loadPendingRequestCount() {
         val ownerId = UserRepository.getCurrentUserId() ?: return
@@ -135,15 +140,21 @@ class StudyDetailViewModel(application: Application) : AndroidViewModel(applicat
             }
         }
     }
+    fun startDeviceScan() {
+        bluetoothClientService.startDiscovery()
+    }
 
+    fun stopDeviceScan() {
+        bluetoothClientService.stopDiscovery()
+    }
     // [추가] 블루투스 출석을 처리하는 함수
-    fun performBluetoothAttendance(meeting: Meeting) {
+    fun performBluetoothAttendance(device: BluetoothDevice, meeting: Meeting) {
         val currentUserId = UserRepository.getCurrentUserId() ?: return
         viewModelScope.launch {
-            _isConnectingBluetooth.value = true // 연결 시작을 UI에 알림
+            _isConnectingBluetooth.value = true
             try {
-                val bluetoothClient = BluetoothClientService(getApplication())
-                val result = bluetoothClient.sendAttendance(
+                val result = bluetoothClientService.sendAttendance(
+                    device = device,
                     studyId = meeting.parentStudyId,
                     meetingId = meeting.meetingId,
                     userId = currentUserId
@@ -160,7 +171,7 @@ class StudyDetailViewModel(application: Application) : AndroidViewModel(applicat
             } catch(e: Exception) {
                 _userEvent.value = UserEvent.Error("블루투스 출석 중 알 수 없는 오류 발생: ${e.message}")
             } finally {
-                _isConnectingBluetooth.value = false // 연결 시도 종료를 UI에 알림
+                _isConnectingBluetooth.value = false
             }
         }
     }
@@ -292,6 +303,7 @@ class StudyDetailViewModel(application: Application) : AndroidViewModel(applicat
         super.onCleared()
         sessionCheckJob?.cancel()
         stopListeningForParticipantStatus()
+        stopDeviceScan() // [추가] ViewModel 소멸 시 검색 중지
     }
 
     sealed class UserEvent {

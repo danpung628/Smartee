@@ -19,15 +19,20 @@ fun AttendanceScreen(navController: NavController) {
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Text("역할을 선택하세요", fontSize = MaterialTheme.typography.titleLarge.fontSize)
+        Text("출석 관리", fontSize = MaterialTheme.typography.titleLarge.fontSize)
         Spacer(modifier = Modifier.height(24.dp))
 
-        Button(onClick = { navController.navigate(Screen.Host.route) }) {
-            Text("관리자 출석")
-        }
-        Spacer(modifier = Modifier.height(12.dp))
-        Button(onClick = { navController.navigate(Screen.Participant.route) }) {
-            Text("참여자 출석")
+        // [수정] 관리자 출석 버튼만 남깁니다.
+        // 이 버튼은 아마도 관리자가 출석 세션을 여는 화면으로 연결될 것입니다.
+        // 현재 HostScreen이 구현되지 않았으므로, 동작은 추후 정의가 필요합니다.
+        Button(
+            onClick = {
+                // TODO: 관리자용 출석 관리 화면(직접 세션을 여는)으로 네비게이션
+                // 예: navController.navigate(Screen.Host.route)
+            },
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text("스터디 출석 세션 관리")
         }
     }
 }

@@ -14,7 +14,6 @@ import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
 import com.example.smartee.ui.Map.NaverMapScreen
 import com.example.smartee.ui.attendance.AttendanceScreen
-import com.example.smartee.ui.attendance.ParticipantScreen
 import com.example.smartee.ui.badge.BadgeScreen
 import com.example.smartee.ui.login.LoginScreen
 import com.example.smartee.ui.meeting.MeetingEditScreen
@@ -130,9 +129,11 @@ fun SmarteeNavGraph(navController: NavHostController, modifier: Modifier = Modif
         // [삭제] HostScreen 경로 삭제
         // composable(Screen.Host.route) { ... }
 
-        composable(Screen.Participant.route) {
-            ParticipantScreen(navController = navController)
-        }
+//        composable(Screen.Participant.route) {
+//            ParticipantScreen(navController = navController)
+//        }
+
+
         composable("my_study") {
             MyStudyScreen(
                 onStudyClick = { studyId ->
