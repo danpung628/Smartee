@@ -66,10 +66,8 @@ import com.example.smartee.model.Meeting
 import com.example.smartee.model.ParticipantStatus
 import com.example.smartee.navigation.Screen
 import com.example.smartee.repository.UserRepository
-import com.example.smartee.ui.LocalNavGraphViewModelStoreOwner
 import com.example.smartee.viewmodel.MeetingStatusViewModel
 import com.example.smartee.viewmodel.StudyDetailViewModel
-import com.example.smartee.viewmodel.StudyViewModel
 import com.example.smartee.viewmodel.UserRole
 
 @Composable
@@ -80,10 +78,6 @@ fun StudyDetailScreen(
     onCodeGenerated: (Int) -> Unit
 ) {
     val viewModel: StudyDetailViewModel = viewModel()
-    // ✅ StudyViewModel 추가
-    val studyViewModel: StudyViewModel = viewModel(
-        viewModelStoreOwner = LocalNavGraphViewModelStoreOwner.current
-    )
 
     val studyData by viewModel.studyData.collectAsState()
     val userRole by viewModel.userRole.collectAsState()
@@ -250,7 +244,7 @@ fun StudyDetailScreen(
                 StudyHeader(study, onReportStudy = viewModel::reportStudy)
                 StudyContent(
                     study = study,
-                    studyViewModel = studyViewModel,
+                    onLikeClick = { viewModel.toggleLike(currentUserId) }, // viewModel의 toggleLike 호출
                     currentUserId = currentUserId
                 )
 

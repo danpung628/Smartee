@@ -14,6 +14,7 @@ import com.example.smartee.model.StudyData
 import com.example.smartee.model.factory.CategoryListFactory
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.tasks.await
 
 class StudyViewModel(app: Application) : AndroidViewModel(app) {
     //새로 고침 동작
@@ -114,71 +115,49 @@ class StudyViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
+    // [수정] '좋아요' 즉시 반영을 위한 로직 변경
     fun toggleLike(studyId: String, userId: String) {
+        val originalList = _studyList.value ?: return
+        val studyIndex = originalList.indexOfFirst { it.studyId == studyId }
+        if (studyIndex == -1) return
+
+        val study = originalList[studyIndex]
+        val isCurrentlyLiked = study.likedByUsers.contains(userId)
+
+        // 1. 낙관적 업데이트를 위한 새로운 데이터 생성
+        val newLikedByUsers = study.likedByUsers.toMutableList()
+        val newLikeCount: Int
+
+        if (isCurrentlyLiked) {
+            newLikedByUsers.remove(userId)
+            newLikeCount = maxOf(0, study.likeCount - 1)
+        } else {
+            newLikedByUsers.add(userId)
+            newLikeCount = study.likeCount + 1
+        }
+
+        val updatedStudy = study.copy(likedByUsers = newLikedByUsers, likeCount = newLikeCount)
+
+        // 2. UI 즉시 업데이트
+        val newList = originalList.toMutableList()
+        newList[studyIndex] = updatedStudy
+        _studyList.value = newList
+
+        // 3. Firestore에 백그라운드 업데이트 요청
         viewModelScope.launch {
             try {
                 val studyRef = studyCollectionRef.document(studyId)
-
-                studyRef.get()
-                    .addOnSuccessListener { document ->
-                        if (document.exists()) {
-                            val study = document.toObject(StudyData::class.java)
-                                ?.copy(studyId = document.id)
-                            if (study != null) {
-                                val currentLikedUsers = study.likedByUsers.toMutableList()
-                                val isCurrentlyLiked = currentLikedUsers.contains(userId)
-
-                                if (isCurrentlyLiked) {
-                                    // 좋아요 취소
-                                    currentLikedUsers.remove(userId)
-                                    val newLikeCount = maxOf(0, study.likeCount - 1)
-
-                                    studyRef.update(
-                                        mapOf(
-                                            "likedByUsers" to currentLikedUsers,
-                                            "likeCount" to newLikeCount
-                                        )
-                                    ).addOnSuccessListener {
-                                        Log.d("StudyViewModel", "좋아요 취소 성공: $studyId")
-                                        updateLocalStudy(studyId, currentLikedUsers, newLikeCount)
-                                    }
-                                } else {
-                                    // 좋아요 추가
-                                    currentLikedUsers.add(userId)
-                                    val newLikeCount = study.likeCount + 1
-
-                                    studyRef.update(
-                                        mapOf(
-                                            "likedByUsers" to currentLikedUsers,
-                                            "likeCount" to newLikeCount
-                                        )
-                                    ).addOnSuccessListener {
-                                        Log.d("StudyViewModel", "좋아요 추가 성공: $studyId")
-                                        updateLocalStudy(studyId, currentLikedUsers, newLikeCount)
-                                    }
-                                }
-                            }
-                        }
-                    }
-                    .addOnFailureListener { e ->
-                        Log.e("StudyViewModel", "스터디 조회 실패", e)
-                    }
+                val dataToUpdate = mapOf(
+                    "likedByUsers" to newLikedByUsers,
+                    "likeCount" to newLikeCount
+                )
+                studyRef.update(dataToUpdate).await()
+                Log.d("StudyViewModel", "Firestore 좋아요 업데이트 성공: $studyId")
             } catch (e: Exception) {
-                Log.e("StudyViewModel", "좋아요 처리 중 오류", e)
+                // 4. Firestore 업데이트 실패 시, UI 상태를 원래대로 롤백
+                Log.e("StudyViewModel", "Firestore 좋아요 업데이트 실패, 상태 롤백", e)
+                _studyList.value = originalList // 실패 시 원래 목록으로 복원
             }
         }
-    }
-
-    // 로컬 데이터 즉시 업데이트
-    private fun updateLocalStudy(studyId: String, likedByUsers: List<String>, newLikeCount: Int) {
-        val currentList = _studyList.value ?: mutableListOf()
-        val updatedList = currentList.map { study ->
-            if (study.studyId == studyId) {
-                study.copy(likedByUsers = likedByUsers, likeCount = newLikeCount)
-            } else {
-                study
-            }
-        }.toMutableList()
-        _studyList.value = updatedList
     }
 }
