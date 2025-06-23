@@ -2,8 +2,12 @@
 
 package com.example.smartee.viewmodel
 
+import android.app.Application
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+
+import com.example.smartee.bluetooth.BluetoothClientService
 import com.example.smartee.model.*
 import com.example.smartee.repository.StudyRepository
 import com.example.smartee.repository.UserRepository
@@ -23,7 +27,7 @@ enum class UserRole {
     GUEST, PARTICIPANT, OWNER
 }
 
-class StudyDetailViewModel : ViewModel() {
+class StudyDetailViewModel(application: Application) : AndroidViewModel(application) {
     private val studyRepository = StudyRepository()
     private val userRepository = UserRepository(FirebaseFirestore.getInstance())
 
@@ -273,12 +277,30 @@ class StudyDetailViewModel : ViewModel() {
         sessionCheckJob?.cancel()
         stopListeningForParticipantStatus()
     }
-
+    fun performBluetoothAttendance(meeting: Meeting) {
+        val currentUserId = UserRepository.getCurrentUserId() ?: return
+        viewModelScope.launch {
+            try {
+                // [추가] 블루투스 출석을 시도하고 성공/실패 여부를 UI에 알립니다.
+                val bluetoothClient = BluetoothClientService(getApplication())
+                bluetoothClient.sendAttendance(
+                    studyId = meeting.parentStudyId,
+                    meetingId = meeting.meetingId,
+                    userId = currentUserId
+                )
+                _userEvent.value = UserEvent.ShowSnackbar("블루투스 출석을 시도했습니다. 잠시 후 새로고침하여 확인해주세요.")
+            } catch(e: Exception) {
+                _userEvent.value = UserEvent.Error("블루투스 출석 중 오류 발생: ${e.message}")
+            }
+        }
+    }
     sealed class UserEvent {
         object RequestSentSuccessfully : UserEvent()
         object JoinConditionsNotMet : UserEvent()
         object AlreadyRequested : UserEvent()
         data class Error(val message: String) : UserEvent()
         object WithdrawSuccessful : UserEvent()
+        data class ShowSnackbar(val message: String): UserEvent()
+
     }
 }

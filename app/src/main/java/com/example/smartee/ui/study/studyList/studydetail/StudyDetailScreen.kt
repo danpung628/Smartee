@@ -130,9 +130,7 @@ fun StudyDetailScreen(
             },
             onWithdraw = { viewModel.withdrawFromMeeting(it.meetingId) },
             onAttend = { meeting ->
-                scope.launch {
-                    BluetoothClientService(context).sendAttendance(meeting.parentStudyId, currentUserId ?: "")
-                }
+                viewModel.performBluetoothAttendance(meeting)
             },
             onManageRequests = {
                 navController.navigate("meeting_request_list/${it.meetingId}")

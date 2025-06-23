@@ -19,21 +19,17 @@ class BluetoothClientService(private val context: Context) {
 
     private val bluetoothAdapter: BluetoothAdapter? = BluetoothAdapter.getDefaultAdapter()
 
-    suspend fun sendAttendance(studyId: String, userId: String) = withContext(Dispatchers.IO) {
+    suspend fun sendAttendance(studyId: String, meetingId: String, userId: String) = withContext(Dispatchers.IO) {
+        // ... (상단의 블루투스 활성화 및 권한 체크 로직은 동일)
         if (bluetoothAdapter == null || !bluetoothAdapter.isEnabled) {
             Log.w("BluetoothClient", "❌ Bluetooth is unavailable or turned off.")
             return@withContext
         }
-
-        if (ContextCompat.checkSelfPermission(context, Manifest.permission.BLUETOOTH_CONNECT)
-            != PackageManager.PERMISSION_GRANTED
-        ) {
+        if (ContextCompat.checkSelfPermission(context, Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
             Log.w("BluetoothClient", "❌ BLUETOOTH_CONNECT permission not granted.")
             return@withContext
         }
-
         val pairedDevices: Set<BluetoothDevice>? = bluetoothAdapter.bondedDevices
-
         val targetDevice = pairedDevices?.find {
             it.name.contains("AttendanceServer", ignoreCase = true)
         }
@@ -49,15 +45,18 @@ class BluetoothClientService(private val context: Context) {
             socket.connect()
 
             val writer = OutputStreamWriter(socket.outputStream)
+
+            // [수정] JSON 데이터에 meetingId를 추가합니다.
             val json = JSONObject().apply {
                 put("studyId", studyId)
+                put("meetingId", meetingId)
                 put("userId", userId)
             }
 
             writer.write(json.toString() + "\n")
             writer.flush()
 
-            Log.d("BluetoothClient", "✅ 출석 정보 전송 완료")
+            Log.d("BluetoothClient", "✅ 출석 정보 전송 완료: $json")
             socket.close()
         } catch (e: Exception) {
             Log.e("BluetoothClient", "❌ 전송 실패", e)
