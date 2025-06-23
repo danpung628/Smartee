@@ -33,6 +33,7 @@ fun ParticipantScreen(
 
     var codeInput by remember { mutableStateOf("") }
     var result by remember { mutableStateOf<String?>(null) }
+    var bluetoothResult by remember { mutableStateOf<String?>(null) }
 
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
@@ -117,7 +118,29 @@ fun ParticipantScreen(
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        // ▼ 코드 입력
+        // ▼ 블루투스로 출석
+        Button(
+            enabled = selectedStudy != null,
+            onClick = {
+                coroutineScope.launch {
+                    val studyId = selectedStudy!!.studyId
+                    val userId = UserRepository.getCurrentUserId() ?: return@launch
+                    BluetoothClientService(context).sendAttendance(studyId, userId)
+                    bluetoothResult = "✅ 블루투스 출석 시도 완료"
+                }
+            }
+        ) {
+            Text("블루투스로 출석")
+        }
+
+        bluetoothResult?.let {
+            Spacer(modifier = Modifier.height(12.dp))
+            Text(it, fontSize = 16.sp)
+        }
+
+        Spacer(modifier = Modifier.height(24.dp))
+
+        // ▼ 코드 입력 출석 (보류됨)
         OutlinedTextField(
             value = codeInput,
             onValueChange = { codeInput = it },
@@ -156,4 +179,3 @@ fun ParticipantScreen(
         }
     }
 }
-
