@@ -15,12 +15,14 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
+import com.example.smartee.model.UserData
 import com.google.firebase.auth.FirebaseUser
 
 @Composable
 fun ProfileHeader(
     modifier: Modifier = Modifier,
-    currentUser: FirebaseUser?
+    currentUser: FirebaseUser?,
+    userData: UserData? // [추가] UserData 파라미터
 ) {
     Column(
         modifier = modifier,
@@ -40,7 +42,7 @@ fun ProfileHeader(
 
         // 사용자 이름
         Text(
-            text = currentUser?.displayName ?: "사용자",
+            text = userData?.nickname ?: currentUser?.displayName ?: "사용자",
             style = MaterialTheme.typography.headlineMedium,
             fontWeight = FontWeight.Bold
         )

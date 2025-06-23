@@ -3,10 +3,13 @@
 package com.example.smartee.ui.profile
 
 import android.app.Application
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -17,6 +20,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.livedata.observeAsState
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -45,7 +49,8 @@ fun ProfileScreen(navController: NavController) {
                 title = { Text("내 프로필") },
                 actions = {
                     if (currentUser != null) {
-                        IconButton(onClick = { /* 프로필 편집 화면으로 이동 */ }) {
+                        // [수정] onClick에 네비게이션 로직 추가
+                        IconButton(onClick = { navController.navigate(Screen.ProfileEdit.route) }) {
                             Icon(Icons.Default.Edit, contentDescription = "프로필 편집")
                         }
                         IconButton(onClick = {
@@ -61,12 +66,19 @@ fun ProfileScreen(navController: NavController) {
             )
         }
     ) { paddingValues ->
-        if (currentUser != null) {
+        // [수정] userData가 null이 아닐 경우에만 ProfileContent를 보여줍니다.
+        // 이는 데이터가 로드 중이거나, 프로필이 없거나, 로그아웃 상태일 때를 모두 처리합니다.
+        if (currentUser != null && userData != null) {
             ProfileContent(
                 modifier = Modifier.padding(paddingValues),
                 currentUser = currentUser,
                 userData = userData
             )
+        } else if (currentUser != null && userData == null) {
+            // [추가] 데이터 로딩 중을 표시하거나, 프로필이 없는 사용자를 위한 화면을 보여줄 수 있습니다.
+            Box(modifier = Modifier.fillMaxSize().padding(paddingValues), contentAlignment = Alignment.Center) {
+                CircularProgressIndicator() // 예: 로딩 인디케이터
+            }
         } else {
             NotLoggedInContent(
                 modifier = Modifier.padding(paddingValues),

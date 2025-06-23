@@ -122,11 +122,9 @@ fun StudyListItem(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
+                    val maxCountText = if (item.maxMemberCount == 0) "무제한" else "${item.maxMemberCount}명"
                     Text(
-                        text = if (item.maxMemberCount == Int.MAX_VALUE)
-                            "인원 제한 없음"
-                        else
-                            "${item.participantIds.size}/${item.maxMemberCount}명", // 참여자 리스트의 크기를 직접 사용
+                        text = "${item.participantIds.size} / $maxCountText", // "현재인원 / 최대인원" 형식으로 통일
                         style = MaterialTheme.typography.bodyMedium
                     )
 

@@ -21,6 +21,7 @@ import com.example.smartee.ui.attendance.ParticipantScreen
 import com.example.smartee.ui.badge.BadgeScreen
 import com.example.smartee.ui.login.LoginScreen
 import com.example.smartee.ui.meeting.MeetingEditScreen
+import com.example.smartee.ui.profile.ProfileEditScreen
 import com.example.smartee.ui.profile.ProfileScreen
 import com.example.smartee.ui.request.MeetingRequestListScreen
 import com.example.smartee.ui.request.RequestListScreen
@@ -58,6 +59,9 @@ fun SmarteeNavGraph(navController: NavHostController, modifier: Modifier = Modif
         }
         composable(Screen.Profile.route) {
             ProfileScreen(navController)
+        }
+        composable(Screen.ProfileEdit.route) {
+            ProfileEditScreen(navController = navController)
         }
         composable(Screen.Badge.route) {
             BadgeScreen()
