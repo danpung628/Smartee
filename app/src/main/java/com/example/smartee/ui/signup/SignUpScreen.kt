@@ -113,9 +113,9 @@ fun SignUpScreen(navController: NavController) {
                                         popUpTo(Screen.SignUp.route) { inclusive = true }
                                     }
                                 } else {
-                                    navController.navigate(Screen.FillProfile.route) {
-                                        popUpTo(Screen.SignUp.route) { inclusive = true }
-                                    }
+//                                    navController.navigate(Screen.FillProfile.route) {
+//                                        popUpTo(Screen.SignUp.route) { inclusive = true }
+//                                    }
                                 }
                             }
                             .addOnFailureListener { e ->

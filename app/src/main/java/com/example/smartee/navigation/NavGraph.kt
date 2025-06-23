@@ -3,6 +3,7 @@
 package com.example.smartee.navigation
 
 // HostScreen import는 이제 필요 없습니다.
+//import com.example.smartee.ui.splash.SplashScreen
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -28,7 +29,6 @@ import com.example.smartee.ui.request.RequestListScreen
 import com.example.smartee.ui.screen.MyStudyScreen
 import com.example.smartee.ui.signup.FillProfileScreen
 import com.example.smartee.ui.signup.SignUpScreen
-import com.example.smartee.ui.splash.SplashScreen
 import com.example.smartee.ui.study.creatstudy.ui.screen.StudyCreationScreen
 import com.example.smartee.ui.study.editstudy.ui.StudyEditScreen
 import com.example.smartee.ui.study.studyList.main.StudyListScreen
@@ -56,10 +56,11 @@ fun SmarteeNavGraph(navController: NavHostController, modifier: Modifier = Modif
 //        startDestination = Screen.Splash.route,
 //        startDestination = startDestination,
         startDestination = Screen.SignUp.route,
+//        startDestination = Screen.StudyList.route,
         modifier = modifier
     ) {
         composable(Screen.Splash.route) {
-            SplashScreen(navController)
+//            SplashScreen(navController)
         }
 
         composable(Screen.Login.route) {
