@@ -31,24 +31,32 @@ class SimpleRecommendationService {
             score += 5
         }
 
-        // 2. 위치 매칭 +3점
-        if (study.address.contains(userLocation, ignoreCase = true)) {
-            score += 3
-        }
-
-        // 3. 인기도 (좋아요 수) 최대 +2점
-        score += minOf(study.likeCount / 5, 2)
-
-        // 4. 적당한 참가자 수 (절반~80% 찬 스터디 선호) +1점
-        val currentMemberCount = study.participantIds.size  // 여기 수정!
-        val memberRatio = currentMemberCount.toFloat() / study.maxMemberCount
-        if (memberRatio in 0.5f..0.8f) {
-            score += 1
-        }
-
-        // 5. 최신 스터디 우대 (createdAt이 있다면 사용, 없으면 생략)
-        // 추후 추가 가능
+        // 2. 위치 매칭 (함수 사용!)
+        score += calculateLocationScore(userLocation, study.address)
 
         return score
+    }
+
+    private fun calculateLocationScore(userLocation: String, studyAddress: String): Int {
+        if (userLocation.isBlank() || studyAddress.isBlank()) return 0
+
+        // 정확히 포함되면 +3점
+        if (studyAddress.contains(userLocation, ignoreCase = true) ||
+            userLocation.contains(studyAddress, ignoreCase = true)
+        ) {
+            return 3
+        }
+
+        // 첫 번째 단어(광역시도)가 같으면 +2점
+        val userFirstWord = userLocation.split(" ").firstOrNull()?.take(2)
+        val studyFirstWord = studyAddress.split(" ").firstOrNull()?.take(2)
+
+        if (userFirstWord != null && studyFirstWord != null &&
+            userFirstWord == studyFirstWord && userFirstWord.length >= 2
+        ) {
+            return 2
+        }
+
+        return 0
     }
 }
