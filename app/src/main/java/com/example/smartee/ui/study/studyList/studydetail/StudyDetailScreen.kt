@@ -61,6 +61,7 @@ fun StudyDetailScreen(
     val currentUserId = UserRepository.getCurrentUserId()
     // [추가] ViewModel에서 생성된 출석 코드를 구독합니다.
     val generatedCode by viewModel.generatedAttendanceCode.collectAsState()
+    val pendingRequestCount by viewModel.pendingRequestCount.collectAsState()
 
     val isRefreshing = isLoading
     val pullRefreshState = rememberPullRefreshState(
@@ -79,6 +80,8 @@ fun StudyDetailScreen(
         val observer = LifecycleEventObserver { _, event ->
             if (event == Lifecycle.Event.ON_RESUME) {
                 viewModel.loadStudy(studyId)
+                viewModel.loadPendingRequestCount()
+
             }
         }
         lifecycleOwner.lifecycle.addObserver(observer)
@@ -197,7 +200,7 @@ fun StudyDetailScreen(
                 }
                 Box(modifier = Modifier.padding(bottom = 32.dp, start = 16.dp, end = 16.dp)) {
                     when (userRole) {
-                        UserRole.OWNER -> OwnerButtons(navController, study.studyId)
+                        UserRole.OWNER -> OwnerButtons(navController, study.studyId,pendingRequestCount)
                         UserRole.GUEST -> GuestButtons(viewModel, isLoading)
                         UserRole.PARTICIPANT -> {}
                     }
@@ -418,19 +421,46 @@ private fun StudyNotFound() {
 }
 
 @Composable
-private fun OwnerButtons(navController: NavController, studyId: String) {
+private fun OwnerButtons(
+    navController: NavController,
+    studyId: String,
+    pendingRequestCount: Int
+) {
     Column {
         Button(
             onClick = { navController.navigate("meeting_edit/$studyId") },
             modifier = Modifier.fillMaxWidth()
         ) { Text("세부 모임 추가") }
         Spacer(modifier = Modifier.height(8.dp))
-        Row {
-            Button(onClick = { navController.navigate("request_list/$studyId") }, modifier = Modifier.weight(1f)) {
-                Text("가입 요청 관리")
+
+        // [수정] Row에 Arrangement를 추가하여 버튼 사이 간격을 줍니다.
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            // [수정] Box가 Row의 공간을 1만큼 차지하도록 weight(1f)를 적용합니다.
+            Box(modifier = Modifier.weight(1f)) {
+                Button(
+                    onClick = { navController.navigate("request_list") },
+                    // Button은 Box 내부를 꽉 채웁니다.
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("가입 요청 관리")
+                }
+
+                if (pendingRequestCount > 0) {
+                    Badge(
+                        modifier = Modifier
+                            .align(Alignment.TopEnd)
+                            .padding(end = 4.dp, top = 4.dp)
+                    ) {
+                        Text("$pendingRequestCount")
+                    }
+                }
             }
-            Spacer(modifier = Modifier.width(8.dp))
-            OutlinedButton(onClick = { navController.navigate("study_edit?studyID=$studyId") }, modifier = Modifier.weight(1f)) {
+
+            // [수정] OutlinedButton도 동일하게 weight(1f)를 적용하여 1:1 비율을 맞춥니다.
+            OutlinedButton(
+                onClick = { navController.navigate("study_edit?studyID=$studyId") },
+                modifier = Modifier.weight(1f)
+            ) {
                 Text("스터디 편집")
             }
         }

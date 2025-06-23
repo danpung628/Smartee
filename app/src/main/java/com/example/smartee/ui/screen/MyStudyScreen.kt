@@ -2,12 +2,16 @@
 
 package com.example.smartee.ui.screen
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow // ✅ LazyColumn 대신 LazyRow import
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -23,9 +27,11 @@ fun MyStudyScreen(
 ) {
     val myCreatedStudies by viewModel.myCreatedStudies.collectAsState()
     val myJoinedStudies by viewModel.myJoinedStudies.collectAsState()
+    val pendingRequestCount by viewModel.pendingRequestCount.collectAsState()
 
     LaunchedEffect(Unit) {
         viewModel.loadMyStudies()
+        viewModel.loadPendingRequestCount()
     }
 
     // ✅ 화면 전체를 차지하는 Column
@@ -36,12 +42,25 @@ fun MyStudyScreen(
     ) {
         // ✅ 상단 영역: 내가 만든 스터디 (화면의 절반 차지)
         Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = "내가 만든 스터디",
-                fontSize = 18.sp,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
-            )
+            Row(
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "내가 만든 스터디",
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold
+                )
+                // [추가] 요청이 있을 때만 빨간 점 표시
+                if (pendingRequestCount > 0) {
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Box(
+                        modifier = Modifier
+                            .size(8.dp)
+                            .background(Color.Red, CircleShape)
+                    )
+                }
+            }
             HorizontalStudyList(studies = myCreatedStudies, onClick = onStudyClick)
         }
 

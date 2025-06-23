@@ -513,4 +513,34 @@ class StudyRepository(
             null
         }
     }
+
+    suspend fun getRequestsForOwner(ownerId: String): List<JoinRequest> {
+        return try {
+            val snapshot = joinRequestsCollection
+                .whereEqualTo("ownerId", ownerId)
+                .whereEqualTo("status", "pending")
+                .get()
+                .await()
+            snapshot.toObjects(JoinRequest::class.java)
+        } catch (e: Exception) {
+            emptyList()
+        }
+    }
+
+    suspend fun getPendingRequestCountForOwner(ownerId: String): Int {
+        return try {
+            val snapshot = joinRequestsCollection
+                .whereEqualTo("ownerId", ownerId)
+                .whereEqualTo("status", "pending")
+                .get()
+                .await()
+            snapshot.size()
+        } catch (e: Exception) {
+            0
+        }
+    }
+
+
+
+
 }

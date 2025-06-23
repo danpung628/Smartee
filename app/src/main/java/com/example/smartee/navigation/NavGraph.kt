@@ -143,11 +143,8 @@ fun SmarteeNavGraph(navController: NavHostController, modifier: Modifier = Modif
         composable("map") {
             NaverMapScreen()
         }
-        composable(
-            route = "request_list/{studyId}",
-            arguments = listOf(navArgument("studyId") { type = NavType.StringType })
-        ) { backStackEntry ->
-            RequestListScreen(studyId = backStackEntry.arguments?.getString("studyId") ?: "")
+        composable(route = "request_list") {
+            RequestListScreen(navController = navController)
         }
         composable(
             route = "meeting_edit/{parentStudyId}?meetingId={meetingId}",

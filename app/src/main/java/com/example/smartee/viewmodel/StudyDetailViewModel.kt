@@ -53,7 +53,19 @@ class StudyDetailViewModel : ViewModel() {
     // [추가] 생성된 출석 코드를 저장할 상태 변수
     private val _generatedAttendanceCode = MutableStateFlow<Int?>(null)
     val generatedAttendanceCode = _generatedAttendanceCode.asStateFlow()
+    private val _pendingRequestCount = MutableStateFlow(0)
+    val pendingRequestCount = _pendingRequestCount.asStateFlow()
 
+    // [추가] 알림 개수를 불러오는 함수
+    fun loadPendingRequestCount() {
+        val ownerId = UserRepository.getCurrentUserId() ?: return
+        viewModelScope.launch {
+            // 자신의 스터디일 때만 요청 개수를 가져옴
+            if (_userRole.value == UserRole.OWNER) {
+                _pendingRequestCount.value = studyRepository.getPendingRequestCountForOwner(ownerId)
+            }
+        }
+    }
     fun loadStudy(studyId: String) {
         viewModelScope.launch {
             _isLoading.value = true
