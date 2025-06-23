@@ -53,10 +53,7 @@ fun SmarteeNavGraph(navController: NavHostController, modifier: Modifier = Modif
 
     NavHost(
         navController = navController,
-//        startDestination = Screen.Splash.route,
-//        startDestination = startDestination,
-        startDestination = Screen.SignUp.route,
-//        startDestination = Screen.StudyList.route,
+        startDestination = startDestination,
         modifier = modifier
     ) {
         composable(Screen.Splash.route) {
