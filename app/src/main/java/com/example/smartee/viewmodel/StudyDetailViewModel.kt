@@ -170,6 +170,7 @@ class StudyDetailViewModel : ViewModel() {
         if (_isLoading.value) return
         val study = _studyData.value ?: return
         val currentUserId = UserRepository.getCurrentUserId() ?: return
+
         viewModelScope.launch {
             _isLoading.value = true
             try {
@@ -178,9 +179,40 @@ class StudyDetailViewModel : ViewModel() {
                     _userEvent.value = UserEvent.AlreadyRequested
                     return@launch
                 }
+
+                // [추가] 현재 사용자의 프로필 정보를 가져와서 가입 조건 확인
+                val user = userRepository.getUserProfile(currentUserId).await().toObject(UserData::class.java)
+                if (user == null) {
+                    _userEvent.value = UserEvent.Error("사용자 정보를 가져올 수 없습니다.")
+                    return@launch
+                }
+
+                // [추가] 잉크 및 만년필 조건 확인
+                if (user.ink < study.minInkLevel) {
+                    _userEvent.value = UserEvent.Error("참여에 필요한 잉크(${study.minInkLevel})가 부족합니다.")
+                    return@launch
+                }
+                if (user.pen < study.penCount) {
+                    _userEvent.value = UserEvent.Error("참여에 필요한 만년필(${study.penCount}개)이 부족합니다.")
+                    return@launch
+                }
+
+                // [추가] JoinRequest 객체 생성
+                val request = JoinRequest(
+                    studyId = study.studyId,
+                    studyTitle = study.title,
+                    requesterId = user.uid,
+                    requesterNickname = user.nickname,
+                    ownerId = study.ownerId,
+                    timestamp = com.google.firebase.Timestamp.now()
+                )
+
+                // [추가] Firestore에 요청 문서 생성
+                studyRepository.createJoinRequest(request).await()
+
                 _userEvent.value = UserEvent.RequestSentSuccessfully
             } catch (e: Exception) {
-                _userEvent.value = UserEvent.Error("가입 신청 중 오류가 발생했습니다.")
+                _userEvent.value = UserEvent.Error("가입 신청 중 오류가 발생했습니다: ${e.message}")
             } finally {
                 _isLoading.value = false
             }

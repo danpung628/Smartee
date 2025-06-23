@@ -514,6 +514,9 @@ class StudyRepository(
         }
     }
 
+    // smartee/repository/StudyRepository.kt
+
+    // [추가] 관리자 ID로 모든 보류중인 가입 요청을 가져오는 함수
     suspend fun getRequestsForOwner(ownerId: String): List<JoinRequest> {
         return try {
             val snapshot = joinRequestsCollection
@@ -527,6 +530,7 @@ class StudyRepository(
         }
     }
 
+    // [추가] 관리자 ID로 보류중인 가입 요청의 개수만 가져오는 함수 (알림용)
     suspend fun getPendingRequestCountForOwner(ownerId: String): Int {
         return try {
             val snapshot = joinRequestsCollection
@@ -539,7 +543,6 @@ class StudyRepository(
             0
         }
     }
-
 
 
 
