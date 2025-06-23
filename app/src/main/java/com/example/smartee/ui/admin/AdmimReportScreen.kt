@@ -20,6 +20,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -86,8 +87,18 @@ fun AdminReportScreen(
     }
 
     Column(Modifier.padding(16.dp)) {
-        Text("신고 목록", style = MaterialTheme.typography.headlineMedium)
-        Spacer(modifier = Modifier.height(12.dp))
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = 12.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically  // ✅ 높이 정렬
+        ) {
+            Text("신고 목록", style = MaterialTheme.typography.headlineMedium)
+            TextButton(onClick = { navController.popBackStack() }) {
+                Text("← 뒤로가기")
+            }
+        }
 
         LazyColumn {
             items(reports) { (docId, report) ->
