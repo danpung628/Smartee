@@ -2,6 +2,7 @@
 
 package com.example.smartee.ui.study.studyList.studydetail
 
+import android.app.Application
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -38,6 +39,7 @@ import com.example.smartee.model.ParticipantStatus
 import com.example.smartee.model.StudyData
 import com.example.smartee.repository.UserRepository
 import com.example.smartee.viewmodel.StudyDetailViewModel
+import com.example.smartee.viewmodel.StudyDetailViewModelFactory
 import com.example.smartee.viewmodel.UserRole
 import kotlinx.coroutines.launch
 
@@ -47,8 +49,10 @@ fun StudyDetailScreen(
     studyId: String,
     navController: NavController
 ) {
-    val viewModel: StudyDetailViewModel = viewModel()
     val context = LocalContext.current
+    val viewModel: StudyDetailViewModel = viewModel(
+        factory = StudyDetailViewModelFactory(context.applicationContext as Application)
+    )
     val scope = rememberCoroutineScope()
 
     val studyData by viewModel.studyData.collectAsState()

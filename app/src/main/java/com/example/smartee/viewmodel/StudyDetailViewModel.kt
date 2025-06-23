@@ -5,15 +5,14 @@ package com.example.smartee.viewmodel
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
-
 import com.example.smartee.bluetooth.BluetoothClientService
 import com.example.smartee.model.*
 import com.example.smartee.repository.StudyRepository
 import com.example.smartee.repository.UserRepository
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.ListenerRegistration
-import com.google.firebase.firestore.SetOptions
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
@@ -27,6 +26,7 @@ enum class UserRole {
     GUEST, PARTICIPANT, OWNER
 }
 
+// [수정] ViewModel을 AndroidViewModel로 변경하여 Application Context에 접근 가능하게 합니다.
 class StudyDetailViewModel(application: Application) : AndroidViewModel(application) {
     private val studyRepository = StudyRepository()
     private val userRepository = UserRepository(FirebaseFirestore.getInstance())
@@ -54,22 +54,21 @@ class StudyDetailViewModel(application: Application) : AndroidViewModel(applicat
     val participantStatusList = _participantStatusList.asStateFlow()
     private var participantListener: ListenerRegistration? = null
 
-    // [추가] 생성된 출석 코드를 저장할 상태 변수
     private val _generatedAttendanceCode = MutableStateFlow<Int?>(null)
     val generatedAttendanceCode = _generatedAttendanceCode.asStateFlow()
+
     private val _pendingRequestCount = MutableStateFlow(0)
     val pendingRequestCount = _pendingRequestCount.asStateFlow()
 
-    // [추가] 알림 개수를 불러오는 함수
     fun loadPendingRequestCount() {
         val ownerId = UserRepository.getCurrentUserId() ?: return
         viewModelScope.launch {
-            // 자신의 스터디일 때만 요청 개수를 가져옴
             if (_userRole.value == UserRole.OWNER) {
                 _pendingRequestCount.value = studyRepository.getPendingRequestCountForOwner(ownerId)
             }
         }
     }
+
     fun loadStudy(studyId: String) {
         viewModelScope.launch {
             _isLoading.value = true
@@ -98,7 +97,6 @@ class StudyDetailViewModel(application: Application) : AndroidViewModel(applicat
         }
     }
 
-    // [추가] 관리자가 출석 세션을 시작하는 함수
     fun startAttendanceSession(meetingId: String) {
         viewModelScope.launch {
             val randomCode = (1000..9999).random()
@@ -112,24 +110,19 @@ class StudyDetailViewModel(application: Application) : AndroidViewModel(applicat
         }
     }
 
-    // [추가] 관리자 본인 출석 처리 함수
     fun markHostAsPresent(meetingId: String) {
         val currentUserId = UserRepository.getCurrentUserId() ?: return
         val study = _studyData.value ?: return
-        val user = study.participantIds.find { it == currentUserId }
-
         viewModelScope.launch {
             try {
-                // [수정] Repository 함수에 필요한 모든 정보를 전달합니다.
                 studyRepository.markAttendance(
                     meetingId = meetingId,
                     userId = currentUserId,
                     parentStudyId = study.studyId,
-                    userName = study.ownerNickname, // UserData에서 닉네임 가져오기
+                    userName = study.ownerNickname,
                     studyName = study.title
                 ).await()
 
-                // 본인 출석 후 출석 현황을 즉시 갱신
                 _meetings.value.find { it.meetingId == meetingId }?.let {
                     listenForParticipantStatus(it)
                 }
@@ -139,13 +132,33 @@ class StudyDetailViewModel(application: Application) : AndroidViewModel(applicat
         }
     }
 
+    // [추가] 블루투스 출석을 처리하는 함수
+    fun performBluetoothAttendance(meeting: Meeting) {
+        val currentUserId = UserRepository.getCurrentUserId() ?: return
+        viewModelScope.launch {
+            try {
+                val bluetoothClient = BluetoothClientService(getApplication())
+                bluetoothClient.sendAttendance(
+                    studyId = meeting.parentStudyId,
+                    meetingId = meeting.meetingId,
+                    userId = currentUserId
+                )
+                _userEvent.value = UserEvent.ShowSnackbar("블루투스 출석을 시도했습니다. 잠시 후 새로고침하여 확인해주세요.")
+            } catch(e: Exception) {
+                _userEvent.value = UserEvent.Error("블루투스 출석 중 오류 발생: ${e.message}")
+            }
+        }
+    }
+
     fun requestToJoinMeeting(meeting: Meeting) {
         val currentUserId = UserRepository.getCurrentUserId() ?: return
         viewModelScope.launch {
             try {
-                val userSnapshot = userRepository.getUserProfile(currentUserId).await()
-                val user = userSnapshot.toObject(UserData::class.java) ?: return@launch
-
+                val user = userRepository.getUserProfile(currentUserId).await().toObject(UserData::class.java)
+                if (user == null) {
+                    _userEvent.value = UserEvent.Error("사용자 정보를 찾을 수 없습니다.")
+                    return@launch
+                }
                 val request = MeetingJoinRequest(
                     meetingId = meeting.meetingId,
                     meetingTitle = meeting.title,
@@ -174,7 +187,6 @@ class StudyDetailViewModel(application: Application) : AndroidViewModel(applicat
         if (_isLoading.value) return
         val study = _studyData.value ?: return
         val currentUserId = UserRepository.getCurrentUserId() ?: return
-
         viewModelScope.launch {
             _isLoading.value = true
             try {
@@ -183,15 +195,11 @@ class StudyDetailViewModel(application: Application) : AndroidViewModel(applicat
                     _userEvent.value = UserEvent.AlreadyRequested
                     return@launch
                 }
-
-                // [추가] 현재 사용자의 프로필 정보를 가져와서 가입 조건 확인
                 val user = userRepository.getUserProfile(currentUserId).await().toObject(UserData::class.java)
                 if (user == null) {
-                    _userEvent.value = UserEvent.Error("사용자 정보를 가져올 수 없습니다.")
+                    _userEvent.value = UserEvent.Error("사용자 정보를 찾을 수 없습니다.")
                     return@launch
                 }
-
-                // [추가] 잉크 및 만년필 조건 확인
                 if (user.ink < study.minInkLevel) {
                     _userEvent.value = UserEvent.Error("참여에 필요한 잉크(${study.minInkLevel})가 부족합니다.")
                     return@launch
@@ -200,8 +208,6 @@ class StudyDetailViewModel(application: Application) : AndroidViewModel(applicat
                     _userEvent.value = UserEvent.Error("참여에 필요한 만년필(${study.penCount}개)이 부족합니다.")
                     return@launch
                 }
-
-                // [추가] JoinRequest 객체 생성
                 val request = JoinRequest(
                     studyId = study.studyId,
                     studyTitle = study.title,
@@ -210,10 +216,7 @@ class StudyDetailViewModel(application: Application) : AndroidViewModel(applicat
                     ownerId = study.ownerId,
                     timestamp = com.google.firebase.Timestamp.now()
                 )
-
-                // [추가] Firestore에 요청 문서 생성
                 studyRepository.createJoinRequest(request).await()
-
                 _userEvent.value = UserEvent.RequestSentSuccessfully
             } catch (e: Exception) {
                 _userEvent.value = UserEvent.Error("가입 신청 중 오류가 발생했습니다: ${e.message}")
@@ -240,9 +243,7 @@ class StudyDetailViewModel(application: Application) : AndroidViewModel(applicat
                         async { meeting.meetingId to studyRepository.getActiveAttendanceSession(meeting.meetingId) }
                     }.awaitAll().toMap()
                     _activeMeetingSessions.value = statusMap
-                } catch (e: Exception) {
-                    // 오류 처리
-                }
+                } catch (e: Exception) { /* 오류 처리 */ }
                 delay(15000)
             }
         }
@@ -277,23 +278,7 @@ class StudyDetailViewModel(application: Application) : AndroidViewModel(applicat
         sessionCheckJob?.cancel()
         stopListeningForParticipantStatus()
     }
-    fun performBluetoothAttendance(meeting: Meeting) {
-        val currentUserId = UserRepository.getCurrentUserId() ?: return
-        viewModelScope.launch {
-            try {
-                // [추가] 블루투스 출석을 시도하고 성공/실패 여부를 UI에 알립니다.
-                val bluetoothClient = BluetoothClientService(getApplication())
-                bluetoothClient.sendAttendance(
-                    studyId = meeting.parentStudyId,
-                    meetingId = meeting.meetingId,
-                    userId = currentUserId
-                )
-                _userEvent.value = UserEvent.ShowSnackbar("블루투스 출석을 시도했습니다. 잠시 후 새로고침하여 확인해주세요.")
-            } catch(e: Exception) {
-                _userEvent.value = UserEvent.Error("블루투스 출석 중 오류 발생: ${e.message}")
-            }
-        }
-    }
+
     sealed class UserEvent {
         object RequestSentSuccessfully : UserEvent()
         object JoinConditionsNotMet : UserEvent()
@@ -301,6 +286,16 @@ class StudyDetailViewModel(application: Application) : AndroidViewModel(applicat
         data class Error(val message: String) : UserEvent()
         object WithdrawSuccessful : UserEvent()
         data class ShowSnackbar(val message: String): UserEvent()
+    }
+}
 
+// [추가] ViewModel에 Application을 주입하기 위한 Factory 클래스
+class StudyDetailViewModelFactory(private val application: Application) : ViewModelProvider.Factory {
+    override fun <T : ViewModel> create(modelClass: Class<T>): T {
+        if (modelClass.isAssignableFrom(StudyDetailViewModel::class.java)) {
+            @Suppress("UNCHECKED_CAST")
+            return StudyDetailViewModel(application) as T
+        }
+        throw IllegalArgumentException("Unknown ViewModel class")
     }
 }
