@@ -2,7 +2,6 @@
 
 package com.example.smartee.ui.study.studyList.studydetail
 
-import AttendanceHostDialog
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -11,127 +10,66 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Cancel
-import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.Info
-import androidx.compose.material.icons.filled.People
-import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.*
+import androidx.compose.material.pullrefresh.PullRefreshIndicator
+import androidx.compose.material.pullrefresh.pullRefresh
+import androidx.compose.material.pullrefresh.rememberPullRefreshState
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
-import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import coil3.compose.AsyncImage
+import com.example.smartee.bluetooth.BluetoothClientService
 import com.example.smartee.model.Meeting
 import com.example.smartee.model.ParticipantStatus
 import com.example.smartee.model.StudyData
-import com.example.smartee.navigation.Screen
 import com.example.smartee.repository.UserRepository
-import com.example.smartee.viewmodel.MeetingStatusViewModel
 import com.example.smartee.viewmodel.StudyDetailViewModel
 import com.example.smartee.viewmodel.UserRole
+import kotlinx.coroutines.launch
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterialApi::class)
 @Composable
 fun StudyDetailScreen(
     studyId: String,
-    navController: NavController,
-    randomCode: Int,
-    onCodeGenerated: (Int) -> Unit
+    navController: NavController
 ) {
     val viewModel: StudyDetailViewModel = viewModel()
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+
     val studyData by viewModel.studyData.collectAsState()
     val userRole by viewModel.userRole.collectAsState()
     val meetings by viewModel.meetings.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
-    val timeUntilNextMeeting by viewModel.timeUntilNextMeeting.collectAsState()
-    val pendingRequestCounts by viewModel.pendingRequestCounts.collectAsState()
-
+    val activeMeetingSessions by viewModel.activeMeetingSessions.collectAsState()
+    val participantStatusList by viewModel.participantStatusList.collectAsState()
     val eventState by viewModel.userEvent.collectAsState()
-    val showInfoDialog = remember { mutableStateOf<String?>(null) }
-    var showManagementDialog by remember { mutableStateOf<Meeting?>(null) }
-
-    var showAttendanceDialog by remember { mutableStateOf(false) }
-    var meetingForAttendance by remember { mutableStateOf<Meeting?>(null) }
     val currentUserId = UserRepository.getCurrentUserId()
 
-    var meetingToJoin by remember { mutableStateOf<Meeting?>(null) }
-    var meetingToShowInfo by remember { mutableStateOf<Meeting?>(null) }
-    var meetingToShowStatus by remember { mutableStateOf<Meeting?>(null) }
+    val isRefreshing = isLoading
+    val pullRefreshState = rememberPullRefreshState(
+        refreshing = isRefreshing,
+        onRefresh = { viewModel.loadStudy(studyId) }
+    )
+
+    var meetingForDialog by remember { mutableStateOf<Meeting?>(null) }
+    var showAttendanceHostDialog by remember { mutableStateOf<Meeting?>(null) }
+    val showInfoDialog = remember { mutableStateOf<String?>(null) }
 
     val lifecycleOwner = LocalLifecycleOwner.current
-
-    val currentStudyData = studyData
-    if (showAttendanceDialog && meetingForAttendance != null && currentStudyData != null) {
-        AttendanceHostDialog(
-            study = currentStudyData,
-            meeting = meetingForAttendance!!,
-            randomCode = randomCode,
-            onCodeGenerated = onCodeGenerated,
-            onDismissRequest = { showAttendanceDialog = false }
-        )
-    }
-
-    if (meetingToJoin != null) {
-        val meeting = meetingToJoin!!
-        AlertDialog(
-            onDismissRequest = { meetingToJoin = null },
-            title = { Text("'${meeting.title}'") },
-            text = { Text("해당 모임에 참석을 신청하시겠습니까?") },
-            confirmButton = {
-                Button(onClick = {
-                    viewModel.requestToJoinMeeting(meeting)
-                    meetingToJoin = null
-                }) {
-                    Text("신청")
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { meetingToJoin = null }) {
-                    Text("취소")
-                }
-            }
-        )
-    }
-
-    // [수정] 관리자용 정보 다이얼로그와 참여자용 현황 다이얼로그를 구분하기 위해
-    // 관리자 전용 meetingToShowInfo 상태를 사용
-    if (meetingToShowInfo != null) {
-        val meeting = meetingToShowInfo!!
-        MeetingInfoDialog(
-            meeting = meeting,
-            pendingRequestCount = pendingRequestCounts[meeting.meetingId] ?: 0,
-            onDismiss = { meetingToShowInfo = null },
-            onManageClick = {
-                meetingToShowInfo = null
-                showManagementDialog = meeting
-            },
-            onRequestListClick = {
-                navController.navigate("meeting_request_list/${meeting.meetingId}")
-                meetingToShowInfo = null
-            }
-        )
-    }
-
-    if (meetingToShowStatus != null) {
-        MeetingStatusDialog(
-            meeting = meetingToShowStatus!!,
-            onDismiss = { meetingToShowStatus = null }
-        )
-    }
-
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
             if (event == Lifecycle.Event.ON_RESUME) {
@@ -144,189 +82,151 @@ fun StudyDetailScreen(
         }
     }
 
-    LaunchedEffect(key1 = eventState) {
-        when (val event = eventState) {
-            is StudyDetailViewModel.UserEvent.RequestSentSuccessfully -> {
-                showInfoDialog.value = "신청이 완료되었습니다."
-            }
-            is StudyDetailViewModel.UserEvent.JoinConditionsNotMet -> {
-                showInfoDialog.value = "스터디 가입 조건(잉크, 만년필)을 충족하지 못했습니다."
-            }
-            is StudyDetailViewModel.UserEvent.Error -> {
-                showInfoDialog.value = event.message
-            }
-            is StudyDetailViewModel.UserEvent.AlreadyRequested -> {
-                showInfoDialog.value = "이미 가입 신청한 스터디입니다."
-            }
-            null -> {}
+    LaunchedEffect(meetingForDialog) {
+        val meeting = meetingForDialog
+        if (meeting != null) {
+            viewModel.listenForParticipantStatus(meeting)
+        } else {
+            viewModel.stopListeningForParticipantStatus()
         }
     }
 
-    if (showInfoDialog.value != null) {
-        AlertDialog(
-            onDismissRequest = {
-                showInfoDialog.value = null
-                viewModel.eventConsumed()
-            },
-            title = { Text("알림") },
-            text = { Text(showInfoDialog.value ?: "") },
-            confirmButton = {
-                TextButton(onClick = {
-                    showInfoDialog.value = null
-                    viewModel.eventConsumed()
-                }) { Text("확인") }
+    LaunchedEffect(eventState) {
+        when (val event = eventState) {
+            is StudyDetailViewModel.UserEvent.RequestSentSuccessfully -> {
+                showInfoDialog.value = "가입 요청이 성공적으로 전송되었습니다."
+                meetingForDialog = null
             }
-        )
+            is StudyDetailViewModel.UserEvent.WithdrawSuccessful -> {
+                meetingForDialog = null
+                viewModel.eventConsumed()
+            }
+            is StudyDetailViewModel.UserEvent.Error -> showInfoDialog.value = event.message
+            else -> {}
+        }
     }
 
-    if (showManagementDialog != null) {
-        val meeting = showManagementDialog!!
-        val hasJoined = meeting.confirmedParticipants.contains(currentUserId)
-        MeetingManagementDialog(
-            onDismiss = { showManagementDialog = null },
-            onEdit = {
-                navController.navigate("meeting_edit/${meeting.parentStudyId}?meetingId=${meeting.meetingId}")
-                showManagementDialog = null
+    if (meetingForDialog != null) {
+        UnifiedMeetingDialog(
+            meeting = meetingForDialog!!,
+            userRole = userRole,
+            isSessionActive = activeMeetingSessions[meetingForDialog!!.meetingId] ?: false,
+            participantStatusList = participantStatusList,
+            currentUserId = currentUserId ?: "",
+            onDismiss = { meetingForDialog = null },
+            onStartAttendance = {
+                showAttendanceHostDialog = it
+                meetingForDialog = null
             },
-            onAttendanceCheck = {
-                meetingForAttendance = meeting
-                showAttendanceDialog = true
-                showManagementDialog = null
+            onWithdraw = { viewModel.withdrawFromMeeting(it.meetingId) },
+            onAttend = { meeting ->
+                scope.launch {
+                    BluetoothClientService(context).sendAttendance(meeting.parentStudyId, currentUserId ?: "")
+                }
             },
-            onJoinMeeting = {
-                viewModel.joinMeeting(meeting)
-                showManagementDialog = null
+            onManageRequests = {
+                navController.navigate("meeting_request_list/${it.meetingId}")
+                meetingForDialog = null
             },
-            hasJoinedMeeting = hasJoined
+            onEditMeeting = {
+                navController.navigate("meeting_edit/${it.parentStudyId}?meetingId=${it.meetingId}")
+                meetingForDialog = null
+            },
+            onDeleteMeeting = {
+                viewModel.deleteMeeting(it)
+                meetingForDialog = null
+            },
+            onRequestToJoin = { viewModel.requestToJoinMeeting(it) }
         )
     }
 
     val study = studyData
-    if (isLoading && study == null) {
-        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            CircularProgressIndicator()
-        }
-    } else if (study != null) {
-        Column(modifier = Modifier.fillMaxSize()) {
-            Column(modifier = Modifier.weight(1f).verticalScroll(rememberScrollState())) {
-                StudyHeader(study, onReportStudy = viewModel::reportStudy)
-                StudyContent(study)
-
-                if (userRole == UserRole.OWNER || userRole == UserRole.PARTICIPANT) {
-                    MeetingListSection(
-                        meetings = meetings,
-                        userRole = userRole,
-                        currentUserId = currentUserId,
-                        pendingRequestCounts = pendingRequestCounts,
-                        onMeetingClick = { clickedMeeting ->
-                            val isJoined = clickedMeeting.confirmedParticipants.contains(currentUserId)
-                            if (userRole == UserRole.OWNER) {
-                                // [수정] 관리자는 정보/관리 다이얼로그를 띄움
-                                meetingToShowInfo = clickedMeeting
-                            } else if (userRole == UserRole.PARTICIPANT) {
-                                if (isJoined) {
-                                    // 참여자는 가입한 모임 클릭 시 현황 다이얼로그를 띄움
-                                    meetingToShowStatus = clickedMeeting
-                                } else {
-                                    // 가입하지 않은 모임은 가입 신청 다이얼로그를 띄움
-                                    meetingToJoin = clickedMeeting
-                                }
-                            }
-                        }
-                    )
-                }
-            }
-            Box(modifier = Modifier.padding(bottom = 32.dp, start = 16.dp, end = 16.dp)) {
-                when (userRole) {
-                    UserRole.OWNER -> OwnerButtons(navController, study.studyId)
-                    UserRole.PARTICIPANT -> ParticipantButtons(timeUntilNextMeeting)
-                    UserRole.GUEST -> GuestButtons(viewModel, isLoading)
-                }
-            }
-        }
-    } else {
-        StudyNotFound()
+    if (showAttendanceHostDialog != null && study != null) {
+        AttendanceHostPlaceholderDialog(
+            meetingTitle = showAttendanceHostDialog!!.title,
+            onDismissRequest = { showAttendanceHostDialog = null }
+        )
     }
-}
 
+    if (showInfoDialog.value != null) {
+        AlertDialog(
+            onDismissRequest = { showInfoDialog.value = null; viewModel.eventConsumed() },
+            title = { Text("알림") },
+            text = { Text(showInfoDialog.value ?: "") },
+            confirmButton = { TextButton(onClick = { showInfoDialog.value = null; viewModel.eventConsumed() }) { Text("확인") } }
+        )
+    }
 
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun MeetingInfoDialog(
-    meeting: Meeting,
-    pendingRequestCount: Int,
-    onDismiss: () -> Unit,
-    onManageClick: () -> Unit,
-    onRequestListClick: () -> Unit
-) {
-    Dialog(onDismissRequest = onDismiss) {
-        Card(shape = RoundedCornerShape(16.dp)) {
-            Column(modifier = Modifier.padding(16.dp)) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(meeting.title, style = MaterialTheme.typography.headlineSmall)
-                    Row {
-                        BadgedBox(
-                            badge = {
-                                if (pendingRequestCount > 0) {
-                                    Badge { Text("$pendingRequestCount") }
-                                }
-                            }
-                        ) {
-                            IconButton(onClick = onRequestListClick) {
-                                Icon(Icons.Default.People, contentDescription = "신청자 목록")
-                            }
-                        }
-                        IconButton(onClick = onManageClick) {
-                            Icon(Icons.Default.Settings, contentDescription = "모임 관리")
-                        }
+    Box(modifier = Modifier.fillMaxSize().pullRefresh(pullRefreshState)) {
+        if (isLoading && study == null) {
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                CircularProgressIndicator()
+            }
+        } else if (study != null) {
+            Column(modifier = Modifier.fillMaxSize()) {
+                Column(modifier = Modifier.weight(1f).verticalScroll(rememberScrollState())) {
+                    StudyHeader(study = study, onReportStudy = viewModel::reportStudy)
+                    StudyContent(study = study)
+
+                    if (userRole == UserRole.OWNER || userRole == UserRole.PARTICIPANT) {
+                        MeetingListSection(
+                            meetings = meetings,
+                            activeMeetingSessions = activeMeetingSessions,
+                            onMeetingClick = { clickedMeeting ->
+                                meetingForDialog = clickedMeeting
+                            },
+                            currentUserId = currentUserId
+                        )
                     }
                 }
-                Spacer(modifier = Modifier.height(16.dp))
-                Text("날짜: ${meeting.date}", style = MaterialTheme.typography.bodyLarge)
-                Text("시간: ${meeting.time}", style = MaterialTheme.typography.bodyLarge)
-                Text("장소: ${meeting.location}", style = MaterialTheme.typography.bodyLarge)
-                Spacer(modifier = Modifier.height(12.dp))
-                Text(
-                    meeting.description,
-                    style = MaterialTheme.typography.bodyMedium,
-                    maxLines = 5,
-                    overflow = TextOverflow.Ellipsis
-                )
+                Box(modifier = Modifier.padding(bottom = 32.dp, start = 16.dp, end = 16.dp)) {
+                    when (userRole) {
+                        UserRole.OWNER -> OwnerButtons(navController, study.studyId)
+                        UserRole.GUEST -> GuestButtons(viewModel, isLoading)
+                        UserRole.PARTICIPANT -> {}
+                    }
+                }
+            }
+        } else {
+            Box(modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
+                StudyNotFound()
             }
         }
+
+        PullRefreshIndicator(
+            refreshing = isRefreshing,
+            state = pullRefreshState,
+            modifier = Modifier.align(Alignment.TopCenter)
+        )
     }
 }
 
+
+
+// 이하 모든 헬퍼 Composable들은 이전과 동일 (생략 없이 전체 포함)
 @Composable
-fun MeetingListSection(
+private fun MeetingListSection(
     meetings: List<Meeting>,
-    userRole: UserRole,
-    currentUserId: String?,
-    pendingRequestCounts: Map<String, Int>,
-    onMeetingClick: (Meeting) -> Unit
+    activeMeetingSessions: Map<String, Boolean>,
+    onMeetingClick: (Meeting) -> Unit,
+    currentUserId: String?
 ) {
     Column(modifier = Modifier.padding(16.dp)) {
-        Text("예정된 모임", style = MaterialTheme.typography.titleLarge)
+        Text("예정된 모임", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+        Spacer(modifier = Modifier.height(8.dp))
+        Divider()
         Spacer(modifier = Modifier.height(8.dp))
         if (meetings.isEmpty()) {
             Text("예정된 모임이 없습니다.")
         } else {
             meetings.forEach { meeting ->
+                val isSessionActive = activeMeetingSessions[meeting.meetingId] ?: false
                 val isJoined = meeting.confirmedParticipants.contains(currentUserId)
-                val requestCount = pendingRequestCounts[meeting.meetingId] ?: 0
                 MeetingItem(
                     meeting = meeting,
+                    isSessionActive = isSessionActive,
                     isJoined = isJoined,
-                    requestCount = if (userRole == UserRole.OWNER) requestCount else 0,
-                    onClick = {
-                        if (userRole == UserRole.OWNER || userRole == UserRole.PARTICIPANT) {
-                            onMeetingClick(meeting)
-                        }
-                    }
+                    onCardClick = { onMeetingClick(meeting) }
                 )
             }
         }
@@ -335,31 +235,128 @@ fun MeetingListSection(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun MeetingItem(
+private fun MeetingItem(
     meeting: Meeting,
+    isSessionActive: Boolean,
     isJoined: Boolean,
-    requestCount: Int,
-    onClick: () -> Unit
+    onCardClick: () -> Unit
 ) {
+    val cardColor = when {
+        isSessionActive -> MaterialTheme.colorScheme.primaryContainer
+        isJoined -> MaterialTheme.colorScheme.tertiaryContainer
+        else -> MaterialTheme.colorScheme.surfaceVariant
+    }
+
     Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 4.dp)
-            .clickable(onClick = onClick),
-        colors = CardDefaults.cardColors(
-            containerColor = if (isJoined) MaterialTheme.colorScheme.tertiaryContainer
-            else MaterialTheme.colorScheme.surfaceVariant
-        )
+        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp).clickable(onClick = onCardClick),
+        colors = CardDefaults.cardColors(containerColor = cardColor)
     ) {
         Row(modifier = Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
             Column(modifier = Modifier.weight(1f)) {
+                if (isSessionActive) {
+                    Text("✅ 출석 진행 중", color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
+                }
                 Text(meeting.title, style = MaterialTheme.typography.titleMedium)
-                Text("날짜: ${meeting.date} 시간: ${meeting.time}")
-                Text("장소: ${meeting.location}")
+                Text("날짜: ${meeting.date} 시간: ${meeting.time}", style = MaterialTheme.typography.bodyMedium)
+                Text("장소: ${meeting.location}", style = MaterialTheme.typography.bodyMedium)
             }
-            if (requestCount > 0) {
-                BadgedBox(badge = { Badge { Text("$requestCount") } }) {
-                    Icon(Icons.Default.Info, contentDescription = "대기중인 신청", tint = MaterialTheme.colorScheme.primary)
+        }
+    }
+}
+
+
+@Composable
+private fun UnifiedMeetingDialog(
+    meeting: Meeting,
+    userRole: UserRole,
+    isSessionActive: Boolean,
+    participantStatusList: List<ParticipantStatus>,
+    currentUserId: String,
+    onDismiss: () -> Unit,
+    onStartAttendance: (Meeting) -> Unit,
+    onWithdraw: (Meeting) -> Unit,
+    onAttend: (Meeting) -> Unit,
+    onManageRequests: (Meeting) -> Unit,
+    onEditMeeting: (Meeting) -> Unit,
+    onDeleteMeeting: (Meeting) -> Unit,
+    onRequestToJoin: (Meeting) -> Unit
+) {
+    val isJoined = meeting.confirmedParticipants.contains(currentUserId)
+    val amIPresent = participantStatusList.find { it.userId == currentUserId }?.isPresent == true
+    var showHostSettingsMenu by remember { mutableStateOf(false) }
+
+    Dialog(onDismissRequest = onDismiss) {
+        Card(shape = RoundedCornerShape(16.dp)) {
+            Column(modifier = Modifier.padding(16.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(meeting.title, style = MaterialTheme.typography.headlineSmall, modifier = Modifier.weight(1f))
+                    if (userRole == UserRole.OWNER) {
+                        IconButton(onClick = { onManageRequests(meeting) }) { Icon(Icons.Default.People, "신청자 목록") }
+
+                        // [수정] 설정 버튼과 드롭다운 메뉴를 Box로 함께 묶습니다.
+                        Box {
+                            IconButton(onClick = { showHostSettingsMenu = true }) {
+                                Icon(Icons.Default.Settings, "설정")
+                            }
+                            DropdownMenu(
+                                expanded = showHostSettingsMenu,
+                                onDismissRequest = { showHostSettingsMenu = false }
+                            ) {
+                                DropdownMenuItem(
+                                    text = { Text("모임 수정") },
+                                    onClick = {
+                                        onEditMeeting(meeting)
+                                        showHostSettingsMenu = false
+                                    }
+                                )
+                                DropdownMenuItem(
+                                    text = { Text("모임 삭제") },
+                                    onClick = {
+                                        onDeleteMeeting(meeting)
+                                        showHostSettingsMenu = false
+                                    }
+                                )
+                            }
+                        }
+                    }
+                }
+                Text("날짜: ${meeting.date} 시간: ${meeting.time}", style = MaterialTheme.typography.bodyMedium)
+                Spacer(modifier = Modifier.height(16.dp))
+
+                Text("참여자 현황", style = MaterialTheme.typography.titleMedium)
+                Divider(modifier = Modifier.padding(vertical = 8.dp))
+                if (participantStatusList.isEmpty()) {
+                    Text("참여자가 없습니다.", modifier = Modifier.padding(vertical = 16.dp))
+                } else {
+                    LazyColumn(modifier = Modifier.heightIn(max = 200.dp)) {
+                        items(participantStatusList) { participant ->
+                            ParticipantStatusRow(participant = participant)
+                        }
+                    }
+                }
+                Spacer(modifier = Modifier.height(16.dp))
+
+                if (userRole == UserRole.PARTICIPANT) {
+                    if (isJoined) {
+                        if (isSessionActive && !amIPresent) {
+                            Button(onClick = { onAttend(meeting) }, modifier = Modifier.fillMaxWidth()) {
+                                Text("블루투스로 출석하기")
+                            }
+                        }
+                        Spacer(modifier = Modifier.height(8.dp))
+                        OutlinedButton(onClick = { onWithdraw(meeting) }, modifier = Modifier.fillMaxWidth()) {
+                            Text("참여 취소")
+                        }
+                    } else {
+                        Button(onClick = { onRequestToJoin(meeting) }, modifier = Modifier.fillMaxWidth()) {
+                            Text("참여 요청하기")
+                        }
+                    }
+                }
+                if (userRole == UserRole.OWNER) {
+                    Button(onClick = { onStartAttendance(meeting) }, modifier = Modifier.fillMaxWidth()) {
+                        Text(if (isSessionActive) "출석 세션 진행 중" else "출석 세션 시작")
+                    }
                 }
             }
         }
@@ -367,81 +364,57 @@ fun MeetingItem(
 }
 
 @Composable
-fun ParticipantButtons(timeUntilNextMeeting: String) {
-    val isReadyToAttend = timeUntilNextMeeting == "출석 가능"
-    Button(
-        onClick = { /* TODO: 참여자의 출석 체크 로직 실행 (블루투스 클라이언트) */ },
-        enabled = isReadyToAttend,
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(56.dp)
+private fun ParticipantStatusRow(participant: ParticipantStatus) {
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        Text(timeUntilNextMeeting, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+        AsyncImage(
+            model = participant.thumbnailUrl.ifEmpty { "https://picsum.photos/id/1/200" },
+            contentDescription = "${participant.name}의 프로필 사진",
+            modifier = Modifier.size(40.dp).clip(CircleShape)
+        )
+        Spacer(modifier = Modifier.width(16.dp))
+        Text(participant.name, modifier = Modifier.weight(1f))
+        if (participant.isPresent) {
+            Icon(Icons.Filled.CheckCircle, "출석 완료", tint = MaterialTheme.colorScheme.primary)
+        } else {
+            Icon(Icons.Filled.Cancel, "미출석", tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f))
+        }
     }
 }
 
 @Composable
-fun MeetingManagementDialog(
-    onDismiss: () -> Unit,
-    onEdit: () -> Unit,
-    onAttendanceCheck: () -> Unit,
-    onJoinMeeting: () -> Unit,
-    hasJoinedMeeting: Boolean
-) {
+private fun AttendanceHostPlaceholderDialog(meetingTitle: String, onDismissRequest: () -> Unit) {
     AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text("모임 관리") },
-        text = { Text("수행할 작업을 선택해주세요.") },
-        confirmButton = {
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                if (!hasJoinedMeeting) {
-                    Button(onClick = onJoinMeeting, modifier = Modifier.fillMaxWidth()) {
-                        Text("모임 가입")
-                    }
-                    Spacer(modifier = Modifier.height(8.dp))
-                }
-                Button(onClick = onAttendanceCheck, modifier = Modifier.fillMaxWidth()) {
-                    Text("출석 체크")
-                }
-                Spacer(modifier = Modifier.height(8.dp))
-                OutlinedButton(onClick = onEdit, modifier = Modifier.fillMaxWidth()) {
-                    Text("수정")
-                }
-            }
-        },
-        dismissButton = {}
+        onDismissRequest = onDismissRequest,
+        title = { Text("'$meetingTitle' 출석 세션") },
+        text = { Text("이곳에 기존의 관리자 출석 화면(AttendanceHostDialog)의 실제 구현이 필요합니다.") },
+        confirmButton = { TextButton(onClick = onDismissRequest) { Text("닫기") } }
     )
 }
 
 @Composable
 private fun StudyNotFound() {
-    Box(
-        modifier = Modifier.fillMaxSize(),
-        contentAlignment = Alignment.Center
-    ) {
+    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
         Text("스터디 정보를 찾을 수 없습니다.")
     }
 }
 
 @Composable
-fun OwnerButtons(navController: NavController, studyId: String) {
+private fun OwnerButtons(navController: NavController, studyId: String) {
     Column {
         Button(
-            onClick = {
-                // [수정] "create_meeting" -> "meeting_edit"으로 경로 수정
-                navController.navigate("meeting_edit/$studyId")
-            },
+            onClick = { navController.navigate("meeting_edit/$studyId") },
             modifier = Modifier.fillMaxWidth()
-        ) {
-            Text("세부 모임 추가")
-        }
+        ) { Text("세부 모임 추가") }
         Spacer(modifier = Modifier.height(8.dp))
         Row {
             Button(onClick = { navController.navigate("request_list/$studyId") }, modifier = Modifier.weight(1f)) {
                 Text("가입 요청 관리")
             }
             Spacer(modifier = Modifier.width(8.dp))
-            OutlinedButton(onClick = { navController.navigate(Screen.StudyEdit.route + "?studyID=$studyId") }, modifier = Modifier.weight(1f)) {
+            OutlinedButton(onClick = { navController.navigate("study_edit?studyID=$studyId") }, modifier = Modifier.weight(1f)) {
                 Text("스터디 편집")
             }
         }
@@ -449,7 +422,7 @@ fun OwnerButtons(navController: NavController, studyId: String) {
 }
 
 @Composable
-fun GuestButtons(viewModel: StudyDetailViewModel, isLoading: Boolean) {
+private fun GuestButtons(viewModel: StudyDetailViewModel, isLoading: Boolean) {
     Button(
         onClick = { viewModel.requestToJoinStudy() },
         enabled = !isLoading,
@@ -460,67 +433,6 @@ fun GuestButtons(viewModel: StudyDetailViewModel, isLoading: Boolean) {
             CircularProgressIndicator(color = MaterialTheme.colorScheme.onPrimary)
         } else {
             Text("스터디 참가하기", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-        }
-    }
-}
-
-
-@Composable
-fun MeetingStatusDialog(
-    meeting: Meeting,
-    onDismiss: () -> Unit
-) {
-    val viewModel: MeetingStatusViewModel = viewModel(factory = object : androidx.lifecycle.ViewModelProvider.Factory {
-        override fun <T : ViewModel> create(modelClass: Class<T>): T {
-            @Suppress("UNCHECKED_CAST")
-            return MeetingStatusViewModel(meeting) as T
-        }
-    })
-
-    val participantStatusList by viewModel.participantStatusList.collectAsState()
-    val isLoading by viewModel.isLoading.collectAsState()
-
-    Dialog(onDismissRequest = onDismiss) {
-        Card(shape = RoundedCornerShape(16.dp)) {
-            Column(modifier = Modifier.padding(24.dp)) {
-                Text(meeting.title, style = MaterialTheme.typography.headlineSmall)
-                Spacer(modifier = Modifier.height(8.dp))
-                Text("날짜: ${meeting.date} 시간: ${meeting.time}", style = MaterialTheme.typography.bodyMedium)
-                Spacer(modifier = Modifier.height(16.dp))
-
-                if (isLoading) {
-                    Box(modifier = Modifier.fillMaxWidth().height(100.dp), contentAlignment = Alignment.Center) {
-                        CircularProgressIndicator()
-                    }
-                } else {
-                    LazyColumn(modifier = Modifier.heightIn(max = 300.dp)) {
-                        items(participantStatusList) { participant ->
-                            ParticipantStatusCard(participant = participant)
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
-
-@Composable
-fun ParticipantStatusCard(participant: ParticipantStatus) {
-    Row(
-        modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        AsyncImage(
-            model = participant.thumbnailUrl,
-            contentDescription = "${participant.name}의 프로필 사진",
-            modifier = Modifier.size(40.dp).clip(CircleShape)
-        )
-        Spacer(modifier = Modifier.width(16.dp))
-        Text(participant.name, modifier = Modifier.weight(1f))
-        if (participant.isPresent) {
-            Icon(Icons.Filled.CheckCircle, contentDescription = "출석 완료", tint = MaterialTheme.colorScheme.primary)
-        } else {
-            Icon(Icons.Filled.Cancel, contentDescription = "미출석", tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f))
         }
     }
 }

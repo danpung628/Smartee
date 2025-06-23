@@ -9,6 +9,10 @@ import com.example.smartee.model.*
 import com.example.smartee.repository.StudyRepository
 import com.example.smartee.repository.UserRepository
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.ListenerRegistration
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -23,6 +27,17 @@ enum class UserRole {
 }
 
 class StudyDetailViewModel : ViewModel() {
+//    private val _isAttendanceSessionActive = MutableStateFlow(false)
+//    val isAttendanceSessionActive = _isAttendanceSessionActive.asStateFlow()
+//    private val _timeUntilNextMeeting = MutableStateFlow("")
+//    val timeUntilNextMeeting = _timeUntilNextMeeting.asStateFlow()
+//    private var isTimerRunning = false
+
+
+    private val _activeMeetingSessions = MutableStateFlow<Map<String, Boolean>>(emptyMap())
+    val activeMeetingSessions = _activeMeetingSessions.asStateFlow()
+    private var sessionCheckJob: Job? = null // [추가] 주기적인 체크 작업을 관리할 Job
+
     private val studyRepository = StudyRepository()
     private val userRepository = UserRepository(FirebaseFirestore.getInstance())
 
@@ -38,10 +53,6 @@ class StudyDetailViewModel : ViewModel() {
     private val _isLoading = MutableStateFlow(true)
     val isLoading = _isLoading.asStateFlow()
 
-    private val _timeUntilNextMeeting = MutableStateFlow("")
-    val timeUntilNextMeeting = _timeUntilNextMeeting.asStateFlow()
-
-    private var isTimerRunning = false
 
     private val _userEvent = MutableStateFlow<UserEvent?>(null)
     val userEvent = _userEvent.asStateFlow()
@@ -49,6 +60,11 @@ class StudyDetailViewModel : ViewModel() {
     // [추가] 모임별 '대기중'인 신청자 수를 저장하는 상태
     private val _pendingRequestCounts = MutableStateFlow<Map<String, Int>>(emptyMap())
     val pendingRequestCounts = _pendingRequestCounts.asStateFlow()
+
+    private val _participantStatusList = MutableStateFlow<List<ParticipantStatus>>(emptyList())
+    val participantStatusList = _participantStatusList.asStateFlow()
+    private var participantListener: ListenerRegistration? = null
+
 
     fun loadStudy(studyId: String) {
         viewModelScope.launch {
@@ -69,9 +85,9 @@ class StudyDetailViewModel : ViewModel() {
                     if (role == UserRole.OWNER || role == UserRole.PARTICIPANT) {
                         val fetchedMeetings = studyRepository.getMeetingsForStudy(studyId)
                         _meetings.value = fetchedMeetings
-                        findNextMeetingAndStartTimer(fetchedMeetings, currentUserId)
+                        // [수정] 타이머 대신 새로운 세션 상태 체커를 시작
+                        startSessionStatusChecker(fetchedMeetings)
 
-                        // [추가] 관리자일 경우, 모임별 신청자 수 계산
                         if (role == UserRole.OWNER) {
                             val pendingRequests = studyRepository.getPendingMeetingRequestsForStudy(studyId)
                             _pendingRequestCounts.value = pendingRequests.groupingBy { it.meetingId }.eachCount()
@@ -110,64 +126,6 @@ class StudyDetailViewModel : ViewModel() {
     }
 
 
-    private fun findNextMeetingAndStartTimer(meetings: List<Meeting>, currentUserId: String) {
-        if (isTimerRunning) return
-
-        val now = LocalDateTime.now()
-        val joinedMeetings = meetings.filter { it.confirmedParticipants.contains(currentUserId) }
-
-        if (joinedMeetings.isEmpty()) {
-            _timeUntilNextMeeting.value = "출석할 모임이 없습니다"
-            return
-        }
-
-        val nextMeetingTime = joinedMeetings.mapNotNull {
-            try {
-                val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")
-                val meetingTimeStr = "${it.date} ${it.time.substringBefore('~')}"
-                LocalDateTime.parse(meetingTimeStr, formatter)
-            } catch (e: Exception) { null }
-        }.filter { it.isAfter(now) }.minOrNull()
-
-        if (nextMeetingTime != null) {
-            startCountdownTimer(nextMeetingTime)
-        } else {
-            _timeUntilNextMeeting.value = "참여한 모임이 모두 종료되었습니다"
-        }
-    }
-
-    private fun startCountdownTimer(meetingTime: LocalDateTime) {
-        isTimerRunning = true
-        viewModelScope.launch {
-            while (true) {
-                val now = LocalDateTime.now()
-                val totalSeconds = ChronoUnit.SECONDS.between(now, meetingTime)
-
-                if (totalSeconds <= 0) {
-                    _timeUntilNextMeeting.value = "출석 가능"
-                    break
-                }
-
-                if (totalSeconds < 60) {
-                    _timeUntilNextMeeting.value = "잠시후 스터디 출석이 시작됩니다."
-                    delay(1000)
-                    continue
-                }
-
-                val days = totalSeconds / (24 * 3600)
-                val hours = (totalSeconds % (24 * 3600)) / 3600
-                val minutes = (totalSeconds % 3600) / 60
-
-                val builder = StringBuilder()
-                if (days > 0) builder.append("${days}일 ")
-                if (hours > 0) builder.append("${hours}시간 ")
-                builder.append("${minutes}분 후 시작")
-
-                _timeUntilNextMeeting.value = builder.toString()
-                delay(1000)
-            }
-        }
-    }
 
     fun deleteMeeting(meeting: Meeting) {
         viewModelScope.launch {
@@ -233,5 +191,57 @@ class StudyDetailViewModel : ViewModel() {
         object JoinConditionsNotMet : UserEvent()
         object AlreadyRequested : UserEvent()
         data class Error(val message: String) : UserEvent()
+        object WithdrawSuccessful : UserEvent()
+
+    }
+    // [추가] 주기적으로 출석 세션 상태를 확인하는 함수
+    private fun startSessionStatusChecker(meetings: List<Meeting>) {
+        sessionCheckJob?.cancel()
+        sessionCheckJob = viewModelScope.launch {
+            while (true) {
+                try {
+                    val statusMap = meetings.map { meeting ->
+                        // coroutineScope을 사용해 병렬로 세션 상태를 조회
+                        async { meeting.meetingId to studyRepository.getActiveAttendanceSession(meeting.meetingId) }
+                    }.awaitAll().toMap()
+                    _activeMeetingSessions.value = statusMap
+                } catch (e: Exception) {
+                    // 오류 처리
+                }
+                delay(15000) // 15초마다 반복
+            }
+        }
+    }
+    fun withdrawFromMeeting(meetingId: String) {
+        val currentUserId = UserRepository.getCurrentUserId() ?: return
+        viewModelScope.launch {
+            try {
+                studyRepository.withdrawFromMeeting(meetingId, currentUserId).await()
+                // 참여 취소 후 화면의 모임 목록을 다시 로드하여 상태(참여 여부) 갱신
+                _studyData.value?.let { loadStudy(it.studyId) }
+                // [추가] 작업이 성공했음을 UI에 알립니다.
+                _userEvent.value = UserEvent.WithdrawSuccessful
+            } catch (e: Exception) {
+                // 오류 처리
+            }
+        }
+    }
+
+    // [추가] 실시간으로 출석 현황을 구독하는 함수
+    fun listenForParticipantStatus(meeting: Meeting) {
+        participantListener?.remove() // 이전 리스너가 있다면 제거
+        participantListener = studyRepository.listenForMeetingAttendance(meeting) { statuses ->
+            _participantStatusList.value = statuses
+        }
+    }
+
+    // [추가] 리스너를 제거하는 함수
+    fun stopListeningForParticipantStatus() {
+        participantListener?.remove()
+    }
+
+    override fun onCleared() {
+        super.onCleared()
+        sessionCheckJob?.cancel() // ViewModel이 소멸될 때 작업 취소
     }
 }

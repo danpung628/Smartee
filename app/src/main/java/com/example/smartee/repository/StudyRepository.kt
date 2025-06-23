@@ -19,6 +19,7 @@ import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.tasks.await
 import kotlin.jvm.java
 import com.example.smartee.model.UserData
+import com.google.firebase.firestore.ListenerRegistration
 
 class StudyRepository(
     private val firestore: FirebaseFirestore = FirebaseFirestore.getInstance()
@@ -30,37 +31,56 @@ class StudyRepository(
     private val attendanceSessionsCollection = firestore.collection("attendanceSessions")
     private val meetingJoinRequestsCollection = firestore.collection("meetingJoinRequests")
 
-    suspend fun getMeetingAttendanceStatus(meeting: Meeting): List<ParticipantStatus> {
+    fun listenForMeetingAttendance(meeting: Meeting, onUpdate: (List<ParticipantStatus>) -> Unit): ListenerRegistration {
         val participantIds = meeting.confirmedParticipants
-        if (participantIds.isEmpty()) return emptyList()
+        if (participantIds.isEmpty()) {
+            onUpdate(emptyList())
+            // 빈 리스트를 반환할 때도 유효한 리스너 객체를 반환해야 합니다.
+            return object : ListenerRegistration { override fun remove() {} }
+        }
 
-        return try {
-            coroutineScope {
-                val userProfileJobs = participantIds.map { userId ->
-                    async { usersCollection.document(userId).get().await() }
+        val attendanceCollectionRef = meetingsCollection.document(meeting.meetingId).collection("attendance")
+
+        // 참여자들의 프로필 정보를 효율적으로 관리하기 위한 리스너
+        return usersCollection.whereIn(FieldPath.documentId(), participantIds).addSnapshotListener { userProfilesSnapshot, userError ->
+            if (userError != null || userProfilesSnapshot == null) {
+                onUpdate(emptyList())
+                return@addSnapshotListener
+            }
+
+            val userMap = userProfilesSnapshot.documents.associate { doc ->
+                doc.id to Pair(
+                    doc.getString("nickname") ?: "알 수 없음",
+                    doc.getString("thumbnailUrl") ?: ""
+                )
+            }
+
+            // 출석 정보 리스너
+            attendanceCollectionRef.addSnapshotListener { attendanceSnapshot, attendanceError ->
+                if (attendanceError != null) {
+                    onUpdate(emptyList())
+                    return@addSnapshotListener
                 }
-                val userProfiles = userProfileJobs.awaitAll()
 
-                val attendanceJobs = participantIds.map { userId ->
-                    async { meetingsCollection.document(meeting.meetingId).collection("attendance").document(userId).get().await() }
-                }
-                val attendanceSnaps = attendanceJobs.awaitAll()
+                val attendanceMap = attendanceSnapshot?.documents?.associate { doc ->
+                    doc.id to (doc.getBoolean("isPresent") == true)
+                } ?: emptyMap()
 
-                participantIds.mapIndexed { index, userId ->
-                    val userProfile = userProfiles[index]
-                    val attendanceSnap = attendanceSnaps[index]
+                val statuses = participantIds.map { userId ->
+                    val (name, thumbnailUrl) = userMap[userId] ?: Pair("알 수 없음", "")
                     ParticipantStatus(
                         userId = userId,
-                        name = userProfile.getString("nickname") ?: "알 수 없음",
-                        thumbnailUrl = userProfile.getString("profileImageUrl") ?: "",
-                        isPresent = attendanceSnap.exists() && attendanceSnap.getBoolean("isPresent") == true
+                        name = name,
+                        thumbnailUrl = thumbnailUrl, // [수정] thumbnailUrl 추가
+                        isPresent = attendanceMap[userId] ?: false
                     )
                 }
+                onUpdate(statuses)
             }
-        } catch (e: Exception) {
-            emptyList()
         }
     }
+
+
     fun incrementTotalCountForStudy(studyId: String): Task<Void> {
         val db = FirebaseFirestore.getInstance()
         val membersRef = db.collection("studies").document(studyId).collection("members")
@@ -155,9 +175,10 @@ class StudyRepository(
             emptyList()
         }
     }
-    fun createAttendanceSession(studyId: String, code: Int): Task<Void> {
+    fun createAttendanceSession(meetingId: String, code: Int): Task<Void> {
         val sessionData = mapOf("code" to code, "startedAt" to System.currentTimeMillis())
-        return attendanceSessionsCollection.document(studyId).set(sessionData)
+        // 문서 ID로 meetingId를 사용
+        return attendanceSessionsCollection.document(meetingId).set(sessionData)
     }
     fun createMeeting(meetingData: Map<String, Any>, parentStudyId: String): Task<Void> {
         val batch = firestore.batch()
@@ -377,4 +398,26 @@ class StudyRepository(
             // 오류 처리
         }
     }
+    fun withdrawFromMeeting(meetingId: String, userId: String): Task<Void> {
+        val meetingRef = meetingsCollection.document(meetingId)
+        // confirmedParticipants 배열에서 현재 사용자 ID를 제거
+        return meetingRef.update("confirmedParticipants", FieldValue.arrayRemove(userId))
+    }
+    // [수정] studyId 대신 meetingId를 받도록 변경
+    suspend fun getActiveAttendanceSession(meetingId: String): Boolean {
+        val thirtyMinutesAgo = System.currentTimeMillis() - 30 * 60 * 1000
+        return try {
+            // 문서 ID로 meetingId를 사용
+            val sessionDoc = attendanceSessionsCollection.document(meetingId).get().await()
+            if (sessionDoc.exists()) {
+                val startedAt = sessionDoc.getLong("startedAt") ?: 0L
+                startedAt > thirtyMinutesAgo
+            } else {
+                false
+            }
+        } catch (e: Exception) {
+            false
+        }
+    }
+
 }
