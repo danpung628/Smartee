@@ -26,20 +26,22 @@ class UserViewModel(
 
         userRepository.getUserProfile(currentUser.uid)
             .addOnSuccessListener { document ->
-                if (document.exists()) {
-                    _userData.value = document.toObject(UserData::class.java)
+                if (document != null && document.exists()) {
+                    // [수정] toObject() 호출 시 발생할 수 있는 예외를 잡습니다.
+                    try {
+                        _userData.value = document.toObject(UserData::class.java)
+                        android.util.Log.d("UserViewModel", "✅ 프로필 로딩 성공: ${_userData.value?.nickname}")
+                    } catch (e: Exception) {
+                        // 객체 변환 실패 시 로그를 남깁니다.
+                        android.util.Log.e("UserViewModel", "❌ UserData 객체 변환 실패", e)
+                    }
                 } else {
-                    val newProfile = UserData(
-                        uid = currentUser.uid,
-                        name = currentUser.displayName ?: "",
-                        email = currentUser.email ?: "",
-                        interests = listOf(),
-                        ink = 50,
-                        pen = 2
-                    )
-                    _userData.value = newProfile
-                    userRepository.saveUserProfile(newProfile)
+                    android.util.Log.w("UserViewModel", "⚠️ 사용자 프로필 문서가 존재하지 않음")
                 }
+            }
+            // [추가] Firestore에서 데이터를 가져오는 것 자체를 실패했을 때 로그를 남깁니다.
+            .addOnFailureListener { e ->
+                android.util.Log.e("UserViewModel", "❌ Firestore 문서 가져오기 실패", e)
             }
     }
 }
