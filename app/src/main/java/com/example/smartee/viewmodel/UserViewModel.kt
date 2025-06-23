@@ -1,55 +1,39 @@
 package com.example.smartee.viewmodel
 
+import android.app.Application
+import android.util.Log
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.asLiveData
+import androidx.lifecycle.viewModelScope
 import com.example.smartee.model.UserData
 import com.example.smartee.repository.UserRepository
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FirebaseFirestore
+import kotlinx.coroutines.flow.catch
 
 class UserViewModel(
     private val userRepository: UserRepository,
     private val auth: FirebaseAuth
 ) : ViewModel() {
 
-    private val _userData = MutableLiveData<UserData>()
-    val userData: LiveData<UserData> = _userData
+    // [수정] 사용자 ID가 변경될 때마다 새로운 Flow를 구독하고 LiveData로 변환
+    val userData: LiveData<UserData?> = auth.currentUser?.uid?.let { userId ->
+        userRepository.getUserProfileFlow(userId)
+            .catch { e -> Log.e("UserViewModel", "Flow 수집 오류", e) }
+            .asLiveData(viewModelScope.coroutineContext)
+    } ?: MutableLiveData(null) // 사용자가 로그아웃 상태일 경우 null을 가진 LiveData 반환
 
-    init {
-        // 🔥 이거 추가: ViewModel 생성될 때 유저 프로필 로드
-        loadUserProfile()
-    }
-
-    private fun loadUserProfile() {
-        val currentUser = auth.currentUser ?: return
-
-        userRepository.getUserProfile(currentUser.uid)
-            .addOnSuccessListener { document ->
-                if (document != null && document.exists()) {
-                    // [수정] toObject() 호출 시 발생할 수 있는 예외를 잡습니다.
-                    try {
-                        _userData.value = document.toObject(UserData::class.java)
-                        android.util.Log.d("UserViewModel", "✅ 프로필 로딩 성공: ${_userData.value?.nickname}")
-                    } catch (e: Exception) {
-                        // 객체 변환 실패 시 로그를 남깁니다.
-                        android.util.Log.e("UserViewModel", "❌ UserData 객체 변환 실패", e)
-                    }
-                } else {
-                    android.util.Log.w("UserViewModel", "⚠️ 사용자 프로필 문서가 존재하지 않음")
-                }
-            }
-            // [추가] Firestore에서 데이터를 가져오는 것 자체를 실패했을 때 로그를 남깁니다.
-            .addOnFailureListener { e ->
-                android.util.Log.e("UserViewModel", "❌ Firestore 문서 가져오기 실패", e)
-            }
-    }
 }
 
-class UserViewModelFactory(application: android.app.Application) : ViewModelProvider.Factory {
+// UserViewModelFactory는 기존과 동일
+class UserViewModelFactory(application: Application) : ViewModelProvider.Factory {
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
         if (modelClass.isAssignableFrom(UserViewModel::class.java)) {
-            val userRepository = UserRepository(com.google.firebase.firestore.FirebaseFirestore.getInstance())
+            val firestore = FirebaseFirestore.getInstance()
+            val userRepository = UserRepository(firestore)
             val auth = FirebaseAuth.getInstance()
             @Suppress("UNCHECKED_CAST")
             return UserViewModel(userRepository, auth) as T
