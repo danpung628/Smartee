@@ -100,6 +100,7 @@ fun SmarteeNavGraph(navController: NavHostController, modifier: Modifier = Modif
                 }
             )
         ) {
+
             // [수정] StudyDetailScreen에 파라미터 전달
             StudyDetailScreen(
                 studyId = it.arguments!!.getString("ID")!!,
@@ -129,7 +130,7 @@ fun SmarteeNavGraph(navController: NavHostController, modifier: Modifier = Modif
         // composable(Screen.Host.route) { ... }
 
         composable(Screen.Participant.route) {
-            ParticipantScreen(navController, randomCode.value)
+            ParticipantScreen(navController = navController)
         }
         composable("my_study") {
             MyStudyScreen(

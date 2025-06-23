@@ -61,6 +61,22 @@ class StudyRepository(
             emptyList()
         }
     }
+    fun incrementTotalCountForStudy(studyId: String): Task<Void> {
+        val db = FirebaseFirestore.getInstance()
+        val membersRef = db.collection("studies").document(studyId).collection("members")
+
+        return membersRef.get().continueWithTask { task ->
+            val memberDocs = task.result?.documents ?: emptyList()
+
+            db.runTransaction { transaction ->
+                for (doc in memberDocs) {
+                    val memberRef = membersRef.document(doc.id)
+                    transaction.update(memberRef, "totalCount", FieldValue.increment(1))
+                }
+                null
+            }
+        }
+    }
 
     suspend fun getPendingRequestsForMeeting(meetingId: String): List<MeetingJoinRequest> {
         return try {

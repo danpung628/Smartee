@@ -45,8 +45,10 @@ fun AttendanceHostDialog(
     val selectedStudyMembers by viewModel.selectedStudyMembers.collectAsState()
     var sessionStarted by remember { mutableStateOf(false) }
 
-    LaunchedEffect(key1 = study.studyId) {
-        viewModel.loadMembersForStudy(study.studyId)
+    val meetingAttendance by viewModel.meetingAttendance.collectAsState()
+
+    LaunchedEffect(meeting.meetingId) {
+        viewModel.observeMeetingAttendance(meeting.meetingId)
     }
 
     val context = LocalContext.current
@@ -94,6 +96,7 @@ fun AttendanceHostDialog(
                                 val code = (100..999).random()
                                 onCodeGenerated(code)
                                 viewModel.startSession(study.studyId, code)
+                                viewModel.saveAttendanceCode(meeting.meetingId, code)
                             },
                             enabled = isBluetoothOn
                         ) {
@@ -112,7 +115,12 @@ fun AttendanceHostDialog(
 
                     if (isOwner && hasJoinedMeeting) {
                         Button(
-                            onClick = { viewModel.markCurrentUserAsPresent(study.studyId) },
+                            onClick = {
+                                viewModel.markCurrentUserAsPresent(
+                                    studyId = study.studyId,
+                                    meetingId = meeting.meetingId // 여기도 meeting 객체가 있어야 함
+                                )
+                            },
                             enabled = !isOwnerAttended
                         ) {
                             Text(if (isOwnerAttended) "✔ 본인 출석 완료" else "본인 출석하기")
@@ -123,14 +131,10 @@ fun AttendanceHostDialog(
                     Text("출석 현황", fontSize = 18.sp, style = MaterialTheme.typography.titleMedium)
                     Spacer(modifier = Modifier.height(12.dp))
 
-                    if (selectedStudyMembers.isEmpty()) {
-                        Text(
-                            "아직 출석한 멤버가 없습니다.",
-                            style = MaterialTheme.typography.bodyLarge,
-                            modifier = Modifier.padding(16.dp)
-                        )
+                    if (meetingAttendance.isEmpty()) {
+                        Text("아직 출석한 멤버가 없습니다.", style = MaterialTheme.typography.bodyLarge)
                     } else {
-                        selectedStudyMembers.forEach { info ->
+                        meetingAttendance.forEach { info ->
                             AttendeeCard(info)
                         }
                     }
@@ -147,22 +151,27 @@ fun AttendanceHostDialog(
 
 @Composable
 private fun AttendeeCard(info: AttendanceInfo) {
+    val isAbsent = !info.isPresent
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .padding(vertical = 4.dp),
         colors = CardDefaults.cardColors(
-            containerColor = if (info.isPresent) MaterialTheme.colorScheme.primaryContainer
-            else MaterialTheme.colorScheme.errorContainer
+            containerColor = if (isAbsent) MaterialTheme.colorScheme.errorContainer
+            else MaterialTheme.colorScheme.primaryContainer
         )
     ) {
         Column(modifier = Modifier.padding(12.dp)) {
             Text("이름: ${info.name}", fontSize = 14.sp)
             Text(
-                if (info.isPresent) "출석 완료 ✅" else "❌ 결석",
+                text = if (isAbsent) "❌ 결석" else "출석 완료 ✅",
                 fontSize = 14.sp
             )
-            Text("(${info.currentCount}/${info.totalCount})회 출석, 결석 ${info.absentCount}회", fontSize = 12.sp)
+            Text(
+                text = "(${info.currentCount}/${info.totalCount})회 출석, 결석 ${info.absentCount}회",
+                fontSize = 12.sp
+            )
         }
     }
 }
