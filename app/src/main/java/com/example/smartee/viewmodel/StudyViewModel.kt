@@ -60,21 +60,31 @@ class StudyViewModel(app: Application) : AndroidViewModel(app) {
                 studyCollectionRef.get()
                     .addOnSuccessListener { documents ->
                         val studyList = mutableListOf<StudyData>()
-                        Log.d("StudyViewModel", "문서 개수: ${documents.size()}")
+                        Log.d(
+                            "StudyViewModel",
+                            "=== Firebase에서 로드된 전체 문서 수: ${documents.size()} ==="
+                        )
 
                         for (document in documents) {
-                            // Firestore 문서에서 StudyData 객체로 변환
                             val study = document.toObject(StudyData::class.java)
                                 .copy(studyId = document.id)
                             studyList.add(study)
                             Log.d(
                                 "StudyViewModel",
-                                "로드된 스터디: ${study.title}, 주소: ${study.address}, 카테고리: ${study.category}"
+                                "로드된 스터디: ${study.title}, 카테고리: ${study.category}"
                             )
                         }
 
                         _studyList.value = studyList
-                        Log.d("StudyViewModel", "전체 스터디 목록 크기: ${studyList.size}")
+                        Log.d("StudyViewModel", "=== 최종 스터디 목록 크기: ${studyList.size} ===")
+
+                        // 독서 스터디만 따로 확인
+                        val readingStudies = studyList.filter { it.category.contains("독서") }
+                        Log.d("StudyViewModel", "독서 스터디 개수: ${readingStudies.size}")
+                        readingStudies.forEach {
+                            Log.d("StudyViewModel", "독서 스터디: ${it.title}")
+                        }
+
                         // 콜백을 통해 RecommendationViewModel에 알림
                         onStudiesLoaded?.invoke(studyList)
 

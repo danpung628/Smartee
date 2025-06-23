@@ -57,6 +57,14 @@ class RecommendationViewModel(
 
     // 스터디 목록이 변경될 때 추천 새로고침
     fun refreshRecommendation(studies: List<StudyData>) {
+        Log.d(TAG, "=== 추천 시작: 받은 스터디 개수 ${studies.size} ===")
+        studies.forEach { study ->
+            Log.d(TAG, "받은 스터디: ${study.title}, 카테고리: ${study.category}")
+        }
+
+        val readingStudies = studies.filter { it.category.contains("독서") }
+        Log.d(TAG, "독서 스터디 개수: ${readingStudies.size}")
+
         // 스터디 목록 저장
         this.availableStudies = studies
 
