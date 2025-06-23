@@ -35,6 +35,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -236,17 +237,19 @@ fun StudyDetailScreen(
         }
     } else if (study != null) {
         Column(modifier = Modifier.fillMaxSize()) {
-            Column(
-                modifier = Modifier
-                    .weight(1f)
-                    .verticalScroll(rememberScrollState())
-            ) {
-                StudyHeader(study, onReportStudy = viewModel::reportStudy)
+            Column(modifier = Modifier.weight(1f).verticalScroll(rememberScrollState())) {
+                StudyHeader(
+                    study = study,
+                    onReportStudy = { studyId ->
+                        navController.navigate(Screen.Report.route + "?studyID=$studyId")
+                    }
+                )
                 StudyContent(
                     study = study,
                     onLikeClick = { viewModel.toggleLike(currentUserId) }, // viewModel의 toggleLike 호출
                     currentUserId = currentUserId
                 )
+
 
                 if (userRole == UserRole.OWNER || userRole == UserRole.PARTICIPANT) {
                     MeetingListSection(

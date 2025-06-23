@@ -15,9 +15,13 @@ sealed class Screen(val route: String) {
     object Attendance : Screen("attendance")
     object Profile : Screen("profile")
     object ProfileEdit : Screen("profile_edit")
+    object Report : Screen("report_screen")
 
     // 출석 관련 화면
     object Host : Screen("attendance_host")
     object Participant : Screen("attendance_participant")
     object FillProfile : Screen("fill_profile")
+
+    // 관리자 화면
+    object AdminReport : Screen("admin_report")
 }
