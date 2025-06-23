@@ -3,7 +3,6 @@ package com.example.smartee.viewmodel
 import androidx.lifecycle.ViewModel
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseUser
-import com.google.firebase.auth.GoogleAuthProvider
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 
@@ -14,6 +13,9 @@ class AuthViewModel : ViewModel() {
     private val _isLoading = MutableStateFlow(false)
     val isLoading = _isLoading.asStateFlow()
 
+    private val _isInitialized = MutableStateFlow(false)
+    val isInitialized = _isInitialized.asStateFlow()
+
     init {
         // 현재 로그인된 사용자 확인
         _currentUser.value = FirebaseAuth.getInstance().currentUser
@@ -21,26 +23,27 @@ class AuthViewModel : ViewModel() {
         // 인증 상태 변경 리스너
         FirebaseAuth.getInstance().addAuthStateListener { auth ->
             _currentUser.value = auth.currentUser
+            _isInitialized.value = true  // 초기화 완료 표시
         }
     }
 
-    fun signInWithGoogle(idToken: String, onSuccess: () -> Unit, onError: (Exception) -> Unit) {
-        _isLoading.value = true
-        val credential = GoogleAuthProvider.getCredential(idToken, null)
-        FirebaseAuth.getInstance().signInWithCredential(credential)
-            .addOnSuccessListener {
-                _isLoading.value = false
-                onSuccess()
-            }
-            .addOnFailureListener { e ->
-                _isLoading.value = false
-                onError(e)
-            }
-    }
+//    fun signInWithGoogle(idToken: String, onSuccess: () -> Unit, onError: (Exception) -> Unit) {
+//        _isLoading.value = true
+//        val credential = GoogleAuthProvider.getCredential(idToken, null)
+//        FirebaseAuth.getInstance().signInWithCredential(credential)
+//            .addOnSuccessListener {
+//                _isLoading.value = false
+//                onSuccess()
+//            }
+//            .addOnFailureListener { e ->
+//                _isLoading.value = false
+//                onError(e)
+//            }
+//    }
 
     fun signOut() {
         FirebaseAuth.getInstance().signOut()
     }
 
-    fun isLoggedIn(): Boolean = currentUser.value != null
+//    fun isLoggedIn(): Boolean = currentUser.value != null
 }

@@ -5,9 +5,7 @@ package com.example.smartee.navigation
 // HostScreen import는 이제 필요 없습니다.
 //import com.example.smartee.ui.splash.SplashScreen
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.navigation.NavHostController
@@ -15,7 +13,6 @@ import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
-import com.example.smartee.ui.LocalAuthViewModel
 import com.example.smartee.ui.Map.NaverMapScreen
 import com.example.smartee.ui.admin.AdminReportScreen
 import com.example.smartee.ui.attendance.AttendanceScreen
@@ -31,6 +28,7 @@ import com.example.smartee.ui.request.RequestListScreen
 import com.example.smartee.ui.screen.MyStudyScreen
 import com.example.smartee.ui.signup.FillProfileScreen
 import com.example.smartee.ui.signup.SignUpScreen
+import com.example.smartee.ui.splash.SplashScreen
 import com.example.smartee.ui.study.creatstudy.ui.screen.StudyCreationScreen
 import com.example.smartee.ui.study.editstudy.ui.StudyEditScreen
 import com.example.smartee.ui.study.studyList.main.StudyListScreen
@@ -40,26 +38,15 @@ import com.example.smartee.ui.study.studyList.studydetail.StudyDetailScreen
 
 @Composable
 fun SmarteeNavGraph(navController: NavHostController, modifier: Modifier = Modifier) {
-    // 2. 이 부분은 이제 SplashScreen이 모두 처리하므로 필요 없습니다. 깔끔하게 삭제합니다.
-    val authViewModel = LocalAuthViewModel.current
-    val isLoggedIn by authViewModel.currentUser.collectAsState(initial = null)
-
-    val startDestination = if (isLoggedIn != null) {
-        Screen.StudyList.route
-    } else {
-        Screen.SignUp.route
-    }
-
-    // 이 상태값은 ParticipantScreen과 공유해야 하므로 여기 유지합니다.
-    val randomCode = remember { mutableStateOf((100..999).random()) }
+    val randomCode = remember { mutableIntStateOf((100..999).random()) }
 
     NavHost(
         navController = navController,
-        startDestination = startDestination,
+        startDestination = Screen.Splash.route,
         modifier = modifier
     ) {
         composable(Screen.Splash.route) {
-//            SplashScreen(navController)
+            SplashScreen(navController)
         }
 
         composable(Screen.Login.route) {
@@ -113,8 +100,8 @@ fun SmarteeNavGraph(navController: NavHostController, modifier: Modifier = Modif
             StudyDetailScreen(
                 studyId = it.arguments!!.getString("ID")!!,
                 navController = navController,
-                randomCode = randomCode.value,
-                onCodeGenerated = { newCode -> randomCode.value = newCode }
+                randomCode = randomCode.intValue,
+                onCodeGenerated = { newCode -> randomCode.intValue = newCode }
             )
         }
         composable(
