@@ -43,4 +43,8 @@ class UserRepository(private val firestore: FirebaseFirestore) {
     fun addJoinedStudyId(userId: String, studyId: String): Task<Void> {
         return usersCollection.document(userId).update("joinedStudyIds", FieldValue.arrayUnion(studyId))
     }
+
+    fun updateUserProfile(userId: String, data: Map<String, Any>): Task<Void> {
+        return usersCollection.document(userId).update(data)
+    }
 }

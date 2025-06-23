@@ -45,7 +45,8 @@ fun ProfileScreen(navController: NavController) {
                 title = { Text("내 프로필") },
                 actions = {
                     if (currentUser != null) {
-                        IconButton(onClick = { /* 프로필 편집 화면으로 이동 */ }) {
+                        // [수정] onClick에 네비게이션 로직 추가
+                        IconButton(onClick = { navController.navigate(Screen.ProfileEdit.route) }) {
                             Icon(Icons.Default.Edit, contentDescription = "프로필 편집")
                         }
                         IconButton(onClick = {
