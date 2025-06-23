@@ -41,7 +41,6 @@ fun StudyListScreen(
         viewModelStoreOwner = LocalNavGraphViewModelStoreOwner.current,
         factory = RecommendationViewModelFactory(
             LocalContext.current.applicationContext as Application,
-            authViewModel,
             userViewModel
         )
     )

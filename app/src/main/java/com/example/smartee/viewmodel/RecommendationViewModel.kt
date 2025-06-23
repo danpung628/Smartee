@@ -12,7 +12,6 @@ import com.example.smartee.service.SimpleRecommendationService
 
 class RecommendationViewModel(
     app: Application,
-    private val authViewModel: AuthViewModel,
     private val userViewModel: UserViewModel
 ) : AndroidViewModel(app) {
     private val TAG = "RecommendationViewModel"
@@ -30,7 +29,6 @@ class RecommendationViewModel(
     val isLoading: LiveData<Boolean> = _isLoading
 
     private val _errorMessage = MutableLiveData<String?>(null)
-    val errorMessage: LiveData<String?> = _errorMessage
 
     private val _recommendationReason = MutableLiveData<String?>(null)
     val recommendationReason: LiveData<String?> = _recommendationReason
@@ -200,13 +198,12 @@ class RecommendationViewModel(
 
 class RecommendationViewModelFactory(
     private val application: Application,
-    private val authViewModel: AuthViewModel,
     private val userViewModel: UserViewModel
 ) : ViewModelProvider.Factory {
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
         if (modelClass.isAssignableFrom(RecommendationViewModel::class.java)) {
             @Suppress("UNCHECKED_CAST")
-            return RecommendationViewModel(application, authViewModel, userViewModel) as T
+            return RecommendationViewModel(application, userViewModel) as T
         }
         throw IllegalArgumentException("Unknown ViewModel class")
     }
