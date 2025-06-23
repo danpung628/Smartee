@@ -31,7 +31,7 @@ class StudyViewModel(app: Application) : AndroidViewModel(app) {
         list.filter {
             it.title.contains(searchKeyword) &&
                     it.address.contains(selectedAddress) &&
-                    it.category in selectedCategory
+                    selectedCategory.any { cat -> it.category.contains(cat) }
         }.toMutableList()
     }
 
