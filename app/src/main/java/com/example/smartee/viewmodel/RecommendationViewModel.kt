@@ -97,13 +97,13 @@ class RecommendationViewModel(
 
                 // 추천 이유 설정
                 val userName = authViewModel.currentUser.value?.displayName ?: "회원"
-                val category = recommendation?.category?.split(",")?.firstOrNull() ?: ""
+                val userInterest = userCategories.firstOrNull() ?: "관심"
                 val location = if (recommendation?.address?.isNotEmpty() == true)
                     "${recommendation.address} 지역의 "
                 else ""
 
                 _recommendationReason.value =
-                    "${userName}님이 관심 있는 ${category} 분야의 ${location}스터디입니다"
+                    "${userName}님이 관심 있는 ${userInterest} 분야의 ${location}스터디입니다"
 
                 Log.d(TAG, "추천 결과: ${recommendation?.title ?: "추천 없음"}")
             } catch (e: Exception) {
