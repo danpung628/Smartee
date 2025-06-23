@@ -53,6 +53,16 @@ class RecommendationViewModel(
         return userViewModel.userData.value?.ink ?: 50
     }
 
+    // [추가] 사용자 만년필 개수 가져오기
+    private fun getUserPenLevel(): Int {
+        return userViewModel.userData.value?.pen ?: 0
+    }
+
+    // [추가] 사용자가 참여한 스터디 ID 목록 가져오기
+    private fun getUserJoinedStudyIds(): List<String> {
+        return userViewModel.userData.value?.joinedStudyIds ?: emptyList()
+    }
+
     // 스터디 목록이 변경될 때 추천 새로고침
     fun refreshRecommendation(studies: List<StudyData>) {
         Log.d(TAG, "=== 추천 시작: 받은 스터디 개수 ${studies.size} ===")
@@ -62,9 +72,14 @@ class RecommendationViewModel(
 
         val userCategories = getUserCategories()
         val userInkLevel = getUserInkLevel()
-        val userLocation = getUserLocation() // 새로 추가
+        val userPenLevel = getUserPenLevel() // [추가]
+        val userLocation = getUserLocation()
+        val userJoinedStudyIds = getUserJoinedStudyIds() // [추가]
 
-        Log.d(TAG, "사용자 정보 - 카테고리: $userCategories, 잉크레벨: $userInkLevel, 위치: $userLocation")
+        Log.d(
+            TAG,
+            "사용자 정보 - 카테고리: $userCategories, 잉크레벨: $userInkLevel, 만년필: $userPenLevel, 위치: $userLocation"
+        )
 
         if (userCategories.isEmpty()) {
             _errorMessage.value = "관심 카테고리를 설정해주세요"
@@ -75,12 +90,14 @@ class RecommendationViewModel(
         _isLoading.value = true
         _errorMessage.value = null
 
-        // AI 호출 대신 바로 로컬에서 계산
+        // [수정] 서비스 호출 시 추가된 파라미터 전달
         val recommendation = recommendationService.recommendStudy(
-            userCategories,
-            userInkLevel,
-            userLocation,
-            studies
+            userCategories = userCategories,
+            userInkLevel = userInkLevel,
+            userPenLevel = userPenLevel,
+            userLocation = userLocation,
+            studies = studies,
+            userJoinedStudyIds = userJoinedStudyIds
         )
 
         _recommendedStudy.value = recommendation
@@ -96,7 +113,7 @@ class RecommendationViewModel(
     }
 
     private fun getUserLocation(): String {
-        return userViewModel.userData.value?.region ?: ""  // location → region 변경
+        return userViewModel.userData.value?.region ?: ""
     }
 
     private fun generateRecommendationReason(
@@ -106,37 +123,31 @@ class RecommendationViewModel(
     ): String {
         val reasons = mutableListOf<String>()
 
-        // 매칭된 관심사 구체적으로 표시
         val matchedCategory = userCategories.find { study.category.contains(it, ignoreCase = true) }
         if (matchedCategory != null) {
             reasons.add("'${matchedCategory}' 관심사 일치")
         }
 
-// 지역 매칭 구체적으로 표시
         if (study.address.contains(userLocation, ignoreCase = true)) {
             reasons.add("'${userLocation}' 지역")
         } else {
-            // 광역시도 전체 단어로 비교 (take(2) 제거!)
             val userFirstWord = userLocation.split(" ").firstOrNull()
             val studyFirstWord = study.address.split(" ").firstOrNull()
             if (userFirstWord != null && studyFirstWord != null &&
                 userFirstWord == studyFirstWord
-            ) {  // take(2) 제거
+            ) {
                 reasons.add("'${userFirstWord}' 지역 인근")
             }
         }
 
-        // 잉크 조건 정보
         if (study.minInkLevel > 0) {
             reasons.add("최소 잉크 ${study.minInkLevel} 충족")
         }
 
-        // 인기도 구체적으로 표시
         if (study.likeCount > 10) {
             reasons.add("좋아요 ${study.likeCount}개")
         }
 
-        // 참가자 규모 정보
         val currentMembers = study.participantIds.size
         if (currentMembers >= 3) {
             reasons.add("${currentMembers}명 참여 중")
