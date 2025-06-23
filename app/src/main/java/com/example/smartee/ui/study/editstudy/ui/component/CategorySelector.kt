@@ -15,18 +15,18 @@ import com.example.smartee.model.factory.CategoryListFactory
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-fun CategorySelector(selectedCategories: SnapshotStateList<String>) {
-//    val allCategories = listOf("스터디", "운동", "영어", "자격증", "취미")
+fun CategorySelector(
+    selectedCategories: SnapshotStateList<String>,
+    onCategoryClick: (String) -> Unit // [추가] 클릭 이벤트를 전달할 람다 함수
+) {
     val allCategories = CategoryListFactory.makeCategoryList()
 
     FlowRow {
         allCategories.forEach { category ->
             val isSelected = selectedCategories.contains(category)
             Button(
-                onClick = {
-                    if (isSelected) selectedCategories.remove(category)
-                    else selectedCategories.add(category)
-                },
+                // [수정] ViewModel의 함수를 호출하도록 변경
+                onClick = { onCategoryClick(category) },
                 colors = ButtonDefaults.buttonColors(
                     containerColor = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant
                 ),

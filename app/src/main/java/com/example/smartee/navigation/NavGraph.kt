@@ -15,19 +15,19 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
 import com.example.smartee.ui.LocalAuthViewModel
-import com.example.smartee.ui.request.RequestListScreen
+import com.example.smartee.ui.Map.NaverMapScreen
 import com.example.smartee.ui.attendance.AttendanceScreen
 import com.example.smartee.ui.attendance.ParticipantScreen
-import com.example.smartee.ui.login.LoginScreen
-import com.example.smartee.ui.Map.NaverMapScreen
 import com.example.smartee.ui.badge.BadgeScreen
+import com.example.smartee.ui.login.LoginScreen
 import com.example.smartee.ui.meeting.MeetingEditScreen
 import com.example.smartee.ui.profile.ProfileScreen
 import com.example.smartee.ui.request.MeetingRequestListScreen
+import com.example.smartee.ui.request.RequestListScreen
 import com.example.smartee.ui.screen.MyStudyScreen
-import com.example.smartee.ui.study.creatstudy.ui.screen.StudyCreationScreen
 import com.example.smartee.ui.signup.FillProfileScreen
 import com.example.smartee.ui.signup.SignUpScreen
+import com.example.smartee.ui.study.creatstudy.ui.screen.StudyCreationScreen
 import com.example.smartee.ui.study.editstudy.ui.StudyEditScreen
 import com.example.smartee.ui.study.studyList.main.StudyListScreen
 import com.example.smartee.ui.study.studyList.search.StudySearchScreen
@@ -113,7 +113,8 @@ fun SmarteeNavGraph(navController: NavHostController, modifier: Modifier = Modif
             )
         ) {
             StudyEditScreen(
-                studyId = it.arguments!!.getString("ID")!!
+                studyId = it.arguments!!.getString("ID")!!,
+                navController = navController // [추가] navController를 전달합니다.
             )
         }
         composable(Screen.Attendance.route) {
