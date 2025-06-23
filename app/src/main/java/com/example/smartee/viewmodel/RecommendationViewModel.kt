@@ -112,16 +112,16 @@ class RecommendationViewModel(
             reasons.add("'${matchedCategory}' 관심사 일치")
         }
 
-        // 지역 매칭 구체적으로 표시
+// 지역 매칭 구체적으로 표시
         if (study.address.contains(userLocation, ignoreCase = true)) {
             reasons.add("'${userLocation}' 지역")
         } else {
-            // 광역시도만 같은 경우도 체크
-            val userFirstWord = userLocation.split(" ").firstOrNull()?.take(2)
-            val studyFirstWord = study.address.split(" ").firstOrNull()?.take(2)
+            // 광역시도 전체 단어로 비교 (take(2) 제거!)
+            val userFirstWord = userLocation.split(" ").firstOrNull()
+            val studyFirstWord = study.address.split(" ").firstOrNull()
             if (userFirstWord != null && studyFirstWord != null &&
-                userFirstWord == studyFirstWord && userFirstWord.length >= 2
-            ) {
+                userFirstWord == studyFirstWord
+            ) {  // take(2) 제거
                 reasons.add("'${userFirstWord}' 지역 인근")
             }
         }

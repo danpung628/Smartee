@@ -47,13 +47,13 @@ class SimpleRecommendationService {
             return 3
         }
 
-        // 첫 번째 단어(광역시도)가 같으면 +2점
-        val userFirstWord = userLocation.split(" ").firstOrNull()?.take(2)
-        val studyFirstWord = studyAddress.split(" ").firstOrNull()?.take(2)
+        // 광역시도 전체 단어로 비교
+        val userFirstWord = userLocation.split(" ").firstOrNull()
+        val studyFirstWord = studyAddress.split(" ").firstOrNull()
 
         if (userFirstWord != null && studyFirstWord != null &&
-            userFirstWord == studyFirstWord && userFirstWord.length >= 2
-        ) {
+            userFirstWord == studyFirstWord
+        ) {  // take(2) 제거
             return 2
         }
 
