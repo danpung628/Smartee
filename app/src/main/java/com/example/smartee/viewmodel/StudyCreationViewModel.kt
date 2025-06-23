@@ -29,7 +29,7 @@ class StudyCreationViewModel : ViewModel() {
     var selectedCategories = mutableStateListOf<String>()
     var penCount by mutableStateOf("")
     var punishment by mutableStateOf("")
-    var description by mutableStateOf("반갑습니다 ㅎㅎ")
+    var description by mutableStateOf("")
     var address by mutableStateOf("")
     var errorMessage by mutableStateOf<String?>(null)
     var submittedStudies = mutableStateListOf<StudyData>()
@@ -145,7 +145,7 @@ class StudyCreationViewModel : ViewModel() {
         selectedCategories.clear()
         penCount = ""
         punishment = ""
-        description = "반갑습니다 ㅎㅎ"
+        description = ""
         address = ""
     }
 
