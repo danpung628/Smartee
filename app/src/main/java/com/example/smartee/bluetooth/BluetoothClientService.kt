@@ -1,3 +1,4 @@
+// BluetoothClientService.kt
 package com.example.smartee.bluetooth
 
 import android.Manifest
@@ -18,7 +19,7 @@ class BluetoothClientService(private val context: Context) {
 
     private val bluetoothAdapter: BluetoothAdapter? = BluetoothAdapter.getDefaultAdapter()
 
-    suspend fun sendAttendance(studyId: String, userId: String, code: Int) = withContext(Dispatchers.IO) {
+    suspend fun sendAttendance(studyId: String, userId: String) = withContext(Dispatchers.IO) {
         if (bluetoothAdapter == null || !bluetoothAdapter.isEnabled) {
             Log.w("BluetoothClient", "❌ Bluetooth is unavailable or turned off.")
             return@withContext
@@ -51,7 +52,6 @@ class BluetoothClientService(private val context: Context) {
             val json = JSONObject().apply {
                 put("studyId", studyId)
                 put("userId", userId)
-                put("code", code)
             }
 
             writer.write(json.toString() + "\n")

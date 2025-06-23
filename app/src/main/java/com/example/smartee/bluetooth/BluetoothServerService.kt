@@ -1,3 +1,4 @@
+// BluetoothServerService.kt
 package com.example.smartee.bluetooth
 
 import android.Manifest
@@ -85,10 +86,9 @@ class BluetoothServerService(private val context: Context) : Thread() {
             val json = JSONObject(message)
             val studyId = json.getString("studyId")
             val userId = json.getString("userId")
-            val code = json.getInt("code")
 
             GlobalScope.launch(Dispatchers.IO) {
-                processAttendance(studyId, userId, code)
+                processAttendance(studyId, userId)
             }
 
         } catch (e: Exception) {
@@ -96,36 +96,27 @@ class BluetoothServerService(private val context: Context) : Thread() {
         }
     }
 
-    private suspend fun processAttendance(studyId: String, userId: String, code: Int) {
+    private suspend fun processAttendance(studyId: String, userId: String) {
         val db = FirebaseFirestore.getInstance()
-        val sessionRef = db.collection("attendanceSessions").document(studyId)
+        val memberRef = db.collection("studies")
+            .document(studyId)
+            .collection("members")
+            .document(userId)
 
-        val sessionSnap = sessionRef.get().await()
-        val validCode = sessionSnap.getLong("code")?.toInt()
+        db.runTransaction { transaction ->
+            val snap = transaction.get(memberRef)
+            val current = (snap.getLong("currentCount") ?: 0).toInt()
+            val total = (snap.getLong("totalCount") ?: 0).toInt()
 
-        if (validCode == code) {
-            val memberRef = db.collection("studies")
-                .document(studyId)
-                .collection("members")
-                .document(userId)
-
-            db.runTransaction { transaction ->
-                val snap = transaction.get(memberRef)
-                val current = (snap.getLong("currentCount") ?: 0).toInt()
-                val total = (snap.getLong("totalCount") ?: 0).toInt()
-
-                transaction.update(memberRef, mapOf(
-                    "isPresent" to true,
-                    "currentCount" to current + 1,
-                    "totalCount" to total + 1
-                ))
-            }.addOnSuccessListener {
-                Log.d("BluetoothServer", "✅ 출석 처리 완료 ($userId)")
-            }.addOnFailureListener {
-                Log.e("BluetoothServer", "❌ 트랜잭션 실패", it)
-            }
-        } else {
-            Log.w("BluetoothServer", "❌ 코드 불일치 ($userId)")
+            transaction.update(memberRef, mapOf(
+                "isPresent" to true,
+                "currentCount" to current + 1,
+                "totalCount" to total + 1
+            ))
+        }.addOnSuccessListener {
+            Log.d("BluetoothServer", "✅ 출석 처리 완료 ($userId)")
+        }.addOnFailureListener {
+            Log.e("BluetoothServer", "❌ 트랜잭션 실패", it)
         }
     }
 }
