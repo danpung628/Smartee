@@ -1,6 +1,7 @@
 package com.example.smartee.navigation
 
 sealed class Screen(val route: String) {
+    object Splash : Screen("splash_screen")
     object Login : Screen("login")
     object SignUp : Screen("SignUp")
     data object Badge : Screen("badge_screen") // <-- 이 줄을 추가
