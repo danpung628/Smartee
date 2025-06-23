@@ -16,7 +16,7 @@ const db = admin.firestore();
 const projectId = "smartee-319d0";
 const location = "us-central1";
 const vertexAi = new VertexAI({project: projectId, location: location});
-const genAiModel = vertexAi.getGenerativeModel({model: "gemini-1.0-pro"});
+const genAiModel = vertexAi.getGenerativeModel({model: "gemini-2.0-flash"});
 
 interface RecommendRequestData {
   categories: string[];
