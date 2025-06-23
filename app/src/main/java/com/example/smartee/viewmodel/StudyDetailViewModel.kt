@@ -7,6 +7,7 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
+import com.example.smartee.bluetooth.AttendanceResult
 import com.example.smartee.bluetooth.BluetoothClientService
 import com.example.smartee.model.*
 import com.example.smartee.repository.StudyRepository
@@ -59,6 +60,9 @@ class StudyDetailViewModel(application: Application) : AndroidViewModel(applicat
 
     private val _pendingRequestCount = MutableStateFlow(0)
     val pendingRequestCount = _pendingRequestCount.asStateFlow()
+    private val _isConnectingBluetooth = MutableStateFlow(false)
+    val isConnectingBluetooth = _isConnectingBluetooth.asStateFlow()
+
 
     fun loadPendingRequestCount() {
         val ownerId = UserRepository.getCurrentUserId() ?: return
@@ -136,16 +140,27 @@ class StudyDetailViewModel(application: Application) : AndroidViewModel(applicat
     fun performBluetoothAttendance(meeting: Meeting) {
         val currentUserId = UserRepository.getCurrentUserId() ?: return
         viewModelScope.launch {
+            _isConnectingBluetooth.value = true // 연결 시작을 UI에 알림
             try {
                 val bluetoothClient = BluetoothClientService(getApplication())
-                bluetoothClient.sendAttendance(
+                val result = bluetoothClient.sendAttendance(
                     studyId = meeting.parentStudyId,
                     meetingId = meeting.meetingId,
                     userId = currentUserId
                 )
-                _userEvent.value = UserEvent.ShowSnackbar("블루투스 출석을 시도했습니다. 잠시 후 새로고침하여 확인해주세요.")
+
+                when (result) {
+                    is AttendanceResult.Success -> {
+                        _userEvent.value = UserEvent.ShowSnackbar("출석 정보 전송 성공! 잠시 후 반영됩니다.")
+                    }
+                    is AttendanceResult.Failure -> {
+                        _userEvent.value = UserEvent.Error(result.reason)
+                    }
+                }
             } catch(e: Exception) {
-                _userEvent.value = UserEvent.Error("블루투스 출석 중 오류 발생: ${e.message}")
+                _userEvent.value = UserEvent.Error("블루투스 출석 중 알 수 없는 오류 발생: ${e.message}")
+            } finally {
+                _isConnectingBluetooth.value = false // 연결 시도 종료를 UI에 알림
             }
         }
     }

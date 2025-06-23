@@ -1,4 +1,5 @@
-// BluetoothClientService.kt
+// smartee/bluetooth/BluetoothClientService.kt
+
 package com.example.smartee.bluetooth
 
 import android.Manifest
@@ -15,38 +16,42 @@ import org.json.JSONObject
 import java.io.OutputStreamWriter
 import java.util.*
 
+// [추가] 블루투스 출석 결과를 나타내는 Sealed Class
+sealed class AttendanceResult {
+    object Success : AttendanceResult()
+    data class Failure(val reason: String) : AttendanceResult()
+}
+
 class BluetoothClientService(private val context: Context) {
 
     private val bluetoothAdapter: BluetoothAdapter? = BluetoothAdapter.getDefaultAdapter()
 
-    suspend fun sendAttendance(studyId: String, meetingId: String, userId: String) = withContext(Dispatchers.IO) {
-        // ... (상단의 블루투스 활성화 및 권한 체크 로직은 동일)
+    // [수정] 함수의 반환 타입을 AttendanceResult로 변경
+    suspend fun sendAttendance(studyId: String, meetingId: String, userId: String): AttendanceResult = withContext(Dispatchers.IO) {
         if (bluetoothAdapter == null || !bluetoothAdapter.isEnabled) {
-            Log.w("BluetoothClient", "❌ Bluetooth is unavailable or turned off.")
-            return@withContext
+            return@withContext AttendanceResult.Failure("블루투스가 꺼져 있습니다.")
         }
+
         if (ContextCompat.checkSelfPermission(context, Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
-            Log.w("BluetoothClient", "❌ BLUETOOTH_CONNECT permission not granted.")
-            return@withContext
+            return@withContext AttendanceResult.Failure("블루투스 연결 권한이 없습니다.")
         }
+
         val pairedDevices: Set<BluetoothDevice>? = bluetoothAdapter.bondedDevices
         val targetDevice = pairedDevices?.find {
             it.name.contains("AttendanceServer", ignoreCase = true)
         }
 
         if (targetDevice == null) {
-            Log.w("BluetoothClient", "❌ Target device not found.")
-            return@withContext
+            return@withContext AttendanceResult.Failure("호스트 기기를 찾을 수 없습니다. 세션이 열려있는지 확인하세요.")
         }
 
+        var socket: BluetoothSocket? = null
         try {
             val uuid = UUID.fromString("8ce255c0-200a-11e0-ac64-0800200c9a66")
-            val socket: BluetoothSocket = targetDevice.createRfcommSocketToServiceRecord(uuid)
+            socket = targetDevice.createRfcommSocketToServiceRecord(uuid)
             socket.connect()
 
             val writer = OutputStreamWriter(socket.outputStream)
-
-            // [수정] JSON 데이터에 meetingId를 추가합니다.
             val json = JSONObject().apply {
                 put("studyId", studyId)
                 put("meetingId", meetingId)
@@ -57,9 +62,12 @@ class BluetoothClientService(private val context: Context) {
             writer.flush()
 
             Log.d("BluetoothClient", "✅ 출석 정보 전송 완료: $json")
-            socket.close()
+            return@withContext AttendanceResult.Success
         } catch (e: Exception) {
             Log.e("BluetoothClient", "❌ 전송 실패", e)
+            return@withContext AttendanceResult.Failure("연결에 실패했습니다: ${e.message}")
+        } finally {
+            socket?.close()
         }
     }
 }

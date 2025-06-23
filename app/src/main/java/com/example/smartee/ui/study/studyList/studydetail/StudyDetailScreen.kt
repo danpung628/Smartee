@@ -66,6 +66,7 @@ fun StudyDetailScreen(
     // [추가] ViewModel에서 생성된 출석 코드를 구독합니다.
     val generatedCode by viewModel.generatedAttendanceCode.collectAsState()
     val pendingRequestCount by viewModel.pendingRequestCount.collectAsState()
+    val isConnectingBluetooth by viewModel.isConnectingBluetooth.collectAsState()
 
     val isRefreshing = isLoading
     val pullRefreshState = rememberPullRefreshState(
@@ -120,12 +121,14 @@ fun StudyDetailScreen(
 
     if (meetingForDialog != null) {
         UnifiedMeetingDialog(
+
             meeting = meetingForDialog!!,
             userRole = userRole,
             isSessionActive = activeMeetingSessions[meetingForDialog!!.meetingId] ?: false,
             participantStatusList = participantStatusList,
             currentUserId = currentUserId ?: "",
             onDismiss = { meetingForDialog = null },
+            isConnecting = isConnectingBluetooth,
             onStartAttendance = {
                 // [수정] 출석 세션 시작 시, ViewModel의 함수를 호출하고 다이얼로그를 엽니다.
                 viewModel.startAttendanceSession(it.meetingId)
@@ -296,6 +299,7 @@ private fun UnifiedMeetingDialog(
     onDismiss: () -> Unit,
     onStartAttendance: (Meeting) -> Unit,
     onWithdraw: (Meeting) -> Unit,
+    isConnecting: Boolean,
     onAttend: (Meeting) -> Unit,
     onManageRequests: (Meeting) -> Unit,
     onEditMeeting: (Meeting) -> Unit,
@@ -360,8 +364,19 @@ private fun UnifiedMeetingDialog(
                 if (userRole == UserRole.PARTICIPANT) {
                     if (isJoined) {
                         if (isSessionActive && !amIPresent) {
-                            Button(onClick = { onAttend(meeting) }, modifier = Modifier.fillMaxWidth()) {
-                                Text("블루투스로 출석하기")
+                            // [수정] 연결 중일 때 버튼 비활성화 및 로딩 표시
+                            Button(
+                                onClick = { onAttend(meeting) },
+                                enabled = !isConnecting, // 연결 중에는 비활성화
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                if (isConnecting) {
+                                    CircularProgressIndicator(modifier = Modifier.size(24.dp), strokeWidth = 2.dp)
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text("호스트와 연결 중...")
+                                } else {
+                                    Text("블루투스로 출석하기")
+                                }
                             }
                         }
                         Spacer(modifier = Modifier.height(8.dp))
@@ -383,7 +398,6 @@ private fun UnifiedMeetingDialog(
         }
     }
 }
-
 @Composable
 private fun ParticipantStatusRow(participant: ParticipantStatus) {
     Row(
