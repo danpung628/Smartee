@@ -5,11 +5,22 @@ import android.util.Log
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.IntentSenderRequest
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.material3.Button
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -17,8 +28,12 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.example.smartee.R
@@ -38,7 +53,8 @@ fun SignUpScreen(navController: NavController) {
     val auth = remember { FirebaseAuth.getInstance() }
     val oneTapClient = remember { Identity.getSignInClient(context) }
     var isLoading by remember { mutableStateOf(false) }
-    val isTesting = false//true
+    val isTesting = false
+
     // 로그인된 유저가 있으면 바로 홈으로
     LaunchedEffect(Unit) {
         val currentUser = auth.currentUser
@@ -49,13 +65,11 @@ fun SignUpScreen(navController: NavController) {
             db.collection("users").document(uid).get()
                 .addOnSuccessListener { document ->
                     if (isTesting || !document.exists()) {
-                        // 기존 유저 → 홈 또는 로그인 화면
                         navController.navigate(Screen.FillProfile.route) {
                             popUpTo(Screen.SignUp.route) { inclusive = true }
                         }
                     } else {
-                        // 신규 유저이지만 앱 재실행한 경우 → 프로필 입력부터 다시
-                        navController.navigate(Screen.Login.route) {
+                        navController.navigate(Screen.StudyList.route) {
                             popUpTo(Screen.SignUp.route) { inclusive = true }
                         }
                     }
@@ -72,10 +86,10 @@ fun SignUpScreen(navController: NavController) {
                 BeginSignInRequest.GoogleIdTokenRequestOptions.Builder()
                     .setSupported(true)
                     .setServerClientId(context.getString(R.string.default_web_client_id))
-                    .setFilterByAuthorizedAccounts(false) // 모든 계정 허용
+                    .setFilterByAuthorizedAccounts(false)
                     .build()
             )
-            .setAutoSelectEnabled(true) // 최근 계정 자동 로그인
+            .setAutoSelectEnabled(true)
             .build()
     }
 
@@ -95,12 +109,10 @@ fun SignUpScreen(navController: NavController) {
                         db.collection("users").document(uid).get()
                             .addOnSuccessListener { document ->
                                 if (document.exists()) {
-                                    // 기존 유저 → 홈 화면으로 이동
-                                    navController.navigate(Screen.Login.route) {
+                                    navController.navigate(Screen.StudyList.route) {
                                         popUpTo(Screen.SignUp.route) { inclusive = true }
                                     }
                                 } else {
-                                    // 신규 유저 → 프로필 입력 화면
                                     navController.navigate(Screen.FillProfile.route) {
                                         popUpTo(Screen.SignUp.route) { inclusive = true }
                                     }
@@ -112,43 +124,85 @@ fun SignUpScreen(navController: NavController) {
                     }
                     .addOnFailureListener {
                         Log.e("SignUpScreen", "Firebase 인증 실패: ${it.message}")
+                        isLoading = false
                     }
             } else {
                 Log.e("SignUpScreen", "ID 토큰이 없음")
+                isLoading = false
             }
         } catch (e: ApiException) {
             Log.e("SignUpScreen", "Google 로그인 실패", e)
+            isLoading = false
         }
     }
 
-    Box {
-        Column {
-            Button(onClick = {
-                isLoading = true
-                oneTapClient.beginSignIn(signInRequest)
-                    .addOnSuccessListener { result ->
-                        val request = IntentSenderRequest.Builder(result.pendingIntent.intentSender).build()
-                        launcher.launch(request)
-                    }
-                    .addOnFailureListener {
-                        Log.e("SignUpScreen", "One Tap Sign-In 실패: ${it.message}")
-                        isLoading = false
-                    }
-            }) {
-                Text("Google로 시작하기")
-            }
+    Box(modifier = Modifier.fillMaxSize()) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 32.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            Text(
+                text = "Smartee",
+                style = MaterialTheme.typography.headlineLarge,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.padding(bottom = 8.dp)
+            )
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Text(
+                text = "스마트한 스터디 관리",
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(bottom = 64.dp)
+            )
 
-            Button(onClick = {
-                auth.signOut()
-                navController.navigate(Screen.Login.route)
-            }) {
-                Text("개발자 모드 (로그아웃)")
+            OutlinedButton(
+                onClick = {
+                    isLoading = true
+                    oneTapClient.beginSignIn(signInRequest)
+                        .addOnSuccessListener { result ->
+                            val request =
+                                IntentSenderRequest.Builder(result.pendingIntent.intentSender)
+                                    .build()
+                            launcher.launch(request)
+                        }
+                        .addOnFailureListener {
+                            Log.e("SignUpScreen", "One Tap Sign-In 실패: ${it.message}")
+                            isLoading = false
+                        }
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(48.dp),
+                colors = ButtonDefaults.outlinedButtonColors(
+                    containerColor = Color.White,
+                    contentColor = Color.Black
+                ),
+                border = BorderStroke(1.dp, Color.Gray),
+                enabled = !isLoading
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.Center
+                ) {
+                    Icon(
+                        painter = painterResource(R.drawable.ic_google),
+                        contentDescription = null,
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Text(
+                        text = if (isLoading) "로그인 중..." else "Google로 계속하기",
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.Medium
+                    )
+                }
             }
         }
 
-        // 👇 로딩 중일 때 오버레이 표시
         if (isLoading) {
             LoadingOverlay()
         }
