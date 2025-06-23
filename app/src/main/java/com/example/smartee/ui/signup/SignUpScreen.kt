@@ -53,7 +53,6 @@ fun SignUpScreen(navController: NavController) {
     val auth = remember { FirebaseAuth.getInstance() }
     val oneTapClient = remember { Identity.getSignInClient(context) }
     var isLoading by remember { mutableStateOf(false) }
-    val isTesting = false
 
     // 로그인된 유저가 있으면 바로 홈으로
     LaunchedEffect(Unit) {
@@ -64,13 +63,13 @@ fun SignUpScreen(navController: NavController) {
 
             db.collection("users").document(uid).get()
                 .addOnSuccessListener { document ->
-                    if (isTesting || !document.exists()) {
-                        navController.navigate(Screen.FillProfile.route) {
-                            popUpTo(Screen.SignUp.route) { inclusive = true }
-                        }
+                    if (!document.exists()) {
+//                        navController.navigate(Screen.FillProfile.route) {
+//                            popUpTo(Screen.SignUp.route) { inclusive = true }
+//                        }
                     } else {
                         navController.navigate(Screen.StudyList.route) {
-                            popUpTo(Screen.SignUp.route) { inclusive = true }
+                            popUpTo(Screen.StudyList.route) { inclusive = true }
                         }
                     }
                 }
@@ -110,12 +109,12 @@ fun SignUpScreen(navController: NavController) {
                             .addOnSuccessListener { document ->
                                 if (document.exists()) {
                                     navController.navigate(Screen.StudyList.route) {
-                                        popUpTo(Screen.SignUp.route) { inclusive = true }
+                                        popUpTo(Screen.StudyList.route) { inclusive = true }
                                     }
                                 } else {
-//                                    navController.navigate(Screen.FillProfile.route) {
-//                                        popUpTo(Screen.SignUp.route) { inclusive = true }
-//                                    }
+                                    navController.navigate(Screen.FillProfile.route) {
+                                        popUpTo(Screen.SignUp.route) { inclusive = true }
+                                    }
                                 }
                             }
                             .addOnFailureListener { e ->
