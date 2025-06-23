@@ -47,12 +47,10 @@ fun StudyInfoCard(study: StudyData) {
             }
 
             // 인원 정보
+            val maxCountText = if (study.maxMemberCount == 0) "무제한" else "${study.maxMemberCount}명"
             InfoRow(
                 icon = Icons.Default.People,
-                text = if (study.maxMemberCount == Int.MAX_VALUE)
-                    "인원 제한 없음 (현재 ${study.participantIds.size}명)"
-                else
-                    "${study.participantIds.size}/${study.maxMemberCount}명"
+                text = "${study.participantIds.size} / $maxCountText"
             )
 
             // 날짜 정보
