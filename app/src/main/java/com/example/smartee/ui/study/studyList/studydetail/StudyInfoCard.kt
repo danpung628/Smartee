@@ -37,7 +37,7 @@ import com.example.smartee.model.StudyData
 @Composable
 fun StudyInfoCard(
     study: StudyData,
-    onLikeClick: ((String, String) -> Unit)? = null,
+    onLikeClick: (() -> Unit)? = null,
     currentUserId: String = ""
 ) {
     val isLiked = study.likedByUsers.contains(currentUserId)
@@ -99,7 +99,7 @@ fun StudyInfoCard(
                     verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier
                         .clickable {
-                            onLikeClick?.invoke(study.studyId, currentUserId)
+                            onLikeClick?.invoke()
                         }
                         .padding(8.dp) // 클릭 영역 확대
                 ) {

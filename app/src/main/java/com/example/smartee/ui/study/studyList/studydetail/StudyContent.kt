@@ -10,12 +10,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.example.smartee.model.StudyData
-import com.example.smartee.viewmodel.StudyViewModel
 
 @Composable
 fun StudyContent(
     study: StudyData,
-    studyViewModel: StudyViewModel,
+    onLikeClick: () -> Unit, // [수정] 파라미터가 없는 람다로 변경
     currentUserId: String
 ) {
     Column(
@@ -29,9 +28,7 @@ fun StudyContent(
 
         StudyInfoCard(
             study = study,
-            onLikeClick = { studyId, userId ->
-                studyViewModel.toggleLike(studyId, userId)
-            },
+            onLikeClick = onLikeClick, // 그대로 전달
             currentUserId = currentUserId
         )
 
