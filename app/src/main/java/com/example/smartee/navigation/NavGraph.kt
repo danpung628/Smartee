@@ -17,6 +17,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
 import com.example.smartee.ui.LocalAuthViewModel
 import com.example.smartee.ui.Map.NaverMapScreen
+import com.example.smartee.ui.admin.AdminReportScreen
 import com.example.smartee.ui.attendance.AttendanceScreen
 import com.example.smartee.ui.attendance.ParticipantScreen
 import com.example.smartee.ui.badge.BadgeScreen
@@ -24,6 +25,7 @@ import com.example.smartee.ui.login.LoginScreen
 import com.example.smartee.ui.meeting.MeetingEditScreen
 import com.example.smartee.ui.profile.ProfileEditScreen
 import com.example.smartee.ui.profile.ProfileScreen
+import com.example.smartee.ui.report.ReportScreen
 import com.example.smartee.ui.request.MeetingRequestListScreen
 import com.example.smartee.ui.request.RequestListScreen
 import com.example.smartee.ui.screen.MyStudyScreen
@@ -178,6 +180,21 @@ fun SmarteeNavGraph(navController: NavHostController, modifier: Modifier = Modif
             )
         }
 
+        //신고 화면
+        composable(
+            route = Screen.Report.route + "?studyID={studyID}",
+            arguments = listOf(
+                navArgument("studyID") { type = NavType.StringType }
+            )
+        ) { backStackEntry ->
+            val studyId = backStackEntry.arguments?.getString("studyID") ?: ""
+            ReportScreen(studyId = studyId, navController = navController)
+        }
+
+        //관리자 화면
+        composable(Screen.AdminReport.route) {
+            AdminReportScreen(navController = navController)
+        }
 
     }
 }

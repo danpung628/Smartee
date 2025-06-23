@@ -70,7 +70,8 @@ fun ProfileScreen(navController: NavController) {
             ProfileContent(
                 modifier = Modifier.padding(paddingValues),
                 currentUser = currentUser,
-                userData = userData
+                userData = userData,
+                onAdminClick = { navController.navigate(Screen.AdminReport.route) }
             )
         } else if (currentUser != null && userData == null) {
             // [추가] 데이터 로딩 중을 표시하거나, 프로필이 없는 사용자를 위한 화면을 보여줄 수 있습니다.
