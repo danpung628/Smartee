@@ -4,6 +4,7 @@ import android.app.Application
 import androidx.compose.foundation.layout.Column
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -39,6 +40,11 @@ fun StudyListScreen(
             userViewModel
         )
     )
+
+    // ✅ 여기 추가
+    LaunchedEffect(Unit) {
+        studyViewModel.refreshStudyList()
+    }
 
     DisposableEffect(studyViewModel) {
         studyViewModel.onStudiesLoaded = { studies ->

@@ -83,6 +83,9 @@ fun SmarteeApp() {
                 LocalAuthViewModel provides authViewModel
             ) {
                 SmarteeNavGraph(navController, Modifier.padding(innerPadding))
+
+                // 알림 기능
+                MeetingApplicationListener()
             }
         }
     }
