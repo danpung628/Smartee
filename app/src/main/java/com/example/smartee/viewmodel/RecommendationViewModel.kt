@@ -1,3 +1,4 @@
+// app/src/main/java/com/example/smartee/viewmodel/RecommendationViewModel.kt
 package com.example.smartee.viewmodel
 
 import android.app.Application
@@ -53,14 +54,16 @@ class RecommendationViewModel(
         return userViewModel.userData.value?.ink ?: 50
     }
 
-    // [추가] 사용자 만년필 개수 가져오기
     private fun getUserPenLevel(): Int {
         return userViewModel.userData.value?.pen ?: 0
     }
 
-    // [추가] 사용자가 참여한 스터디 ID 목록 가져오기
     private fun getUserJoinedStudyIds(): List<String> {
-        return userViewModel.userData.value?.joinedStudyIds ?: emptyList()
+        return userViewModel.userData.value?.joinedStudyIds ?: listOf()
+    }
+
+    private fun getUserLocation(): String {
+        return userViewModel.userData.value?.region ?: ""
     }
 
     // 스터디 목록이 변경될 때 추천 새로고침
@@ -72,9 +75,9 @@ class RecommendationViewModel(
 
         val userCategories = getUserCategories()
         val userInkLevel = getUserInkLevel()
-        val userPenLevel = getUserPenLevel() // [추가]
+        val userPenLevel = getUserPenLevel()
         val userLocation = getUserLocation()
-        val userJoinedStudyIds = getUserJoinedStudyIds() // [추가]
+        val userJoinedStudyIds = getUserJoinedStudyIds()
 
         Log.d(
             TAG,
@@ -90,21 +93,27 @@ class RecommendationViewModel(
         _isLoading.value = true
         _errorMessage.value = null
 
-        // [수정] 서비스 호출 시 추가된 파라미터 전달
+        // AI 호출 대신 바로 로컬에서 계산
         val recommendation = recommendationService.recommendStudy(
-            userCategories = userCategories,
-            userInkLevel = userInkLevel,
-            userPenLevel = userPenLevel,
-            userLocation = userLocation,
-            studies = studies,
-            userJoinedStudyIds = userJoinedStudyIds
+            userCategories,
+            userInkLevel,
+            userPenLevel,
+            userLocation,
+            studies,
+            userJoinedStudyIds
         )
 
         _recommendedStudy.value = recommendation
 
         // 추천 이유 생성
         if (recommendation != null) {
-            val reason = generateRecommendationReason(recommendation, userCategories, userLocation)
+            val reason = generateRecommendationReason(
+                recommendation,
+                userCategories,
+                userLocation,
+                userInkLevel,
+                userPenLevel
+            )
             _recommendationReason.value = reason
         }
 
@@ -112,45 +121,73 @@ class RecommendationViewModel(
         Log.d(TAG, "추천 완료: ${recommendation?.title ?: "추천 없음"}")
     }
 
-    private fun getUserLocation(): String {
-        return userViewModel.userData.value?.region ?: ""
+    private fun calculateLocationScore(userLocation: String, studyAddress: String): Int {
+        if (userLocation.isBlank() || studyAddress.isBlank()) return 0
+
+        // 정확히 포함되면 +3점
+        if (studyAddress.contains(userLocation, ignoreCase = true) ||
+            userLocation.contains(studyAddress, ignoreCase = true)
+        ) {
+            return 3
+        }
+
+        // 광역시도 전체 단어로 비교 +2점
+        val userFirstWord = userLocation.split(" ").firstOrNull()
+        val studyFirstWord = studyAddress.split(" ").firstOrNull()
+
+        if (userFirstWord != null && studyFirstWord != null &&
+            userFirstWord == studyFirstWord
+        ) {
+            return 2
+        }
+
+        return 0
     }
 
     private fun generateRecommendationReason(
         study: StudyData,
         userCategories: List<String>,
-        userLocation: String
+        userLocation: String,
+        userInkLevel: Int,
+        userPenLevel: Int
     ): String {
         val reasons = mutableListOf<String>()
 
-        val matchedCategory = userCategories.find { study.category.contains(it, ignoreCase = true) }
+        // 1. 카테고리 매칭 (실제 계산 로직과 동일하게)
+        val studyCategories = study.category.split(",").map { it.trim() }
+        val matchedCategory = userCategories.find { userCategory ->
+            studyCategories.any { studyCat ->
+                studyCat.equals(userCategory, ignoreCase = true)
+            }
+        }
         if (matchedCategory != null) {
             reasons.add("'${matchedCategory}' 관심사 일치")
         }
 
-        if (study.address.contains(userLocation, ignoreCase = true)) {
-            reasons.add("'${userLocation}' 지역")
-        } else {
-            val userFirstWord = userLocation.split(" ").firstOrNull()
-            val studyFirstWord = study.address.split(" ").firstOrNull()
-            if (userFirstWord != null && studyFirstWord != null &&
-                userFirstWord == studyFirstWord
-            ) {
-                reasons.add("'${userFirstWord}' 지역 인근")
+        // 2. 위치 매칭 (실제 계산 로직과 동일하게)
+        val locationScore = calculateLocationScore(userLocation, study.address)
+        when (locationScore) {
+            3 -> reasons.add("'${userLocation}' 지역 정확 매칭")
+            2 -> {
+                val userFirstWord = userLocation.split(" ").firstOrNull()
+                reasons.add("'${userFirstWord}' 광역시도 매칭")
             }
         }
 
-        if (study.minInkLevel > 0) {
-            reasons.add("최소 잉크 ${study.minInkLevel} 충족")
+        // 3. 잉크 조건
+        if (study.minInkLevel <= userInkLevel) {
+            reasons.add("잉크 ${study.minInkLevel} 충족")
         }
 
-        if (study.likeCount > 10) {
-            reasons.add("좋아요 ${study.likeCount}개")
+        // 4. 만년필 조건
+        if (study.penCount <= userPenLevel) {
+            reasons.add("만년필 ${study.penCount}개 충족")
         }
 
-        val currentMembers = study.participantIds.size
-        if (currentMembers >= 3) {
-            reasons.add("${currentMembers}명 참여 중")
+        // 5. 정원 여유
+        val remainingSlots = study.maxMemberCount - study.participantIds.size
+        if (remainingSlots > 0) {
+            reasons.add("정원 ${remainingSlots}명 여유")
         }
 
         return if (reasons.isNotEmpty()) {
