@@ -256,7 +256,7 @@ fun StudyDetailScreen(
                     StudyContent(
                         study = study,
                         onLikeClick = { currentUserId?.let { viewModel.toggleLike(it) } },
-                        currentUserId = currentUserId
+                        currentUserId = currentUserId ?: "" // currentUserId가 null이면 빈 문자열 ""을 전달
                     )
 
                     if (userRole == UserRole.OWNER || userRole == UserRole.PARTICIPANT) {
@@ -296,15 +296,6 @@ fun StudyDetailScreen(
 // 이하 헬퍼 Composable 함수들
 // =================================================================================
 
-@Composable
-fun StudyHeader(study: StudyData, onReportStudy: (String) -> Unit) {
-    /* main 브랜치의 StudyHeader 구현과 동일 (내용 생략) */
-}
-
-@Composable
-fun StudyContent(study: StudyData, onLikeClick: () -> Unit, currentUserId: String?) {
-    /* main 브랜치의 StudyContent 구현과 동일 (내용 생략) */
-}
 
 @Composable
 private fun MeetingListSection(
