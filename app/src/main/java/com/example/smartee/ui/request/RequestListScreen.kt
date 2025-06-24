@@ -16,6 +16,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.example.smartee.model.JoinRequest
 import com.example.smartee.viewmodel.RequestViewModel
+import kotlinx.coroutines.flow.collectLatest
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -26,6 +27,33 @@ fun RequestListScreen(
 ) {
     val requests by viewModel.requests.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
+
+    var showDialog by remember { mutableStateOf(false) }
+    var dialogMessage by remember { mutableStateOf("") }
+
+    LaunchedEffect(key1 = true) {
+        viewModel.uiEvent.collectLatest { event ->
+            when (event) {
+                is RequestViewModel.UiEvent.ShowErrorDialog -> {
+                    dialogMessage = event.message
+                    showDialog = true
+                }
+            }
+        }
+    }
+
+    if (showDialog) {
+        AlertDialog(
+            onDismissRequest = { showDialog = false },
+            title = { Text("알림") },
+            text = { Text(dialogMessage) },
+            confirmButton = {
+                TextButton(onClick = { showDialog = false }) {
+                    Text("확인")
+                }
+            }
+        )
+    }
 
     // [수정] studyId 없이 현재 사용자의 모든 요청을 로드
     LaunchedEffect(Unit) {

@@ -272,6 +272,14 @@ class StudyDetailViewModel(application: Application) : AndroidViewModel(applicat
         if (_isLoading.value) return
         val study = _studyData.value ?: return
         val currentUserId = UserRepository.getCurrentUserId() ?: return
+
+        if (study.maxMemberCount > 0 && study.participantIds.size >= study.maxMemberCount) {
+            viewModelScope.launch {
+                _userEvent.value = UserEvent.Error("최대 가입인원수는 ${study.maxMemberCount}명입니다.")
+            }
+            return
+        }
+
         viewModelScope.launch {
             _isLoading.value = true
             try {
@@ -366,7 +374,6 @@ class StudyDetailViewModel(application: Application) : AndroidViewModel(applicat
             try {
                 studyRepository.leaveStudy(study.studyId, currentUserId).await()
                 _userEvent.value = UserEvent.LeaveStudySuccessful
-                loadStudy(study.studyId) // 상태 갱신
             } catch (e: Exception) {
                 _userEvent.value = UserEvent.Error("스터디 탈퇴 중 오류가 발생했습니다.")
             }

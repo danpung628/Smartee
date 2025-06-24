@@ -136,6 +136,9 @@ fun StudyDetailScreen(
             }
             is StudyDetailViewModel.UserEvent.LeaveStudySuccessful -> {
                 Toast.makeText(context, "스터디에서 탈퇴했습니다.", Toast.LENGTH_SHORT).show()
+                navController.navigate("my_study") {
+                    popUpTo(navController.graph.startDestinationId)
+                }
                 viewModel.eventConsumed()
             }
             is StudyDetailViewModel.UserEvent.WithdrawSuccessful -> {
