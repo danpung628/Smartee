@@ -46,6 +46,7 @@ class BluetoothServerService(private val context: Context) {
         override fun onStartSuccess(settingsInEffect: AdvertiseSettings?) {
             Log.d(TAG, "✅ BLE Advertising started successfully.")
         }
+
         override fun onStartFailure(errorCode: Int) {
             Log.e(TAG, "❌ BLE Advertising onStartFailure: $errorCode")
         }
@@ -62,7 +63,11 @@ class BluetoothServerService(private val context: Context) {
     }
 
     private fun startAdvertising(meetingId: String) {
-        if (ContextCompat.checkSelfPermission(context, Manifest.permission.BLUETOOTH_ADVERTISE) != PackageManager.PERMISSION_GRANTED) {
+        if (ContextCompat.checkSelfPermission(
+                context,
+                Manifest.permission.BLUETOOTH_ADVERTISE
+            ) != PackageManager.PERMISSION_GRANTED
+        ) {
             Log.e(TAG, "❌ BLUETOOTH_ADVERTISE permission not granted")
             return
         }
@@ -83,7 +88,11 @@ class BluetoothServerService(private val context: Context) {
     }
 
     private fun stopAdvertising() {
-        if (ContextCompat.checkSelfPermission(context, Manifest.permission.BLUETOOTH_ADVERTISE) != PackageManager.PERMISSION_GRANTED) {
+        if (ContextCompat.checkSelfPermission(
+                context,
+                Manifest.permission.BLUETOOTH_ADVERTISE
+            ) != PackageManager.PERMISSION_GRANTED
+        ) {
             return
         }
         advertiser?.stopAdvertising(advertiseCallback)
@@ -94,13 +103,20 @@ class BluetoothServerService(private val context: Context) {
         if (serverThread?.isAlive == true) return // 이미 실행 중이면 다시 시작하지 않음
 
         serverThread = Thread {
-            if (ContextCompat.checkSelfPermission(context, Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
+            if (ContextCompat.checkSelfPermission(
+                    context,
+                    Manifest.permission.BLUETOOTH_CONNECT
+                ) != PackageManager.PERMISSION_GRANTED
+            ) {
                 Log.e(TAG, "❌ BLUETOOTH_CONNECT permission not granted")
                 return@Thread // [수정] return@thread -> return@Thread
             }
 
             try {
-                serverSocket = bluetoothAdapter?.listenUsingRfcommWithServiceRecord("SmarteeAttendance", SERVICE_UUID)
+                serverSocket = bluetoothAdapter?.listenUsingRfcommWithServiceRecord(
+                    "SmarteeAttendance",
+                    SERVICE_UUID
+                )
             } catch (e: IOException) {
                 Log.e(TAG, "❌ Socket listen() failed", e)
                 return@Thread
@@ -156,12 +172,31 @@ class BluetoothServerService(private val context: Context) {
         }
     }
 
-    private suspend fun processAttendanceWithRepository(studyId: String, meetingId: String, userId: String) {
+    private suspend fun processAttendanceWithRepository(
+        studyId: String,
+        meetingId: String,
+        userId: String
+    ) {
+        Log.d(TAG, "--- 출석 처리 시작 ---")
+        Log.d(TAG, "- 받은 데이터: studyId=${studyId}, meetingId=${meetingId}, userId=${userId}")
+
         try {
             val userDoc = db.collection("users").document(userId).get().await()
+            if (!userDoc.exists()) {
+                Log.e(TAG, "오류: 사용자 문서를 찾을 수 없습니다. (userId: ${userId})")
+                return
+            }
             val userName = userDoc.toObject(UserData::class.java)?.nickname ?: "알수없음"
+
             val studyDoc = db.collection("studies").document(studyId).get().await()
+            if (!studyDoc.exists()) {
+                Log.e(TAG, "오류: 스터디 문서를 찾을 수 없습니다. (studyId: ${studyId})")
+                return
+            }
             val studyName = studyDoc.getString("title") ?: ""
+
+            Log.d(TAG, "- 조회된 정보: userName=${userName}, studyName=${studyName}")
+            Log.d(TAG, "Firestore에 출석 기록을 시도합니다...")
 
             studyRepository.markAttendance(
                 meetingId = meetingId,
@@ -169,10 +204,17 @@ class BluetoothServerService(private val context: Context) {
                 parentStudyId = studyId,
                 userName = userName,
                 studyName = studyName
-            ).await()
-            Log.d(TAG, "✅ 출석 처리 완료 (Repository) - User: $userId, Meeting: $meetingId")
+            ).await() // .await()를 통해 작업이 완료될 때까지 기다립니다.
+
+            // 성공 로그
+            Log.d(
+                TAG,
+                "✅✅✅ Firestore 트랜잭션 성공! 출석 처리 완료 (Repository) - User: $userId, Meeting: $meetingId"
+            )
+
         } catch (e: Exception) {
-            Log.e(TAG, "❌ Repository 출석 처리 실패", e)
+            // 실패 로그
+            Log.e(TAG, "❌❌❌ Firestore 트랜잭션 실패! Repository 출석 처리 중 심각한 오류 발생", e)
         }
     }
 }

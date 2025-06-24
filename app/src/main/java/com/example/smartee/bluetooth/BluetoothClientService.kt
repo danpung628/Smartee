@@ -17,6 +17,7 @@ import android.os.ParcelUuid
 import android.util.Log
 import androidx.core.content.ContextCompat
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -110,6 +111,12 @@ class BluetoothClientService(private val context: Context) {
             writer.write(json.toString() + "\n")
             writer.flush()
             Log.d("BluetoothClient", "✅ 출석 정보 전송 완료: $json")
+
+            // ▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼ 이 부분 추가 ▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼
+            // 서버가 데이터를 읽을 시간을 주기 위해 잠시 대기합니다.
+            delay(500) // 0.5초 대기
+            // ▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲
+
             return@withContext AttendanceResult.Success
         } catch (e: Exception) {
             Log.e("BluetoothClient", "❌ RFCOMM 전송 실패", e)

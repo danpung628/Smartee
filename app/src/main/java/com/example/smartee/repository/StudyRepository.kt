@@ -506,7 +506,7 @@ class StudyRepository(
                     "currentCount" to 1L,
                     "totalCount" to 0L, // totalCount는 세션 시작 시점에 오르므로 여기선 0
                     "absentCount" to 0L,
-                    "present" to false
+                    "present" to true
                 )
                 transaction.set(memberRef, initialMemberData)
             }
