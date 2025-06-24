@@ -396,6 +396,21 @@ class StudyDetailViewModel(application: Application) : AndroidViewModel(applicat
         object WithdrawSuccessful : UserEvent()
         data class ShowSnackbar(val message: String): UserEvent()
     }
+
+    fun stopAttendanceSession(meetingId: String) {
+        viewModelScope.launch {
+            try {
+                studyRepository.deleteAttendanceSession(meetingId).await()
+                // 상태를 즉시 업데이트하여 UI에 반영
+                _activeMeetingSessions.value = _activeMeetingSessions.value - meetingId
+                _userEvent.value = UserEvent.ShowSnackbar("출석 세션을 종료했습니다.")
+            } catch (e: Exception) {
+                _userEvent.value = UserEvent.Error("세션 종료 중 오류가 발생했습니다: ${e.message}")
+            }
+        }
+    }
+
+
 }
 
 // [추가] ViewModel에 Application을 주입하기 위한 Factory 클래스

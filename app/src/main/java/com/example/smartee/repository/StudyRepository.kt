@@ -513,8 +513,14 @@ class StudyRepository(
         return db.runTransaction { transaction ->
             val memberDoc = transaction.get(memberRef)
 
-            // 1. 세부 모임의 출석부에 출석 기록
-            transaction.set(attendanceRef, mapOf("isPresent" to true), SetOptions.merge())
+            // 1. 세부 모임의 출석부에 출석 기록 (수정된 부분)
+            val attendanceData = mapOf(
+                "isPresent" to true,
+                "name" to userName,      // 이름 추가
+                "studyName" to studyName // 스터디 이름 추가
+                // 필요에 따라 다른 필드도 추가 가능
+            )
+            transaction.set(attendanceRef, attendanceData, SetOptions.merge())
 
             // 2. 스터디 전체의 누적 출석 횟수 처리
             if (memberDoc.exists()) {
@@ -576,5 +582,9 @@ class StudyRepository(
             transaction.update(userRef, "joinedStudyIds", FieldValue.arrayRemove(studyId))
             null
         }
+    }
+
+    fun deleteAttendanceSession(meetingId: String): Task<Void> {
+        return attendanceSessionsCollection.document(meetingId).delete()
     }
 }

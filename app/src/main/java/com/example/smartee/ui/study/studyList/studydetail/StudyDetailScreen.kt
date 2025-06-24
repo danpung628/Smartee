@@ -229,7 +229,8 @@ fun StudyDetailScreen(
             generatedCode = generatedCode,
             attendees = participantStatusList,
             onDismissRequest = { meetingForHostAttendance = null },
-            onMarkSelfAsPresent = { viewModel.markHostAsPresent(meeting.meetingId) }
+            onMarkSelfAsPresent = { viewModel.markHostAsPresent(meeting.meetingId) },
+            viewModel = viewModel
         )
     }
 
@@ -480,7 +481,8 @@ private fun AttendanceHostDialog(
     generatedCode: Int?,
     attendees: List<ParticipantStatus>,
     onDismissRequest: () -> Unit,
-    onMarkSelfAsPresent: () -> Unit
+    onMarkSelfAsPresent: () -> Unit,
+    viewModel: StudyDetailViewModel
 ) {
     val context = LocalContext.current
     val currentUserId = UserRepository.getCurrentUserId()
@@ -534,8 +536,29 @@ private fun AttendanceHostDialog(
                     }
                 }
                 Spacer(modifier = Modifier.height(24.dp))
-                OutlinedButton(onClick = onDismissRequest, modifier = Modifier.fillMaxWidth()) {
-                    Text("닫기")
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    OutlinedButton(
+                        onClick = onDismissRequest,
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Text("닫기")
+                    }
+                    // [추가] 세션 종료 버튼
+                    Button(
+                        onClick = {
+                            viewModel.stopAttendanceSession(meeting.meetingId)
+                            onDismissRequest() // 다이얼로그 닫기
+                        },
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.error
+                        ),
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Text("세션 종료")
+                    }
                 }
             }
         }
