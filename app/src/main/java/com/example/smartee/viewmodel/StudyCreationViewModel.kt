@@ -84,7 +84,6 @@ class StudyCreationViewModel : ViewModel() {
         addStudyToFirebase(newStudy, onSuccess, onFailure)
     }
 
-    // [수정] addStudyToFirebase 함수도 콜백을 받도록 수정합니다.
     private fun addStudyToFirebase(study: StudyData, onSuccess: (String) -> Unit, onFailure: (String) -> Unit) {
         viewModelScope.launch {
             try {
@@ -108,8 +107,23 @@ class StudyCreationViewModel : ViewModel() {
                         newBadgeEarned = true
                     }
 
+                    // 1. 스터디 문서 생성
                     transaction.set(newStudyRef, study.copy(studyId = newStudyRef.id))
 
+                    // ========================= [추가된 코드] =========================
+                    // 2. 'members' 하위 컬렉션에 생성자의 초기 출석 데이터 문서를 생성합니다.
+                    val initialMemberData = mapOf(
+                        "studyName" to study.title,
+                        "present" to false,
+                        "currentCount" to 0L, // Long 타입 사용
+                        "totalCount" to 0L,
+                        "absentCount" to 0L
+                    )
+                    val memberRef = newStudyRef.collection("members").document(currentUser.uid)
+                    transaction.set(memberRef, initialMemberData)
+                    // ===============================================================
+
+                    // 3. 사용자 정보 업데이트
                     val userUpdateData = mutableMapOf<String, Any>(
                         "createdStudyIds" to com.google.firebase.firestore.FieldValue.arrayUnion(newStudyRef.id),
                         "createdStudiesCount" to newCreatedCount
@@ -122,17 +136,16 @@ class StudyCreationViewModel : ViewModel() {
                     null
                 }.await()
 
-                Log.d("StudyDebug", "스터디 저장 및 뱃지 처리 성공: ${newStudyRef.id}")
+                Log.d("StudyDebug", "스터디 저장 및 멤버 초기화, 뱃지 처리 성공: ${newStudyRef.id}")
                 clearForm()
-                onSuccess(study.title) // [수정] 성공 콜백 호출
+                onSuccess(study.title)
 
             } catch (e: Exception) {
                 Log.e("StudyDebug", "스터디 저장 실패", e)
-                onFailure("저장 실패: ${e.message}") // [수정] 실패 콜백 호출
+                onFailure("저장 실패: ${e.message}")
             }
         }
     }
-
     // ... (clearForm, toggleCategory 함수는 기존과 동일)
     private fun clearForm() {
         title = ""

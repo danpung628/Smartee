@@ -7,6 +7,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.smartee.model.Meeting
 import com.example.smartee.repository.StudyRepository
+import com.example.smartee.repository.UserRepository
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.launch
@@ -60,7 +61,13 @@ class MeetingEditViewModel : ViewModel() {
             return
         }
 
-        val meetingMap = mapOf(
+        val currentUserId = UserRepository.getCurrentUserId()
+        if (currentUserId == null) {
+            viewModelScope.launch { _uiEvent.emit(UiEvent.ShowSnackbar("사용자 정보를 가져올 수 없습니다. 다시 로그인해주세요.")) }
+            return
+        }
+
+        val meetingMap = mutableMapOf<String, Any>(
             "parentStudyId" to parentStudyId,
             "title" to title,
             "date" to date!!.format(DateTimeFormatter.ISO_LOCAL_DATE),
@@ -76,11 +83,13 @@ class MeetingEditViewModel : ViewModel() {
         viewModelScope.launch {
             try {
                 if (currentMeetingId == null) {
-                    // 생성 모드
+                    // [추가] 생성 모드일 때만, 생성자를 첫 참여자로 추가합니다.
+                    meetingMap["confirmedParticipants"] = listOf(currentUserId)
+
                     studyRepository.createMeeting(meetingMap, parentStudyId).await()
                     _uiEvent.emit(UiEvent.ShowSnackbar("모임 생성 완료!"))
                 } else {
-                    // 수정 모드 [수정]
+                    // 수정 모드
                     studyRepository.updateMeeting(currentMeetingId, meetingMap).await()
                     _uiEvent.emit(UiEvent.ShowSnackbar("모임 수정 완료!"))
                 }

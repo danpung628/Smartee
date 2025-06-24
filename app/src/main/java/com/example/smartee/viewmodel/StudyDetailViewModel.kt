@@ -1,8 +1,14 @@
 package com.example.smartee.viewmodel
 
-import android.util.Log
+import android.app.Application
+import android.bluetooth.BluetoothDevice
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
+import com.example.smartee.bluetooth.AttendanceResult
+import com.example.smartee.bluetooth.BluetoothClientService
+import com.example.smartee.model.*
 import com.example.smartee.model.JoinRequest
 import com.example.smartee.model.Meeting
 import com.example.smartee.model.MeetingJoinRequest
@@ -11,20 +17,22 @@ import com.example.smartee.model.UserData
 import com.example.smartee.repository.StudyRepository
 import com.example.smartee.repository.UserRepository
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.ListenerRegistration
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
-import java.time.LocalDateTime
-import java.time.format.DateTimeFormatter
-import java.time.temporal.ChronoUnit
 
 enum class UserRole {
     GUEST, PARTICIPANT, OWNER
 }
 
-class StudyDetailViewModel : ViewModel() {
+// [수정] ViewModel을 AndroidViewModel로 변경하여 Application Context에 접근 가능하게 합니다.
+class StudyDetailViewModel(application: Application) : AndroidViewModel(application) {
     private val studyRepository = StudyRepository()
     private val userRepository = UserRepository(FirebaseFirestore.getInstance())
 
@@ -44,16 +52,44 @@ class StudyDetailViewModel : ViewModel() {
     private val _isLoading = MutableStateFlow(true)
     val isLoading = _isLoading.asStateFlow()
 
-    private val _timeUntilNextMeeting = MutableStateFlow("")
-    val timeUntilNextMeeting = _timeUntilNextMeeting.asStateFlow()
-
-    private var isTimerRunning = false
-
     private val _userEvent = MutableStateFlow<UserEvent?>(null)
     val userEvent = _userEvent.asStateFlow()
 
-    private val _pendingRequestCounts = MutableStateFlow<Map<String, Int>>(emptyMap())
-    val pendingRequestCounts = _pendingRequestCounts.asStateFlow()
+
+    private val _activeMeetingSessions = MutableStateFlow<Map<String, Boolean>>(emptyMap())
+    val activeMeetingSessions = _activeMeetingSessions.asStateFlow()
+    private var sessionCheckJob: Job? = null
+
+    private val _participantStatusList = MutableStateFlow<List<ParticipantStatus>>(emptyList())
+    val participantStatusList = _participantStatusList.asStateFlow()
+    private var participantListener: ListenerRegistration? = null
+
+    private val _generatedAttendanceCode = MutableStateFlow<Int?>(null)
+    val generatedAttendanceCode = _generatedAttendanceCode.asStateFlow()
+
+    private val _pendingRequestCount = MutableStateFlow(0)
+    val pendingRequestCount = _pendingRequestCount.asStateFlow()
+    
+    private val _isConnectingBluetooth = MutableStateFlow(false)
+
+    val isConnectingBluetooth = _isConnectingBluetooth.asStateFlow()
+    private val bluetoothClientService = BluetoothClientService(application)
+
+    val isScanning = bluetoothClientService.isScanning
+    val discoveredDevices = bluetoothClientService.discoveredDevices
+
+    fun loadPendingRequestCount() {
+        val ownerId = UserRepository.getCurrentUserId() ?: return
+        viewModelScope.launch {
+            if (_userRole.value == UserRole.OWNER) {
+                _pendingRequestCount.value = studyRepository.getPendingRequestCountForOwner(ownerId)
+            }
+        }
+    }
+
+   // private val _pendingRequestCounts = MutableStateFlow<Map<String, Int>>(emptyMap())
+   // val pendingRequestCounts = _pendingRequestCounts.asStateFlow()
+
 
     fun loadStudy(studyId: String) {
         viewModelScope.launch {
@@ -74,12 +110,14 @@ class StudyDetailViewModel : ViewModel() {
                     if (role == UserRole.OWNER || role == UserRole.PARTICIPANT) {
                         val fetchedMeetings = studyRepository.getMeetingsForStudy(studyId)
                         _meetings.value = fetchedMeetings
-                        findNextMeetingAndStartTimer(fetchedMeetings, currentUserId)
+                        startSessionStatusChecker(fetchedMeetings)
 
-                        if (role == UserRole.OWNER) {
-                            val pendingRequests = studyRepository.getPendingMeetingRequestsForStudy(studyId)
-                            _pendingRequestCounts.value = pendingRequests.groupingBy { it.meetingId }.eachCount()
-                        }
+//                         findNextMeetingAndStartTimer(fetchedMeetings, currentUserId)
+//                         if (role == UserRole.OWNER) {
+//                             val pendingRequests = studyRepository.getPendingMeetingRequestsForStudy(studyId)                   //기존 main인데 머지를 위해 보류
+//                             _pendingRequestCounts.value = pendingRequests.groupingBy { it.meetingId }.eachCount()
+//                         }
+
                     }
                 }
             } finally {
@@ -87,7 +125,6 @@ class StudyDetailViewModel : ViewModel() {
             }
         }
     }
-
     // [추가] 좋아요 기능을 StudyDetailViewModel로 이전
     fun toggleLike(userId: String) {
         val currentStudy = _studyData.value ?: return
@@ -110,8 +147,7 @@ class StudyDetailViewModel : ViewModel() {
             likedByUsers = newLikedByUsers,
             likeCount = newLikeCount
         )
-
-        // 2. Firestore에 백그라운드 업데이트
+         // 2. Firestore에 백그라운드 업데이트
         viewModelScope.launch {
             try {
                 studyCollectionRef.document(currentStudy.studyId)
@@ -127,20 +163,91 @@ class StudyDetailViewModel : ViewModel() {
         }
     }
 
-    fun requestToJoinMeeting(meeting: Meeting) {
+    fun startAttendanceSession(meetingId: String) {
+        viewModelScope.launch {
+            val randomCode = (1000..9999).random()
+            try {
+                studyRepository.createAttendanceSession(meetingId, randomCode).await()
+                _generatedAttendanceCode.value = randomCode
+                startSessionStatusChecker(meetings.value)
+            } catch (e: Exception) {
+                _userEvent.value = UserEvent.Error("출석 세션 시작에 실패했습니다.")
+            }
+        }
+    }
+
+    fun markHostAsPresent(meetingId: String) {
+
         val currentUserId = UserRepository.getCurrentUserId() ?: return
         val study = _studyData.value ?: return
-
         viewModelScope.launch {
             try {
-                val userSnapshot = userRepository.getUserProfile(currentUserId).await()
-                val user = userSnapshot.toObject(UserData::class.java) ?: return@launch
+                studyRepository.markAttendance(
+                    meetingId = meetingId,
+                    userId = currentUserId,
+                    parentStudyId = study.studyId,
+                    userName = study.ownerNickname,
+                    studyName = study.title
+                ).await()
 
+                _meetings.value.find { it.meetingId == meetingId }?.let {
+                    listenForParticipantStatus(it)
+                }
+            } catch (e: Exception) {
+                _userEvent.value = UserEvent.Error("본인 출석 처리에 실패했습니다.")
+            }
+        }
+    }
+    fun startDeviceScan() {
+        bluetoothClientService.startScan()
+    }
+
+    fun stopDeviceScan() {
+        bluetoothClientService.stopScan()
+    }
+    // [추가] 블루투스 출석을 처리하는 함수
+    fun performBluetoothAttendance(device: BluetoothDevice, meeting: Meeting) {
+        val currentUserId = UserRepository.getCurrentUserId() ?: return
+        viewModelScope.launch {
+            _isConnectingBluetooth.value = true
+            try {
+                val result = bluetoothClientService.sendAttendance(
+                    device = device,
+                    studyId = meeting.parentStudyId,
+                    meetingId = meeting.meetingId,
+                    userId = currentUserId
+                )
+
+                when (result) {
+                    is AttendanceResult.Success -> {
+                        _userEvent.value = UserEvent.ShowSnackbar("출석 정보 전송 성공! 잠시 후 반영됩니다.")
+                    }
+                    is AttendanceResult.Failure -> {
+                        _userEvent.value = UserEvent.Error(result.reason)
+                    }
+                }
+            } catch(e: Exception) {
+                _userEvent.value = UserEvent.Error("블루투스 출석 중 알 수 없는 오류 발생: ${e.message}")
+            } finally {
+                _isConnectingBluetooth.value = false
+            }
+        }
+    }
+
+    fun requestToJoinMeeting(meeting: Meeting) {
+        val currentUserId = UserRepository.getCurrentUserId() ?: return
+        viewModelScope.launch {
+            try {
+                val user = userRepository.getUserProfile(currentUserId).await().toObject(UserData::class.java)
+                if (user == null) {
+                    _userEvent.value = UserEvent.Error("사용자 정보를 찾을 수 없습니다.")
+                    return@launch
+                }
                 val request = MeetingJoinRequest(
                     meetingId = meeting.meetingId,
                     meetingTitle = meeting.title,
                     studyId = meeting.parentStudyId,
-                    studyOwnerId = study.ownerId,
+                    studyOwnerId = _studyData.value?.ownerId ?: "",
                     requesterId = currentUserId,
                     requesterNickname = user.nickname
                 )
@@ -152,66 +259,6 @@ class StudyDetailViewModel : ViewModel() {
         }
     }
 
-
-    private fun findNextMeetingAndStartTimer(meetings: List<Meeting>, currentUserId: String) {
-        if (isTimerRunning) return
-
-        val now = LocalDateTime.now()
-        val joinedMeetings = meetings.filter { it.confirmedParticipants.contains(currentUserId) }
-
-        if (joinedMeetings.isEmpty()) {
-            _timeUntilNextMeeting.value = "출석할 모임이 없습니다"
-            return
-        }
-
-        val nextMeetingTime = joinedMeetings.mapNotNull {
-            try {
-                val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")
-                val meetingTimeStr = "${it.date} ${it.time.substringBefore('~')}"
-                LocalDateTime.parse(meetingTimeStr, formatter)
-            } catch (e: Exception) { null }
-        }.filter { it.isAfter(now) }.minOrNull()
-
-        if (nextMeetingTime != null) {
-            startCountdownTimer(nextMeetingTime)
-        } else {
-            _timeUntilNextMeeting.value = "참여한 모임이 모두 종료되었습니다"
-        }
-    }
-
-    private fun startCountdownTimer(meetingTime: LocalDateTime) {
-        isTimerRunning = true
-        viewModelScope.launch {
-            while (true) {
-                val now = LocalDateTime.now()
-                val totalSeconds = ChronoUnit.SECONDS.between(now, meetingTime)
-
-                if (totalSeconds <= 0) {
-                    _timeUntilNextMeeting.value = "출석 가능"
-                    break
-                }
-
-                if (totalSeconds < 60) {
-                    _timeUntilNextMeeting.value = "잠시후 스터디 출석이 시작됩니다."
-                    delay(1000)
-                    continue
-                }
-
-                val days = totalSeconds / (24 * 3600)
-                val hours = (totalSeconds % (24 * 3600)) / 3600
-                val minutes = (totalSeconds % 3600) / 60
-
-                val builder = StringBuilder()
-                if (days > 0) builder.append("${days}일 ")
-                if (hours > 0) builder.append("${hours}시간 ")
-                builder.append("${minutes}분 후 시작")
-
-                _timeUntilNextMeeting.value = builder.toString()
-                delay(1000)
-            }
-        }
-    }
-
     fun deleteMeeting(meeting: Meeting) {
         viewModelScope.launch {
             studyRepository.deleteMeeting(meeting).addOnSuccessListener {
@@ -219,17 +266,7 @@ class StudyDetailViewModel : ViewModel() {
             }
         }
     }
-    fun joinMeeting(meeting: Meeting) {
-        val currentUserId = UserRepository.getCurrentUserId() ?: return
-        viewModelScope.launch {
-            try {
-                studyRepository.addCurrentUserToMeeting(meeting.meetingId, currentUserId).await()
-                loadStudy(meeting.parentStudyId)
-            } catch (e: Exception) {
-                _userEvent.value = UserEvent.Error("모임 가입 중 오류가 발생했습니다.")
-            }
-        }
-    }
+
     fun requestToJoinStudy() {
         if (_isLoading.value) return
         val study = _studyData.value ?: return
@@ -242,39 +279,108 @@ class StudyDetailViewModel : ViewModel() {
                     _userEvent.value = UserEvent.AlreadyRequested
                     return@launch
                 }
-                val userSnapshot = userRepository.getUserProfile(currentUserId).await()
-                val user = userSnapshot.toObject(UserData::class.java) ?: return@launch
-                if (user.ink >= study.minInkLevel && user.pen >= study.penCount) {
-                    val request = JoinRequest(
-                        studyId = study.studyId,
-                        studyTitle = study.title,
-                        requesterId = user.uid,
-                        requesterNickname = user.nickname,
-                        ownerId = study.ownerId
-                    )
-                    userRepository.updatePenCount(user.uid, user.pen - study.penCount)
-                    studyRepository.createJoinRequest(request).await()
-                    _userEvent.value = UserEvent.RequestSentSuccessfully
-                } else {
-                    _userEvent.value = UserEvent.JoinConditionsNotMet
+                val user = userRepository.getUserProfile(currentUserId).await().toObject(UserData::class.java)
+                if (user == null) {
+                    _userEvent.value = UserEvent.Error("사용자 정보를 찾을 수 없습니다.")
+                    return@launch
                 }
+                if (user.ink < study.minInkLevel) {
+                    _userEvent.value = UserEvent.Error("참여에 필요한 잉크(${study.minInkLevel})가 부족합니다.")
+                    return@launch
+                }
+                if (user.pen < study.penCount) {
+                    _userEvent.value = UserEvent.Error("참여에 필요한 만년필(${study.penCount}개)이 부족합니다.")
+                    return@launch
+                }
+                val request = JoinRequest(
+                    studyId = study.studyId,
+                    studyTitle = study.title,
+                    requesterId = user.uid,
+                    requesterNickname = user.nickname,
+                    ownerId = study.ownerId,
+                    timestamp = com.google.firebase.Timestamp.now()
+                )
+                studyRepository.createJoinRequest(request).await()
+                _userEvent.value = UserEvent.RequestSentSuccessfully
             } catch (e: Exception) {
-                _userEvent.value = UserEvent.Error("가입 신청 중 오류가 발생했습니다.")
+                _userEvent.value = UserEvent.Error("가입 신청 중 오류가 발생했습니다: ${e.message}")
             } finally {
                 _isLoading.value = false
             }
         }
     }
+
     fun reportStudy(studyId: String) {
-        Log.d("StudyDetailViewModel", "Reporting study: $studyId")
+        // 신고 로직
     }
+
     fun eventConsumed() {
         _userEvent.value = null
     }
+
+    private fun startSessionStatusChecker(meetings: List<Meeting>) {
+        sessionCheckJob?.cancel()
+        sessionCheckJob = viewModelScope.launch {
+            while (true) {
+                try {
+                    val statusMap = meetings.map { meeting ->
+                        async { meeting.meetingId to studyRepository.getActiveAttendanceSession(meeting.meetingId) }
+                    }.awaitAll().toMap()
+                    _activeMeetingSessions.value = statusMap
+                } catch (e: Exception) { /* 오류 처리 */ }
+                delay(15000)
+            }
+        }
+    }
+
+    fun withdrawFromMeeting(meetingId: String) {
+        val currentUserId = UserRepository.getCurrentUserId() ?: return
+        viewModelScope.launch {
+            try {
+                studyRepository.withdrawFromMeeting(meetingId, currentUserId).await()
+                _studyData.value?.let { loadStudy(it.studyId) }
+                _userEvent.value = UserEvent.WithdrawSuccessful
+            } catch (e: Exception) {
+                _userEvent.value = UserEvent.Error("참여 취소 중 오류가 발생했습니다.")
+            }
+        }
+    }
+
+    fun listenForParticipantStatus(meeting: Meeting) {
+        participantListener?.remove()
+        participantListener = studyRepository.listenForMeetingAttendance(meeting) { statuses ->
+            _participantStatusList.value = statuses
+        }
+    }
+
+    fun stopListeningForParticipantStatus() {
+        participantListener?.remove()
+    }
+
+    override fun onCleared() {
+        super.onCleared()
+        sessionCheckJob?.cancel()
+        stopListeningForParticipantStatus()
+        stopDeviceScan() // [추가] ViewModel 소멸 시 검색 중지
+    }
+
     sealed class UserEvent {
         object RequestSentSuccessfully : UserEvent()
         object JoinConditionsNotMet : UserEvent()
         object AlreadyRequested : UserEvent()
         data class Error(val message: String) : UserEvent()
+        object WithdrawSuccessful : UserEvent()
+        data class ShowSnackbar(val message: String): UserEvent()
+    }
+}
+
+// [추가] ViewModel에 Application을 주입하기 위한 Factory 클래스
+class StudyDetailViewModelFactory(private val application: Application) : ViewModelProvider.Factory {
+    override fun <T : ViewModel> create(modelClass: Class<T>): T {
+        if (modelClass.isAssignableFrom(StudyDetailViewModel::class.java)) {
+            @Suppress("UNCHECKED_CAST")
+            return StudyDetailViewModel(application) as T
+        }
+        throw IllegalArgumentException("Unknown ViewModel class")
     }
 }

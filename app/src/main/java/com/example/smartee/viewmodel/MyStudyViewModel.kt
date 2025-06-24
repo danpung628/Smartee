@@ -38,7 +38,15 @@ class MyStudyViewModel : ViewModel() {
 
     private val _meetingsForStudy = MutableStateFlow<List<Meeting>>(emptyList())
     val meetingsForStudy: StateFlow<List<Meeting>> = _meetingsForStudy
+    private val _pendingRequestCount = MutableStateFlow(0)
+    val pendingRequestCount: StateFlow<Int> = _pendingRequestCount
 
+    fun loadPendingRequestCount() {
+        val ownerId = UserRepository.getCurrentUserId() ?: return
+        viewModelScope.launch {
+            _pendingRequestCount.value = studyRepository.getPendingRequestCountForOwner(ownerId)
+        }
+    }
     fun loadMyStudies() {
         val currentUserId = UserRepository.getCurrentUserId() ?: return
 

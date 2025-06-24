@@ -19,6 +19,11 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.tasks.await
+import kotlin.jvm.java
+import com.example.smartee.model.UserData
+import com.google.firebase.firestore.ListenerRegistration
+import com.google.firebase.firestore.SetOptions
+
 
 class StudyRepository(
     private val firestore: FirebaseFirestore = FirebaseFirestore.getInstance()
@@ -30,37 +35,63 @@ class StudyRepository(
     private val attendanceSessionsCollection = firestore.collection("attendanceSessions")
     private val meetingJoinRequestsCollection = firestore.collection("meetingJoinRequests")
 
-    suspend fun getMeetingAttendanceStatus(meeting: Meeting): List<ParticipantStatus> {
+    fun listenForMeetingAttendance(
+        meeting: Meeting,
+        onUpdate: (List<ParticipantStatus>) -> Unit
+    ): ListenerRegistration {
         val participantIds = meeting.confirmedParticipants
-        if (participantIds.isEmpty()) return emptyList()
+        if (participantIds.isEmpty()) {
+            onUpdate(emptyList())
+            // 빈 리스트를 반환할 때도 유효한 리스너 객체를 반환해야 합니다.
+            return object : ListenerRegistration {
+                override fun remove() {}
+            }
+        }
 
-        return try {
-            coroutineScope {
-                val userProfileJobs = participantIds.map { userId ->
-                    async { usersCollection.document(userId).get().await() }
+        val attendanceCollectionRef =
+            meetingsCollection.document(meeting.meetingId).collection("attendance")
+
+        // 참여자들의 프로필 정보를 효율적으로 관리하기 위한 리스너
+        return usersCollection.whereIn(FieldPath.documentId(), participantIds)
+            .addSnapshotListener { userProfilesSnapshot, userError ->
+                if (userError != null || userProfilesSnapshot == null) {
+                    onUpdate(emptyList())
+                    return@addSnapshotListener
                 }
-                val userProfiles = userProfileJobs.awaitAll()
 
-                val attendanceJobs = participantIds.map { userId ->
-                    async { meetingsCollection.document(meeting.meetingId).collection("attendance").document(userId).get().await() }
-                }
-                val attendanceSnaps = attendanceJobs.awaitAll()
-
-                participantIds.mapIndexed { index, userId ->
-                    val userProfile = userProfiles[index]
-                    val attendanceSnap = attendanceSnaps[index]
-                    ParticipantStatus(
-                        userId = userId,
-                        name = userProfile.getString("nickname") ?: "알 수 없음",
-                        thumbnailUrl = userProfile.getString("profileImageUrl") ?: "",
-                        isPresent = attendanceSnap.exists() && attendanceSnap.getBoolean("isPresent") == true
+                val userMap = userProfilesSnapshot.documents.associate { doc ->
+                    doc.id to Pair(
+                        doc.getString("nickname") ?: "알 수 없음",
+                        doc.getString("thumbnailUrl") ?: ""
                     )
                 }
+
+                // 출석 정보 리스너
+                attendanceCollectionRef.addSnapshotListener { attendanceSnapshot, attendanceError ->
+                    if (attendanceError != null) {
+                        onUpdate(emptyList())
+                        return@addSnapshotListener
+                    }
+
+                    val attendanceMap = attendanceSnapshot?.documents?.associate { doc ->
+                        doc.id to (doc.getBoolean("isPresent") == true)
+                    } ?: emptyMap()
+
+                    val statuses = participantIds.map { userId ->
+                        val (name, thumbnailUrl) = userMap[userId] ?: Pair("알 수 없음", "")
+                        ParticipantStatus(
+                            userId = userId,
+                            name = name,
+                            thumbnailUrl = thumbnailUrl, // [수정] thumbnailUrl 추가
+                            isPresent = attendanceMap[userId] ?: false
+                        )
+                    }
+                    onUpdate(statuses)
+                }
             }
-        } catch (e: Exception) {
-            emptyList()
-        }
     }
+
+
     fun incrementTotalCountForStudy(studyId: String): Task<Void> {
         val db = FirebaseFirestore.getInstance()
         val membersRef = db.collection("studies").document(studyId).collection("members")
@@ -109,7 +140,11 @@ class StudyRepository(
         val requestRef = meetingJoinRequestsCollection.document(request.requestId)
         batch.update(requestRef, "status", "approved")
         val meetingRef = meetingsCollection.document(request.meetingId)
-        batch.update(meetingRef, "confirmedParticipants", FieldValue.arrayUnion(request.requesterId))
+        batch.update(
+            meetingRef,
+            "confirmedParticipants",
+            FieldValue.arrayUnion(request.requesterId)
+        )
         return batch.commit()
     }
 
@@ -127,7 +162,8 @@ class StudyRepository(
     }
 
     fun markUserAsPresent(meetingId: String, userId: String): Task<Void> {
-        val attendanceRef = meetingsCollection.document(meetingId).collection("attendance").document(userId)
+        val attendanceRef =
+            meetingsCollection.document(meetingId).collection("attendance").document(userId)
         return attendanceRef.set(mapOf("isPresent" to true))
     }
 
@@ -155,10 +191,13 @@ class StudyRepository(
             emptyList()
         }
     }
-    fun createAttendanceSession(studyId: String, code: Int): Task<Void> {
+
+    fun createAttendanceSession(meetingId: String, code: Int): Task<Void> {
         val sessionData = mapOf("code" to code, "startedAt" to System.currentTimeMillis())
-        return attendanceSessionsCollection.document(studyId).set(sessionData)
+        // 문서 ID로 meetingId를 사용
+        return attendanceSessionsCollection.document(meetingId).set(sessionData)
     }
+
     fun createMeeting(meetingData: Map<String, Any>, parentStudyId: String): Task<Void> {
         val batch = firestore.batch()
         val newMeetingRef = meetingsCollection.document()
@@ -172,6 +211,7 @@ class StudyRepository(
         batch.update(parentStudyRef, "meetingSummaries", FieldValue.arrayUnion(meetingSummary))
         return batch.commit()
     }
+
     suspend fun getMeetingById(meetingId: String): Meeting? {
         return try {
             meetingsCollection.document(meetingId).get().await().toObject(Meeting::class.java)
@@ -179,6 +219,7 @@ class StudyRepository(
             null
         }
     }
+
     suspend fun updateMeeting(meetingId: String, meetingData: Map<String, Any>): Task<Void> {
         val meetingRef = meetingsCollection.document(meetingId)
         val batch = firestore.batch()
@@ -211,6 +252,7 @@ class StudyRepository(
 
         return batch.commit()
     }
+
     fun deleteMeeting(meeting: Meeting): Task<Void> {
         val batch = firestore.batch()
         val meetingRef = meetingsCollection.document(meeting.meetingId)
@@ -224,6 +266,7 @@ class StudyRepository(
         batch.update(parentStudyRef, "meetingSummaries", FieldValue.arrayRemove(meetingSummary))
         return batch.commit()
     }
+
     suspend fun getMeetingsForStudy(studyId: String): List<Meeting> {
         return try {
             val snapshot = meetingsCollection
@@ -236,6 +279,7 @@ class StudyRepository(
             emptyList()
         }
     }
+
     suspend fun getPendingRequestsForStudy(studyId: String): List<JoinRequest> {
         return try {
             val snapshot = joinRequestsCollection
@@ -248,61 +292,77 @@ class StudyRepository(
             emptyList()
         }
     }
-    fun approveJoinRequest(request: JoinRequest): Task<Void> {
+
+
+    suspend fun approveJoinRequest(request: JoinRequest): Task<Void> {
+
         val studyRef = studiesCollection.document(request.studyId)
         val userRef = usersCollection.document(request.requesterId)
         val requestRef = joinRequestsCollection.document(request.requestId)
 
-        // runTransaction을 사용하여 여러 데이터 읽기/쓰기를 원자적으로 처리
+        // [추가] 가입 승인 시, 멤버의 출석 기록용 문서를 생성하기 위한 참조
+        val memberRef = studyRef.collection("members").document(request.requesterId)
+
         return firestore.runTransaction { transaction ->
-            // 1. 스터디 정보와 사용자 정보를 트랜잭션 안에서 읽기
             val studySnapshot = transaction.get(studyRef)
             val userSnapshot = transaction.get(userRef)
 
             val studyData = studySnapshot.toObject(StudyData::class.java)
                 ?: throw Exception("스터디 정보를 찾을 수 없습니다.")
-            val userData = userSnapshot.toObject(UserData::class.java) // UserData 모델이 있다고 가정
+            val userData = userSnapshot.toObject(UserData::class.java)
                 ?: throw Exception("사용자 정보를 찾을 수 없습니다.")
 
-            // 2. 가입 조건 및 재화 확인
-            // 2-1. 잉크 레벨 조건 확인
             if (userData.ink < studyData.minInkLevel) {
                 throw Exception("가입에 필요한 최소 잉크 레벨(${studyData.minInkLevel})을 만족하지 못했습니다.")
             }
-            // 2-2. 만년필(비용) 확인
             if (userData.pen < studyData.penCount) {
                 throw Exception("가입에 필요한 만년필(${studyData.penCount}개)이 부족합니다.")
             }
 
-            // 3. 재화 차감 및 데이터 업데이트
             val newPenCount = userData.pen - studyData.penCount
 
-            // 3-1. 사용자 재화(만년필) 차감 및 참여 스터디 목록 추가
+            // 사용자 재화 차감 및 참여 스터디 목록 추가
             transaction.update(userRef, "pen", newPenCount)
             transaction.update(userRef, "joinedStudyIds", FieldValue.arrayUnion(request.studyId))
 
-            // 3-2. 스터디 참여자 목록에 추가
-            transaction.update(studyRef, "participantIds", FieldValue.arrayUnion(request.requesterId))
+            // 스터디 참여자 목록에 추가
+            transaction.update(
+                studyRef,
+                "participantIds",
+                FieldValue.arrayUnion(request.requesterId)
+            )
 
-            // 3-3. 가입 요청 상태 변경
+            // [추가] 멤버의 누적 출석 기록용 문서 생성
+            val initialMemberData = mapOf(
+                "name" to request.requesterNickname,
+                "studyName" to request.studyTitle,
+                "currentCount" to 0L,
+                "totalCount" to 0L,
+                "absentCount" to 0L,
+                "present" to false
+            )
+            transaction.set(memberRef, initialMemberData)
+
+            // 가입 요청 상태 변경
             transaction.update(requestRef, "status", "approved")
 
-            // 트랜잭션 성공 시 null 반환
             null
         }.continueWithTask { task ->
             if (task.isSuccessful) {
-                // Firestore 트랜잭션이 성공적으로 완료되었을 때의 Task 반환
                 com.google.android.gms.tasks.Tasks.forResult(null)
             } else {
-                // 실패 시 예외를 포함하는 Task 반환
-                com.google.android.gms.tasks.Tasks.forException(task.exception ?: Exception("알 수 없는 트랜잭션 오류"))
+                com.google.android.gms.tasks.Tasks.forException(
+                    task.exception ?: Exception("알 수 없는 트랜잭션 오류")
+                )
             }
         }
     }
+
     fun rejectJoinRequest(requestId: String): Task<Void> {
         val requestRef = joinRequestsCollection.document(requestId)
         return requestRef.update("status", "rejected")
     }
+
     suspend fun getStudyById(studyId: String): StudyData? {
         return try {
             Log.d("StudyRepository", "스터디 조회 시작: $studyId")
@@ -333,19 +393,32 @@ class StudyRepository(
             throw e
         }
     }
+
     suspend fun getAllStudies(): List<StudyData> {
         return try {
             val snapshot = studiesCollection.get().await()
-            snapshot.documents.mapNotNull { it.toObject(StudyData::class.java)?.copy(studyId = it.id) }
-        } catch (e: Exception) { emptyList() }
+            snapshot.documents.mapNotNull {
+                it.toObject(StudyData::class.java)?.copy(studyId = it.id)
+            }
+        } catch (e: Exception) {
+            emptyList()
+        }
     }
+
     suspend fun getStudiesByIds(studyIds: List<String>): List<StudyData> {
-        if (studyIds.isEmpty()) { return emptyList() }
+        if (studyIds.isEmpty()) {
+            return emptyList()
+        }
         return try {
             val snapshot = studiesCollection.whereIn(FieldPath.documentId(), studyIds).get().await()
-            snapshot.documents.mapNotNull { it.toObject(StudyData::class.java)?.copy(studyId = it.id) }
-        } catch (e: Exception) { emptyList() }
+            snapshot.documents.mapNotNull {
+                it.toObject(StudyData::class.java)?.copy(studyId = it.id)
+            }
+        } catch (e: Exception) {
+            emptyList()
+        }
     }
+
     suspend fun checkIfRequestExists(userId: String, studyId: String): Boolean {
         return try {
             val snapshot = joinRequestsCollection
@@ -356,12 +429,16 @@ class StudyRepository(
                 .get()
                 .await()
             !snapshot.isEmpty
-        } catch (e: Exception) { false }
+        } catch (e: Exception) {
+            false
+        }
     }
+
     fun createJoinRequest(request: JoinRequest): Task<Void> {
         val newRequestRef = joinRequestsCollection.document()
         return newRequestRef.set(request)
     }
+
     suspend fun createStudyWithBadgeCheck(studyData: StudyData, ownerId: String) {
         // 1. 기존 스터디 생성 로직 (예시)
         studiesCollection.add(studyData).await()
@@ -380,7 +457,6 @@ class StudyRepository(
                 } catch (e: ClassCastException) {
                     mutableSetOf<String>()
                 }
-
                 if (newCreatedCount == 1L) {
                     earnedBadges.add("first_study_create") // 예시 뱃지 ID
                 }
@@ -396,4 +472,100 @@ class StudyRepository(
             // 오류 처리
         }
     }
+
+    fun withdrawFromMeeting(meetingId: String, userId: String): Task<Void> {
+        val meetingRef = meetingsCollection.document(meetingId)
+        // confirmedParticipants 배열에서 현재 사용자 ID를 제거
+        return meetingRef.update("confirmedParticipants", FieldValue.arrayRemove(userId))
+    }
+
+    // [수정] studyId 대신 meetingId를 받도록 변경
+    suspend fun getActiveAttendanceSession(meetingId: String): Boolean {
+        val thirtyMinutesAgo = System.currentTimeMillis() - 30 * 60 * 1000
+        return try {
+            // 문서 ID로 meetingId를 사용
+            val sessionDoc = attendanceSessionsCollection.document(meetingId).get().await()
+            if (sessionDoc.exists()) {
+                val startedAt = sessionDoc.getLong("startedAt") ?: 0L
+                startedAt > thirtyMinutesAgo
+            } else {
+                false
+            }
+        } catch (e: Exception) {
+            false
+        }
+    }
+
+    // [수정] 문서를 읽고, 상태에 따라 생성 또는 업데이트를 모두 처리하는 트랜잭션 방식으로 변경
+    fun markAttendance(
+        meetingId: String,
+        userId: String,
+        parentStudyId: String,
+        userName: String,
+        studyName: String
+    ): Task<Void> {
+        val db = FirebaseFirestore.getInstance()
+        val attendanceRef =
+            meetingsCollection.document(meetingId).collection("attendance").document(userId)
+        val memberRef =
+            studiesCollection.document(parentStudyId).collection("members").document(userId)
+
+        return db.runTransaction { transaction ->
+            val memberDoc = transaction.get(memberRef)
+
+            // 1. 세부 모임의 출석부에 출석 기록
+            transaction.set(attendanceRef, mapOf("isPresent" to true), SetOptions.merge())
+
+            // 2. 스터디 전체의 누적 출석 횟수 처리
+            if (memberDoc.exists()) {
+                // 문서가 존재하면, 출석 횟수(currentCount)만 1 증가
+                transaction.update(memberRef, "currentCount", FieldValue.increment(1))
+            } else {
+                // 문서가 없으면, 새로 생성 (안전장치)
+                val initialMemberData = mapOf(
+                    "name" to userName,
+                    "studyName" to studyName,
+                    "currentCount" to 1L,
+                    "totalCount" to 0L, // totalCount는 세션 시작 시점에 오르므로 여기선 0
+                    "absentCount" to 0L,
+                    "present" to true
+                )
+                transaction.set(memberRef, initialMemberData)
+            }
+            null
+        }
+    }
+
+    // smartee/repository/StudyRepository.kt
+
+    // [추가] 관리자 ID로 모든 보류중인 가입 요청을 가져오는 함수
+    suspend fun getRequestsForOwner(ownerId: String): List<JoinRequest> {
+        return try {
+            val snapshot = joinRequestsCollection
+                .whereEqualTo("ownerId", ownerId)
+                .whereEqualTo("status", "pending")
+                .get()
+                .await()
+            snapshot.toObjects(JoinRequest::class.java)
+        } catch (e: Exception) {
+            emptyList()
+        }
+    }
+
+    // [추가] 관리자 ID로 보류중인 가입 요청의 개수만 가져오는 함수 (알림용)
+    suspend fun getPendingRequestCountForOwner(ownerId: String): Int {
+        return try {
+            val snapshot = joinRequestsCollection
+                .whereEqualTo("ownerId", ownerId)
+                .whereEqualTo("status", "pending")
+                .get()
+                .await()
+            snapshot.size()
+        } catch (e: Exception) {
+            0
+        }
+    }
+
+
+
 }

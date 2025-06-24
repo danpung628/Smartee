@@ -1,3 +1,4 @@
+/*
 package com.example.smartee.ui.attendance
 
 import androidx.compose.foundation.layout.*
@@ -120,12 +121,17 @@ fun ParticipantScreen(
 
         // ▼ 블루투스로 출석
         Button(
-            enabled = selectedStudy != null,
+            // [수정] 세부 모임까지 선택해야 버튼이 활성화되도록 변경
+            enabled = selectedStudy != null && selectedMeeting != null,
             onClick = {
                 coroutineScope.launch {
                     val studyId = selectedStudy!!.studyId
+                    // [추가] 선택된 미팅에서 meetingId를 가져옵니다.
+                    val meetingId = selectedMeeting!!.meetingId
                     val userId = UserRepository.getCurrentUserId() ?: return@launch
-                    BluetoothClientService(context).sendAttendance(studyId, userId)
+
+                    // [수정] sendAttendance 함수에 meetingId를 추가하여 전달합니다.
+                    BluetoothClientService(context).sendAttendance(studyId, meetingId, userId)
                     bluetoothResult = "✅ 블루투스 출석 시도 완료"
                 }
             }
@@ -179,3 +185,4 @@ fun ParticipantScreen(
         }
     }
 }
+*/

@@ -80,7 +80,8 @@ dependencies {
     implementation(libs.tensorflow.lite)
     implementation(libs.firebase.functions.ktx)
     implementation(libs.map.sdk)
-    implementation(libs.naver.map.compose) // 새로고침 기능
+    implementation(libs.naver.map.compose)
+    implementation(libs.material3) // 새로고침 기능
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
@@ -109,4 +110,6 @@ dependencies {
 
     implementation("com.naver.maps:map-sdk:3.21.0")
     implementation(libs.naver.map.compose)
+    implementation("androidx.compose.material3:material3:1.2.1")
+
 }

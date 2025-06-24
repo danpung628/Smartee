@@ -16,7 +16,6 @@ import androidx.navigation.navArgument
 import com.example.smartee.ui.Map.NaverMapScreen
 import com.example.smartee.ui.admin.AdminReportScreen
 import com.example.smartee.ui.attendance.AttendanceScreen
-import com.example.smartee.ui.attendance.ParticipantScreen
 import com.example.smartee.ui.badge.BadgeScreen
 import com.example.smartee.ui.login.LoginScreen
 import com.example.smartee.ui.meeting.MeetingEditScreen
@@ -99,9 +98,7 @@ fun SmarteeNavGraph(navController: NavHostController, modifier: Modifier = Modif
             // [수정] StudyDetailScreen에 파라미터 전달
             StudyDetailScreen(
                 studyId = it.arguments!!.getString("ID")!!,
-                navController = navController,
-                randomCode = randomCode.intValue,
-                onCodeGenerated = { newCode -> randomCode.intValue = newCode }
+                navController = navController
             )
         }
         composable(
@@ -124,9 +121,11 @@ fun SmarteeNavGraph(navController: NavHostController, modifier: Modifier = Modif
         // [삭제] HostScreen 경로 삭제
         // composable(Screen.Host.route) { ... }
 
-        composable(Screen.Participant.route) {
-            ParticipantScreen(navController = navController)
-        }
+//        composable(Screen.Participant.route) {
+//            ParticipantScreen(navController = navController)
+//        }
+
+
         composable("my_study") {
             MyStudyScreen(
                 onStudyClick = { studyId ->
@@ -137,11 +136,8 @@ fun SmarteeNavGraph(navController: NavHostController, modifier: Modifier = Modif
         composable("map") {
             NaverMapScreen()
         }
-        composable(
-            route = "request_list/{studyId}",
-            arguments = listOf(navArgument("studyId") { type = NavType.StringType })
-        ) { backStackEntry ->
-            RequestListScreen(studyId = backStackEntry.arguments?.getString("studyId") ?: "")
+        composable(route = "request_list") {
+            RequestListScreen(navController = navController)
         }
         composable(
             route = "meeting_edit/{parentStudyId}?meetingId={meetingId}",

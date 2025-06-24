@@ -1,40 +1,45 @@
+// smartee/ui/attendance/AttendanceScreen.kt
+
 package com.example.smartee.ui.attendance
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.*
-import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
-import androidx.navigation.compose.rememberNavController
-import com.example.smartee.navigation.Screen
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AttendanceScreen(navController: NavController) {
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(24.dp),
-        verticalArrangement = Arrangement.Center,
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Text("역할을 선택하세요", fontSize = MaterialTheme.typography.titleLarge.fontSize)
-        Spacer(modifier = Modifier.height(24.dp))
-
-        Button(onClick = { navController.navigate(Screen.Host.route) }) {
-            Text("관리자 출석")
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text("출석") },
+                navigationIcon = {
+                    IconButton(onClick = { navController.popBackStack() }) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "뒤로가기")
+                    }
+                }
+            )
         }
-        Spacer(modifier = Modifier.height(12.dp))
-        Button(onClick = { navController.navigate(Screen.Participant.route) }) {
-            Text("참여자 출석")
+    ) { padding ->
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+                .padding(16.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                text = "출석 기능은 각 스터디의 '세부 모임' 화면에서 직접 진행해주세요.",
+                style = MaterialTheme.typography.bodyLarge,
+                textAlign = TextAlign.Center
+            )
         }
     }
-}
-
-
-@Preview(showBackground = true)
-@Composable
-fun AttendanceScreenPreview() {
-    AttendanceScreen(navController = rememberNavController())
 }

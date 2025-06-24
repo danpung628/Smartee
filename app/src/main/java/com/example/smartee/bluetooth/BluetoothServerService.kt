@@ -1,14 +1,21 @@
-// BluetoothServerService.kt
+// smartee/bluetooth/BluetoothServerService.kt
+
 package com.example.smartee.bluetooth
 
 import android.Manifest
 import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothServerSocket
 import android.bluetooth.BluetoothSocket
+import android.bluetooth.le.AdvertiseCallback
+import android.bluetooth.le.AdvertiseData
+import android.bluetooth.le.AdvertiseSettings
 import android.content.Context
 import android.content.pm.PackageManager
+import android.os.ParcelUuid
 import android.util.Log
 import androidx.core.content.ContextCompat
+import com.example.smartee.model.UserData
+import com.example.smartee.repository.StudyRepository
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
@@ -20,103 +27,194 @@ import java.io.InputStreamReader
 import java.io.IOException
 import java.util.*
 
-class BluetoothServerService(private val context: Context) : Thread() {
+class BluetoothServerService(private val context: Context) {
 
     private val bluetoothAdapter: BluetoothAdapter? = BluetoothAdapter.getDefaultAdapter()
+    private val studyRepository = StudyRepository()
+    private val db = FirebaseFirestore.getInstance()
 
-    private val serverSocket: BluetoothServerSocket? = try {
-        when {
-            bluetoothAdapter == null -> {
-                Log.e("BluetoothServer", "❌ BluetoothAdapter is null")
-                null
-            }
-            !bluetoothAdapter.isEnabled -> {
-                Log.e("BluetoothServer", "❌ Bluetooth is turned off")
-                null
-            }
-            ContextCompat.checkSelfPermission(
-                context,
-                Manifest.permission.BLUETOOTH_CONNECT
-            ) != PackageManager.PERMISSION_GRANTED -> {
-                Log.w("BluetoothServer", "❌ BLUETOOTH_CONNECT permission not granted")
-                null
-            }
-            else -> {
-                bluetoothAdapter.listenUsingRfcommWithServiceRecord(
-                    "AttendanceServer",
-                    UUID.fromString("8ce255c0-200a-11e0-ac64-0800200c9a66")
-                )
-            }
-        }
-    } catch (e: SecurityException) {
-        Log.e("BluetoothServer", "❌ SecurityException during socket creation", e)
-        null
-    } catch (e: IOException) {
-        Log.e("BluetoothServer", "❌ IOException during socket creation", e)
-        null
+    companion object {
+        val SERVICE_UUID: UUID = UUID.fromString("00001101-0000-1000-8000-00805F9B34FB")
+        private const val TAG = "BluetoothServerService"
     }
 
-    override fun run() {
-        if (serverSocket == null) {
-            Log.w("BluetoothServer", "⚠️ Server socket not available, Bluetooth not started")
+    private val advertiser by lazy { bluetoothAdapter?.bluetoothLeAdvertiser }
+    private var serverSocket: BluetoothServerSocket? = null
+    private var serverThread: Thread? = null
+
+    private val advertiseCallback = object : AdvertiseCallback() {
+        override fun onStartSuccess(settingsInEffect: AdvertiseSettings?) {
+            Log.d(TAG, "✅ BLE Advertising started successfully.")
+        }
+
+        override fun onStartFailure(errorCode: Int) {
+            Log.e(TAG, "❌ BLE Advertising onStartFailure: $errorCode")
+        }
+    }
+
+    fun start(meetingId: String) {
+        startAdvertising(meetingId)
+        startServerThread()
+    }
+
+    fun stop() {
+        stopAdvertising()
+        stopServerThread()
+    }
+
+    private fun startAdvertising(meetingId: String) {
+        if (ContextCompat.checkSelfPermission(
+                context,
+                Manifest.permission.BLUETOOTH_ADVERTISE
+            ) != PackageManager.PERMISSION_GRANTED
+        ) {
+            Log.e(TAG, "❌ BLUETOOTH_ADVERTISE permission not granted")
             return
         }
 
-        while (true) {
+        val settings = AdvertiseSettings.Builder()
+            .setAdvertiseMode(AdvertiseSettings.ADVERTISE_MODE_LOW_LATENCY)
+            .setTxPowerLevel(AdvertiseSettings.ADVERTISE_TX_POWER_HIGH)
+            .setConnectable(true)
+            .build()
+
+        val data = AdvertiseData.Builder()
+            .setIncludeDeviceName(false) // 이름 대신 서비스 UUID로 식별
+            .addServiceUuid(ParcelUuid(SERVICE_UUID))
+            .addServiceData(ParcelUuid(SERVICE_UUID), meetingId.toByteArray(Charsets.UTF_8))
+            .build()
+
+        advertiser?.startAdvertising(settings, data, advertiseCallback)
+    }
+
+    private fun stopAdvertising() {
+        if (ContextCompat.checkSelfPermission(
+                context,
+                Manifest.permission.BLUETOOTH_ADVERTISE
+            ) != PackageManager.PERMISSION_GRANTED
+        ) {
+            return
+        }
+        advertiser?.stopAdvertising(advertiseCallback)
+        Log.d(TAG, "✅ BLE Advertising stopped.")
+    }
+
+    private fun startServerThread() {
+        if (serverThread?.isAlive == true) return // 이미 실행 중이면 다시 시작하지 않음
+
+        serverThread = Thread {
+            if (ContextCompat.checkSelfPermission(
+                    context,
+                    Manifest.permission.BLUETOOTH_CONNECT
+                ) != PackageManager.PERMISSION_GRANTED
+            ) {
+                Log.e(TAG, "❌ BLUETOOTH_CONNECT permission not granted")
+                return@Thread // [수정] return@thread -> return@Thread
+            }
+
             try {
-                val socket = serverSocket.accept()
-                socket?.let {
-                    handleClientSocket(it)
-                    it.close()
-                }
+                serverSocket = bluetoothAdapter?.listenUsingRfcommWithServiceRecord(
+                    "SmarteeAttendance",
+                    SERVICE_UUID
+                )
             } catch (e: IOException) {
-                Log.e("BluetoothServer", "❌ Socket accept failed", e)
-                break
+                Log.e(TAG, "❌ Socket listen() failed", e)
+                return@Thread
+            }
+
+            while (!Thread.currentThread().isInterrupted) {
+                try {
+                    serverSocket?.accept()?.let { socket ->
+                        Log.d(TAG, "🤝 RFCOMM connection accepted.")
+                        handleClientSocket(socket)
+                    }
+                } catch (e: IOException) {
+                    Log.e(TAG, "❌ Socket accept() failed", e)
+                    break
+                }
             }
         }
+        serverThread?.start()
+    }
+
+    private fun stopServerThread() {
+        serverThread?.interrupt()
+        try {
+            serverSocket?.close()
+        } catch (e: IOException) {
+            Log.e(TAG, "❌ Error closing server socket", e)
+        }
+        serverThread = null
+        Log.d(TAG, "✅ RFCOMM Server stopped.")
     }
 
     private fun handleClientSocket(socket: BluetoothSocket) {
         try {
-            val reader = BufferedReader(InputStreamReader(socket.inputStream))
-            val message = reader.readLine()
-
-            Log.d("BluetoothServer", "📩 Received: $message")
+            val message = BufferedReader(InputStreamReader(socket.inputStream)).readLine()
+            Log.d(TAG, "📩 Received: $message")
 
             val json = JSONObject(message)
             val studyId = json.getString("studyId")
+            val meetingId = json.getString("meetingId")
             val userId = json.getString("userId")
 
             GlobalScope.launch(Dispatchers.IO) {
-                processAttendance(studyId, userId)
+                processAttendanceWithRepository(studyId, meetingId, userId)
             }
-
         } catch (e: Exception) {
-            Log.e("BluetoothServer", "❌ Error handling client socket", e)
+            Log.e(TAG, "❌ Error handling client socket", e)
+        } finally {
+            try {
+                socket.close()
+            } catch (e: IOException) {
+                Log.e(TAG, "❌ Error closing client socket", e)
+            }
         }
     }
 
-    private suspend fun processAttendance(studyId: String, userId: String) {
-        val db = FirebaseFirestore.getInstance()
-        val memberRef = db.collection("studies")
-            .document(studyId)
-            .collection("members")
-            .document(userId)
+    private suspend fun processAttendanceWithRepository(
+        studyId: String,
+        meetingId: String,
+        userId: String
+    ) {
+        Log.d(TAG, "--- 출석 처리 시작 ---")
+        Log.d(TAG, "- 받은 데이터: studyId=${studyId}, meetingId=${meetingId}, userId=${userId}")
 
-        db.runTransaction { transaction ->
-            val snap = transaction.get(memberRef)
-            val current = (snap.getLong("currentCount") ?: 0).toInt()
-            val total = (snap.getLong("totalCount") ?: 0).toInt()
+        try {
+            val userDoc = db.collection("users").document(userId).get().await()
+            if (!userDoc.exists()) {
+                Log.e(TAG, "오류: 사용자 문서를 찾을 수 없습니다. (userId: ${userId})")
+                return
+            }
+            val userName = userDoc.toObject(UserData::class.java)?.nickname ?: "알수없음"
 
-            transaction.update(memberRef, mapOf(
-                "isPresent" to true,
-                "currentCount" to current + 1,
-                "totalCount" to total + 1
-            ))
-        }.addOnSuccessListener {
-            Log.d("BluetoothServer", "✅ 출석 처리 완료 ($userId)")
-        }.addOnFailureListener {
-            Log.e("BluetoothServer", "❌ 트랜잭션 실패", it)
+            val studyDoc = db.collection("studies").document(studyId).get().await()
+            if (!studyDoc.exists()) {
+                Log.e(TAG, "오류: 스터디 문서를 찾을 수 없습니다. (studyId: ${studyId})")
+                return
+            }
+            val studyName = studyDoc.getString("title") ?: ""
+
+            Log.d(TAG, "- 조회된 정보: userName=${userName}, studyName=${studyName}")
+            Log.d(TAG, "Firestore에 출석 기록을 시도합니다...")
+
+            studyRepository.markAttendance(
+                meetingId = meetingId,
+                userId = userId,
+                parentStudyId = studyId,
+                userName = userName,
+                studyName = studyName
+            ).await() // .await()를 통해 작업이 완료될 때까지 기다립니다.
+
+            // 성공 로그
+            Log.d(
+                TAG,
+                "✅✅✅ Firestore 트랜잭션 성공! 출석 처리 완료 (Repository) - User: $userId, Meeting: $meetingId"
+            )
+
+        } catch (e: Exception) {
+            // 실패 로그
+            Log.e(TAG, "❌❌❌ Firestore 트랜잭션 실패! Repository 출석 처리 중 심각한 오류 발생", e)
         }
     }
 }
