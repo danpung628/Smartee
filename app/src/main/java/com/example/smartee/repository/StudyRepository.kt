@@ -8,7 +8,6 @@ import com.example.smartee.model.Meeting
 import com.example.smartee.model.MeetingJoinRequest
 import com.example.smartee.model.ParticipantStatus
 import com.example.smartee.model.StudyData
-import com.example.smartee.model.UserData
 import com.example.smartee.ui.attendance.AttendanceInfo
 import com.google.android.gms.tasks.Task
 import com.google.firebase.firestore.FieldPath
