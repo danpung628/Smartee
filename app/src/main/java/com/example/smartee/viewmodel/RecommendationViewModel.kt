@@ -1,4 +1,3 @@
-// app/src/main/java/com/example/smartee/viewmodel/RecommendationViewModel.kt
 package com.example.smartee.viewmodel
 
 import android.app.Application
@@ -13,7 +12,6 @@ import com.example.smartee.service.SimpleRecommendationService
 
 class RecommendationViewModel(
     app: Application,
-    private val authViewModel: AuthViewModel,
     private val userViewModel: UserViewModel
 ) : AndroidViewModel(app) {
     private val TAG = "RecommendationViewModel"
@@ -23,15 +21,14 @@ class RecommendationViewModel(
     // AI 추천 서비스
     private val recommendationService = SimpleRecommendationService()
 
-    // 추천 스터디 및 상태
-    private val _recommendedStudy = MutableLiveData<StudyData?>(null)
-    val recommendedStudy: LiveData<StudyData?> = _recommendedStudy
+    // 👇 변경: StudyData 대신 ID만 관리
+    private val _recommendedStudyId = MutableLiveData<String?>(null)
+    val recommendedStudyId: LiveData<String?> = _recommendedStudyId
 
     private val _isLoading = MutableLiveData(false)
     val isLoading: LiveData<Boolean> = _isLoading
 
     private val _errorMessage = MutableLiveData<String?>(null)
-    val errorMessage: LiveData<String?> = _errorMessage
 
     private val _recommendationReason = MutableLiveData<String?>(null)
     val recommendationReason: LiveData<String?> = _recommendationReason
@@ -103,7 +100,8 @@ class RecommendationViewModel(
             userJoinedStudyIds
         )
 
-        _recommendedStudy.value = recommendation
+        // 👇 변경: StudyData 대신 ID만 저장
+        _recommendedStudyId.value = recommendation?.studyId
 
         // 추천 이유 생성
         if (recommendation != null) {
@@ -200,13 +198,12 @@ class RecommendationViewModel(
 
 class RecommendationViewModelFactory(
     private val application: Application,
-    private val authViewModel: AuthViewModel,
     private val userViewModel: UserViewModel
 ) : ViewModelProvider.Factory {
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
         if (modelClass.isAssignableFrom(RecommendationViewModel::class.java)) {
             @Suppress("UNCHECKED_CAST")
-            return RecommendationViewModel(application, authViewModel, userViewModel) as T
+            return RecommendationViewModel(application, userViewModel) as T
         }
         throw IllegalArgumentException("Unknown ViewModel class")
     }

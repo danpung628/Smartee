@@ -1,5 +1,3 @@
-// smartee/viewmodel/StudyDetailViewModel.kt
-
 package com.example.smartee.viewmodel
 
 import android.app.Application
@@ -11,6 +9,11 @@ import androidx.lifecycle.viewModelScope
 import com.example.smartee.bluetooth.AttendanceResult
 import com.example.smartee.bluetooth.BluetoothClientService
 import com.example.smartee.model.*
+import com.example.smartee.model.JoinRequest
+import com.example.smartee.model.Meeting
+import com.example.smartee.model.MeetingJoinRequest
+import com.example.smartee.model.StudyData
+import com.example.smartee.model.UserData
 import com.example.smartee.repository.StudyRepository
 import com.example.smartee.repository.UserRepository
 import com.google.firebase.firestore.FirebaseFirestore
@@ -33,6 +36,10 @@ class StudyDetailViewModel(application: Application) : AndroidViewModel(applicat
     private val studyRepository = StudyRepository()
     private val userRepository = UserRepository(FirebaseFirestore.getInstance())
 
+    // [추가] Firestore 참조
+    private val studyCollectionRef = FirebaseFirestore.getInstance().collection("studies")
+
+
     private val _studyData = MutableStateFlow<StudyData?>(null)
     val studyData = _studyData.asStateFlow()
 
@@ -48,6 +55,7 @@ class StudyDetailViewModel(application: Application) : AndroidViewModel(applicat
     private val _userEvent = MutableStateFlow<UserEvent?>(null)
     val userEvent = _userEvent.asStateFlow()
 
+
     private val _activeMeetingSessions = MutableStateFlow<Map<String, Boolean>>(emptyMap())
     val activeMeetingSessions = _activeMeetingSessions.asStateFlow()
     private var sessionCheckJob: Job? = null
@@ -61,6 +69,7 @@ class StudyDetailViewModel(application: Application) : AndroidViewModel(applicat
 
     private val _pendingRequestCount = MutableStateFlow(0)
     val pendingRequestCount = _pendingRequestCount.asStateFlow()
+    
     private val _isConnectingBluetooth = MutableStateFlow(false)
 
     val isConnectingBluetooth = _isConnectingBluetooth.asStateFlow()
@@ -77,6 +86,10 @@ class StudyDetailViewModel(application: Application) : AndroidViewModel(applicat
             }
         }
     }
+
+   // private val _pendingRequestCounts = MutableStateFlow<Map<String, Int>>(emptyMap())
+   // val pendingRequestCounts = _pendingRequestCounts.asStateFlow()
+
 
     fun loadStudy(studyId: String) {
         viewModelScope.launch {
@@ -98,10 +111,54 @@ class StudyDetailViewModel(application: Application) : AndroidViewModel(applicat
                         val fetchedMeetings = studyRepository.getMeetingsForStudy(studyId)
                         _meetings.value = fetchedMeetings
                         startSessionStatusChecker(fetchedMeetings)
+
+//                         findNextMeetingAndStartTimer(fetchedMeetings, currentUserId)
+//                         if (role == UserRole.OWNER) {
+//                             val pendingRequests = studyRepository.getPendingMeetingRequestsForStudy(studyId)                   //기존 main인데 머지를 위해 보류
+//                             _pendingRequestCounts.value = pendingRequests.groupingBy { it.meetingId }.eachCount()
+//                         }
+
                     }
                 }
             } finally {
                 _isLoading.value = false
+            }
+        }
+    }
+    // [추가] 좋아요 기능을 StudyDetailViewModel로 이전
+    fun toggleLike(userId: String) {
+        val currentStudy = _studyData.value ?: return
+        val originalStudy = currentStudy // 롤백을 위해 원본 상태 저장
+
+        val isLiked = currentStudy.likedByUsers.contains(userId)
+        val newLikedByUsers = currentStudy.likedByUsers.toMutableList()
+        val newLikeCount: Int
+
+        if (isLiked) {
+            newLikedByUsers.remove(userId)
+            newLikeCount = maxOf(0, currentStudy.likeCount - 1)
+        } else {
+            newLikedByUsers.add(userId)
+            newLikeCount = currentStudy.likeCount + 1
+        }
+
+        // 1. UI 상태 즉시 업데이트 (낙관적 업데이트)
+        _studyData.value = currentStudy.copy(
+            likedByUsers = newLikedByUsers,
+            likeCount = newLikeCount
+        )
+         // 2. Firestore에 백그라운드 업데이트
+        viewModelScope.launch {
+            try {
+                studyCollectionRef.document(currentStudy.studyId)
+                    .update(mapOf("likedByUsers" to newLikedByUsers, "likeCount" to newLikeCount))
+                    .await()
+                Log.d("StudyDetailViewModel", "Firestore 좋아요 업데이트 성공")
+            } catch (e: Exception) {
+                // 3. 실패 시 원래 상태로 롤백
+                Log.e("StudyDetailViewModel", "Firestore 좋아요 업데이트 실패, 롤백", e)
+                _studyData.value = originalStudy
+                _userEvent.value = UserEvent.Error("좋아요 업데이트에 실패했습니다.")
             }
         }
     }
@@ -120,6 +177,7 @@ class StudyDetailViewModel(application: Application) : AndroidViewModel(applicat
     }
 
     fun markHostAsPresent(meetingId: String) {
+
         val currentUserId = UserRepository.getCurrentUserId() ?: return
         val study = _studyData.value ?: return
         viewModelScope.launch {

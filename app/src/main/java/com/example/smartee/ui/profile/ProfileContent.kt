@@ -23,6 +23,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material.icons.filled.Flag
 import androidx.compose.material.icons.filled.WorkspacePremium
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -56,7 +57,8 @@ import com.google.firebase.auth.FirebaseUser
 fun ProfileContent(
     modifier: Modifier = Modifier,
     currentUser: FirebaseUser?,
-    userData: UserData?
+    userData: UserData?,
+    onAdminClick: () -> Unit = {}
 ) {
     // ▼▼▼ 뱃지 팝업을 제어할 상태 변수 추가 ▼▼▼
     var showBadgeDialog by remember { mutableStateOf(false) }
@@ -100,6 +102,18 @@ fun ProfileContent(
             onClick = { showBadgeDialog = true } // 클릭 시 팝업 상태를 true로 변경
         )
         Divider()
+        if (userData?.nickname?.contains("admin", ignoreCase = true) == true) {
+            ProfileMenuItem(
+                icon = Icons.Default.Flag, // 원하는 아이콘으로 교체 가능
+                text = "관리자 페이지",
+                onClick = {
+                    // NavController는 여기 없으니, 콜백으로 넘겨줘야 해!
+                    // ProfileContent(...) 파라미터에 onAdminClick: () -> Unit 추가 필요
+                    onAdminClick()
+                }
+            )
+            Divider()
+        }
     }
 }
 

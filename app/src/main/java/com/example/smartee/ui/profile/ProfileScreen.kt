@@ -55,9 +55,7 @@ fun ProfileScreen(navController: NavController) {
                         }
                         IconButton(onClick = {
                             authViewModel.signOut()
-                            navController.navigate(Screen.Login.route) {
-                                popUpTo(Screen.Login.route) { inclusive = true }
-                            }
+                            // navigate 부분을 삭제!
                         }) {
                             Icon(Icons.AutoMirrored.Filled.Logout, contentDescription = "로그아웃")
                         }
@@ -72,11 +70,14 @@ fun ProfileScreen(navController: NavController) {
             ProfileContent(
                 modifier = Modifier.padding(paddingValues),
                 currentUser = currentUser,
-                userData = userData
+                userData = userData,
+                onAdminClick = { navController.navigate(Screen.AdminReport.route) }
             )
         } else if (currentUser != null && userData == null) {
             // [추가] 데이터 로딩 중을 표시하거나, 프로필이 없는 사용자를 위한 화면을 보여줄 수 있습니다.
-            Box(modifier = Modifier.fillMaxSize().padding(paddingValues), contentAlignment = Alignment.Center) {
+            Box(modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues), contentAlignment = Alignment.Center) {
                 CircularProgressIndicator() // 예: 로딩 인디케이터
             }
         } else {

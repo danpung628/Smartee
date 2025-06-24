@@ -1,10 +1,12 @@
 package com.example.smartee.ui.study.studyList.studydetail
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -13,6 +15,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Comment
 import androidx.compose.material.icons.filled.CalendarToday
 import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.People
 import androidx.compose.material3.Card
@@ -25,11 +28,20 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.example.smartee.model.StudyData
 
+// app/src/main/java/com/example/smartee/ui/study/studyList/studydetail/StudyInfoCard.kt 수정
+
 @Composable
-fun StudyInfoCard(study: StudyData) {
+fun StudyInfoCard(
+    study: StudyData,
+    onLikeClick: (() -> Unit)? = null,
+    currentUserId: String = ""
+) {
+    val isLiked = study.likedByUsers.contains(currentUserId)
+
     Card(
         modifier = Modifier.fillMaxWidth(),
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
@@ -56,25 +68,54 @@ fun StudyInfoCard(study: StudyData) {
             // 날짜 정보
             InfoRow(
                 icon = Icons.Default.CalendarToday,
-                text = study.getLocalDateTime().toString().split("T")[0] // yyyy-MM-dd 형식
+                text = study.getLocalDateTime().toString().split("T")[0]
             )
 
-            // 통계 정보 (좋아요, 댓글 수)
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                StatCount(
-                    icon = Icons.Default.Favorite,
-                    count = study.likeCount,
-                    tint = MaterialTheme.colorScheme.error
-                )
+            Spacer(modifier = Modifier.height(12.dp))
 
-                StatCount(
-                    icon = Icons.AutoMirrored.Default.Comment,
-                    count = study.commentCount,
-                    tint = MaterialTheme.colorScheme.primary
-                )
+            // 통계 정보 (좋아요, 댓글 수) - 개선된 버전
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                // 댓글 수
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        Icons.AutoMirrored.Default.Comment,
+                        contentDescription = "댓글",
+                        modifier = Modifier.size(24.dp),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = "${study.commentCount}",
+                        style = MaterialTheme.typography.bodyLarge
+                    )
+                }
+
+                // 좋아요 버튼 (클릭 가능)
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier
+                        .clickable {
+                            onLikeClick?.invoke()
+                        }
+                        .padding(8.dp) // 클릭 영역 확대
+                ) {
+                    Icon(
+                        imageVector = if (isLiked) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
+                        contentDescription = "좋아요",
+                        modifier = Modifier.size(28.dp), // 더 큰 크기
+                        tint = if (isLiked) Color.Red else MaterialTheme.colorScheme.primary
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = "${study.likeCount}",
+                        style = MaterialTheme.typography.bodyLarge,
+                        fontWeight = FontWeight.Medium
+                    )
+                }
             }
         }
     }
@@ -83,23 +124,22 @@ fun StudyInfoCard(study: StudyData) {
 @Composable
 private fun InfoRow(
     icon: ImageVector,
-    text: String,
-    tint: Color = MaterialTheme.colorScheme.primary
+    text: String
 ) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
-        modifier = Modifier.padding(bottom = 8.dp)
+        modifier = Modifier.padding(vertical = 4.dp)
     ) {
         Icon(
             imageVector = icon,
             contentDescription = null,
-            tint = tint,
-            modifier = Modifier.size(20.dp)
+            modifier = Modifier.size(20.dp),
+            tint = MaterialTheme.colorScheme.primary
         )
-        Spacer(modifier = Modifier.width(8.dp))
+        Spacer(modifier = Modifier.width(12.dp))
         Text(
             text = text,
-            style = MaterialTheme.typography.bodyLarge
+            style = MaterialTheme.typography.bodyMedium
         )
     }
 }

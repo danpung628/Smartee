@@ -15,6 +15,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Comment
 import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -36,13 +37,21 @@ import java.time.Duration
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 
+// app/src/main/java/com/example/smartee/ui/study/studyList/main/StudyListItem.kt
+
+// app/src/main/java/com/example/smartee/ui/study/studyList/main/StudyListItem.kt 수정
+
 @Composable
 fun StudyListItem(
     modifier: Modifier = Modifier,
     item: StudyData,
     onClick: (String) -> Unit,
+    onLikeClick: ((String, String) -> Unit)? = null, // userId 파라미터 추가
+    currentUserId: String = "", // 현재 사용자 ID
     isRecommended: Boolean
 ) {
+    val isLiked = item.likedByUsers.contains(currentUserId)
+
     Card(
         modifier = modifier
             .fillMaxWidth()
@@ -56,7 +65,7 @@ fun StudyListItem(
                 .fillMaxWidth()
                 .padding(12.dp)
         ) {
-            // 썸네일 이미지 (비율 최적화)
+            // 썸네일 이미지
             AsyncImage(
                 model = item.thumbnailModel,
                 contentDescription = "Study Thumbnail",
@@ -85,7 +94,7 @@ fun StudyListItem(
                         Spacer(modifier = Modifier.width(4.dp))
                         Icon(
                             imageVector = Icons.Default.Star,
-                            contentDescription = "AI 추천",
+                            contentDescription = "추천", // "AI 추천" → "추천"으로 변경
                             tint = Color(0xFFFFD700),
                             modifier = Modifier.size(16.dp)
                         )
@@ -124,38 +133,49 @@ fun StudyListItem(
                 ) {
                     val maxCountText = if (item.maxMemberCount == 0) "무제한" else "${item.maxMemberCount}명"
                     Text(
-                        text = "${item.participantIds.size} / $maxCountText", // "현재인원 / 최대인원" 형식으로 통일
+                        text = "${item.participantIds.size} / $maxCountText",
                         style = MaterialTheme.typography.bodyMedium
                     )
 
                     Row(verticalAlignment = Alignment.CenterVertically) {
+                        // 댓글 아이콘 및 수
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(
                                 Icons.AutoMirrored.Default.Comment,
-                                contentDescription = "commentCount",
-                                modifier = Modifier.size(16.dp),
-                                tint = MaterialTheme.colorScheme.primary
+                                contentDescription = "댓글",
+                                modifier = Modifier.size(20.dp), // 16dp → 20dp로 증가
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant
                             )
-                            Spacer(modifier = Modifier.width(2.dp))
+                            Spacer(modifier = Modifier.width(4.dp))
                             Text(
-                                "${item.commentCount}",
-                                style = MaterialTheme.typography.bodySmall
+                                text = "${item.commentCount}",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
 
-                        Spacer(modifier = Modifier.width(8.dp))
+                        Spacer(modifier = Modifier.width(12.dp))
 
-                        Row(verticalAlignment = Alignment.CenterVertically) {
+                        // 좋아요 아이콘 및 수 (크기 및 상태 개선)
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier
+                                .clickable {
+                                    onLikeClick?.invoke(item.studyId, currentUserId)
+                                }
+                                .padding(4.dp) // 클릭 영역 확대
+                        ) {
                             Icon(
-                                Icons.Default.Favorite,
-                                contentDescription = "likeCount",
-                                modifier = Modifier.size(16.dp),
-                                tint = MaterialTheme.colorScheme.error
+                                imageVector = if (isLiked) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
+                                contentDescription = "좋아요",
+                                modifier = Modifier.size(24.dp), // 16dp → 24dp로 대폭 증가
+                                tint = if (isLiked) Color.Red else MaterialTheme.colorScheme.onSurfaceVariant
                             )
-                            Spacer(modifier = Modifier.width(2.dp))
+                            Spacer(modifier = Modifier.width(4.dp))
                             Text(
-                                "${item.likeCount}",
-                                style = MaterialTheme.typography.bodySmall
+                                text = "${item.likeCount}",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
                     }

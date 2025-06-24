@@ -1,6 +1,5 @@
 package com.example.smartee.ui.study.studyList.main
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -9,7 +8,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
@@ -26,7 +24,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -38,110 +35,107 @@ fun StudyListContent(
     modifier: Modifier = Modifier,
     studyViewModel: StudyViewModel,
     recommendationViewModel: RecommendationViewModel,
-    onStudyDetailNavigate: (String) -> Unit
+    onStudyDetailNavigate: (String) -> Unit,
+    currentUserId: String
 ) {
-    val filteredStudyList = studyViewModel.filteredStudyList.observeAsState(initial = emptyList()).value
-    val recommendedStudy = recommendationViewModel.recommendedStudy.observeAsState().value
-    val isLoading = recommendationViewModel.isLoading.observeAsState(initial = false).value
+    // 👇 observeAsState() 결과를 직접 받기 (by delegate 제거)
+    val filteredStudyList = studyViewModel.filteredStudyList.observeAsState(emptyList()).value
+    val recommendedStudyId = recommendationViewModel.recommendedStudyId.observeAsState().value
     val recommendationReason = recommendationViewModel.recommendationReason.observeAsState().value
+    val isLoading = recommendationViewModel.isLoading.observeAsState(false).value
 
-    Column(modifier = modifier.fillMaxWidth()) {
+    // 추천 스터디는 전체 목록에서 찾기 (항상 최신 데이터)
+    val recommendedStudy = filteredStudyList.find { it.studyId == recommendedStudyId }
+
+    Box(modifier = modifier) {
         if (isLoading) {
-            LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
-        }
-
-        if (filteredStudyList.isEmpty() && !isLoading) {
-            Box(
+            LinearProgressIndicator(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(32.dp),
-                contentAlignment = Alignment.Center
-            ) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Icon(
-                        Icons.Default.Search,
-                        contentDescription = null,
-                        modifier = Modifier.size(64.dp),
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Spacer(modifier = Modifier.height(16.dp))
-                    Text(
-                        "검색 결과가 없습니다",
-                        style = MaterialTheme.typography.titleMedium
-                    )
-                }
-            }
-        } else {
-            LazyColumn(
-                contentPadding = PaddingValues(vertical = 8.dp)
-            ) {
-                // 추천 스터디가 있으면 최상단에 표시
-                recommendedStudy?.let { study ->
-                    item {
-                        Column(
-                            modifier = Modifier
-                                .padding(bottom = 8.dp)
-                                .background(
-                                    brush = Brush.verticalGradient(
-                                        colors = listOf(
-                                            MaterialTheme.colorScheme.primaryContainer,
-                                            MaterialTheme.colorScheme.surface
-                                        )
-                                    ),
-                                    alpha = 0.7f
-                                )
+                    .height(4.dp)
+            )
+        }
+
+        LazyColumn(
+            contentPadding = PaddingValues(16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            // 추천 스터디 섹션
+            if (recommendedStudy != null) {
+                item {
+                    Column {
+                        // 추천 헤더
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Text(
-                                        text = "추천",
-                                        style = MaterialTheme.typography.titleMedium,
-                                        fontWeight = FontWeight.Bold
-                                    )
-
-                                    Spacer(modifier = Modifier.width(8.dp))
-
-                                    // 추천 이유를 간단한 태그들로 표시
-                                    LazyRow(
-                                        horizontalArrangement = Arrangement.spacedBy(4.dp)
-                                    ) {
-                                        items(extractReasonTags(recommendationReason)) { tag ->
-                                            SuggestionChip(
-                                                onClick = { },
-                                                label = {
-                                                    Text(
-                                                        text = tag,
-                                                        fontSize = 10.sp
-                                                    )
-                                                },
-                                                modifier = Modifier.height(24.dp)
-                                            )
-                                        }
-                                    }
-                                }
-                            }
-
-                            StudyListItem(
-                                item = study,
-                                onClick = onStudyDetailNavigate,
-                                isRecommended = true
+                            Icon(
+                                imageVector = Icons.Default.Search,
+                                contentDescription = "추천",
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(20.dp)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = "오늘의 추천 스터디",
+                                style = MaterialTheme.typography.titleMedium.copy(
+                                    fontWeight = FontWeight.Bold
+                                ),
+                                color = MaterialTheme.colorScheme.primary
                             )
                         }
-                    }
-                }
 
-                // 기존 스터디 목록
-                items(filteredStudyList) { study ->
-                    // 추천 스터디와 동일한 항목은 중복 표시 방지
-                    if (recommendedStudy == null || study.studyId != recommendedStudy.studyId) {
+                        Spacer(modifier = Modifier.height(8.dp))
+
+                        // 추천 이유 태그들
+                        if (recommendationReason != null) {
+                            LazyRow(
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                contentPadding = PaddingValues(vertical = 4.dp)
+                            ) {
+                                val tags = extractReasonTags(recommendationReason)
+                                items(tags) { tag -> // 👈 수정: items(tags)로 변경
+                                    SuggestionChip(
+                                        onClick = { },
+                                        label = {
+                                            Text(
+                                                text = tag,
+                                                fontSize = 12.sp,
+                                                color = MaterialTheme.colorScheme.primary
+                                            )
+                                        },
+                                        modifier = Modifier.height(24.dp)
+                                    )
+                                }
+                            }
+                        }
+
                         StudyListItem(
-                            item = study,
+                            item = recommendedStudy,
                             onClick = onStudyDetailNavigate,
-                            isRecommended = false
+                            onLikeClick = { studyId, userId ->
+                                studyViewModel.toggleLike(studyId, userId)
+                            },
+                            currentUserId = currentUserId,
+                            isRecommended = true
                         )
                     }
+                }
+            }
+
+            // 기존 스터디 목록 (추천 스터디 제외)
+            items(filteredStudyList) { study -> // 👈 수정: items() 파라미터 수정
+                // 중복 표시 방지
+                if (study.studyId != recommendedStudyId) {
+                    StudyListItem(
+                        item = study,
+                        onClick = onStudyDetailNavigate,
+                        onLikeClick = { studyId, userId ->
+                            studyViewModel.toggleLike(studyId, userId)
+                        },
+                        currentUserId = currentUserId,
+                        isRecommended = false
+                    )
                 }
             }
         }

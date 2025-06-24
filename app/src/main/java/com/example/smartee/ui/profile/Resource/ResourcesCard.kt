@@ -1,6 +1,8 @@
 package com.example.smartee.ui.profile.Resource
 
+import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -23,6 +25,10 @@ import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -75,6 +81,9 @@ fun ResourcesCard(
 
             // 정보 도움말
             HelpSection()
+
+            // 질문
+            FAQSection()
         }
     }
 }
@@ -177,9 +186,9 @@ private fun PenSection(penCount: Int) {
                             .padding(horizontal = 2.dp)
                     )
                 }
-                if (penCount > 5) {
+                if (penCount>=0) {
                     Text(
-                        "+${penCount - 5}",
+                        "+${penCount}",
                         color = Color(0xFF4CAF50),
                         fontWeight = FontWeight.Bold,
                         modifier = Modifier.padding(start = 4.dp)
@@ -234,5 +243,91 @@ fun getInkLevelColor(inkLevel: Int): Color {
         inkLevel >= 50 -> Color(0xFF2196F3) // 파란색 (보통)
         inkLevel >= 30 -> Color(0xFFFFC107) // 노란색 (낮음)
         else -> Color(0xFFF44336) // 빨간색 (매우 낮음)
+    }
+}
+@Composable
+private fun FAQSection() {
+    var expanded by remember { mutableStateOf(false) }
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = 16.dp)
+            .animateContentSize()
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable { expanded = !expanded },
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = "자주 묻는 질문",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.weight(1f)
+            )
+            Text(
+                text = if (expanded) "–" else "+",
+                fontSize = MaterialTheme.typography.titleMedium.fontSize,
+                fontWeight = FontWeight.Bold
+            )
+        }
+
+        if (expanded) {
+            Spacer(modifier = Modifier.height(8.dp))
+            FAQList()
+        }
+    }
+}
+
+@Composable
+private fun FAQList() {
+    val faqs = listOf(
+        "잉크는 어떻게 올리나요?" to "스터디 출석 및 완주 및 평가 시 잉크가 올라갑니다.",
+        "만년필은 어떻게 얻을 수 있나요?" to "스터디 활동, 스터디 완주, 특별 이벤트를 통해 획득할 수 있습니다.",
+        "만년필은 어디에 사용되나요?" to "스터디 개설 및 참여, 특별 테마 구매 등에 사용됩니다."
+    )
+
+    faqs.forEach { (question, answer) ->
+        FAQItem(question = question, answer = answer)
+    }
+}
+
+@Composable
+private fun FAQItem(question: String, answer: String) {
+    var expanded by remember { mutableStateOf(false) }
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { expanded = !expanded }
+            .animateContentSize()
+            .padding(vertical = 6.dp)
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = "Q. $question",
+                fontWeight = FontWeight.Medium,
+                modifier = Modifier.weight(1f)
+            )
+            Text(
+                text = if (expanded) "–" else "+",
+                fontWeight = FontWeight.Bold,
+                fontSize = MaterialTheme.typography.bodyMedium.fontSize
+            )
+        }
+
+        if (expanded) {
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = "A. $answer",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(start = 12.dp)
+            )
+        }
     }
 }
