@@ -70,7 +70,7 @@ class StudyDetailViewModel(application: Application) : AndroidViewModel(applicat
 
     private val _pendingRequestCount = MutableStateFlow(0)
     val pendingRequestCount = _pendingRequestCount.asStateFlow()
-    
+
     private val _isConnectingBluetooth = MutableStateFlow(false)
 
     val isConnectingBluetooth = _isConnectingBluetooth.asStateFlow()
@@ -88,8 +88,8 @@ class StudyDetailViewModel(application: Application) : AndroidViewModel(applicat
         }
     }
 
-   // private val _pendingRequestCounts = MutableStateFlow<Map<String, Int>>(emptyMap())
-   // val pendingRequestCounts = _pendingRequestCounts.asStateFlow()
+    // private val _pendingRequestCounts = MutableStateFlow<Map<String, Int>>(emptyMap())
+    // val pendingRequestCounts = _pendingRequestCounts.asStateFlow()
 
 
     fun loadStudy(studyId: String) {
@@ -148,7 +148,7 @@ class StudyDetailViewModel(application: Application) : AndroidViewModel(applicat
             likedByUsers = newLikedByUsers,
             likeCount = newLikeCount
         )
-         // 2. Firestore에 백그라운드 업데이트
+        // 2. Firestore에 백그라운드 업데이트
         viewModelScope.launch {
             try {
                 studyCollectionRef.document(currentStudy.studyId)
@@ -272,6 +272,14 @@ class StudyDetailViewModel(application: Application) : AndroidViewModel(applicat
         if (_isLoading.value) return
         val study = _studyData.value ?: return
         val currentUserId = UserRepository.getCurrentUserId() ?: return
+
+        if (study.maxMemberCount > 0 && study.participantIds.size >= study.maxMemberCount) {
+            viewModelScope.launch {
+                _userEvent.value = UserEvent.Error("최대 가입인원수는 ${study.maxMemberCount}명입니다.")
+            }
+            return
+        }
+
         viewModelScope.launch {
             _isLoading.value = true
             try {
@@ -358,6 +366,20 @@ class StudyDetailViewModel(application: Application) : AndroidViewModel(applicat
         participantListener?.remove()
     }
 
+    fun leaveStudy() {
+        val study = _studyData.value ?: return
+        val currentUserId = UserRepository.getCurrentUserId() ?: return
+
+        viewModelScope.launch {
+            try {
+                studyRepository.leaveStudy(study.studyId, currentUserId).await()
+                _userEvent.value = UserEvent.LeaveStudySuccessful
+            } catch (e: Exception) {
+                _userEvent.value = UserEvent.Error("스터디 탈퇴 중 오류가 발생했습니다.")
+            }
+        }
+    }
+
     override fun onCleared() {
         super.onCleared()
         sessionCheckJob?.cancel()
@@ -369,6 +391,7 @@ class StudyDetailViewModel(application: Application) : AndroidViewModel(applicat
         object RequestSentSuccessfully : UserEvent()
         object JoinConditionsNotMet : UserEvent()
         object AlreadyRequested : UserEvent()
+        object LeaveStudySuccessful : UserEvent()
         data class Error(val message: String) : UserEvent()
         object WithdrawSuccessful : UserEvent()
         data class ShowSnackbar(val message: String): UserEvent()
