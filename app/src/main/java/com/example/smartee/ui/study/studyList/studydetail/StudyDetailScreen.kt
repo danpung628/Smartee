@@ -589,7 +589,7 @@ private fun OwnerButtons(navController: NavController, studyId: String, pendingR
                 }
             }
             OutlinedButton(
-                onClick = { navController.navigate("study_edit?studyID=$studyId") },
+                onClick = { navController.navigate(Screen.StudyEdit.route + "?studyID=$studyId") },
                 modifier = Modifier.weight(1f)
             ) {
                 Text("스터디 편집")
