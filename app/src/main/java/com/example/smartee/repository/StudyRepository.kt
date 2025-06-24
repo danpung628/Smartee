@@ -1,5 +1,3 @@
-// smartee/repository/StudyRepository.kt
-
 package com.example.smartee.repository
 
 import android.util.Log
@@ -311,6 +309,9 @@ class StudyRepository(
             val userData = userSnapshot.toObject(UserData::class.java)
                 ?: throw Exception("사용자 정보를 찾을 수 없습니다.")
 
+            if (studyData.participantIds.size >= studyData.maxMemberCount && studyData.maxMemberCount > 0) {
+                throw Exception("스터디 정원이 모두 찼습니다.")
+            }
             if (userData.ink < studyData.minInkLevel) {
                 throw Exception("가입에 필요한 최소 잉크 레벨(${studyData.minInkLevel})을 만족하지 못했습니다.")
             }
@@ -565,6 +566,15 @@ class StudyRepository(
         }
     }
 
+    // 스터디 탈퇴
+    fun leaveStudy(studyId: String, userId: String): Task<Void> {
+        val studyRef = studiesCollection.document(studyId)
+        val userRef = usersCollection.document(userId)
 
-
+        return firestore.runTransaction { transaction ->
+            transaction.update(studyRef, "participantIds", FieldValue.arrayRemove(userId))
+            transaction.update(userRef, "joinedStudyIds", FieldValue.arrayRemove(studyId))
+            null
+        }
+    }
 }

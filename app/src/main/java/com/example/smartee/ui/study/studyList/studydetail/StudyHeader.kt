@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ExitToApp
 import androidx.compose.material.icons.filled.Flag
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.DropdownMenu
@@ -32,11 +33,14 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import com.example.smartee.model.StudyData
+import com.example.smartee.viewmodel.UserRole
 
 @Composable
 fun StudyHeader(
     study: StudyData,
-    onReportStudy: (String) -> Unit
+    userRole: UserRole,
+    onReportStudy: (String) -> Unit,
+    onLeaveStudy: () -> Unit
 ) {
     Box(
         modifier = Modifier
@@ -73,7 +77,7 @@ fun StudyHeader(
                 .align(Alignment.TopEnd)
                 .padding(8.dp)
         ) {
-            StudyOptionsMenu(study.studyId, onReportStudy)
+            StudyOptionsMenu(study.studyId, userRole, onReportStudy, onLeaveStudy)
         }
 
         // 제목 텍스트
@@ -105,7 +109,12 @@ fun StudyHeader(
 }
 
 @Composable
-private fun StudyOptionsMenu(studyId: String, onReportStudy: (String) -> Unit) {
+private fun StudyOptionsMenu(
+    studyId: String,
+    userRole: UserRole,
+    onReportStudy: (String) -> Unit,
+    onLeaveStudy: () -> Unit
+) {
     var showMenu by remember { mutableStateOf(false) }
 
     Box {
@@ -125,6 +134,25 @@ private fun StudyOptionsMenu(studyId: String, onReportStudy: (String) -> Unit) {
             onDismissRequest = { showMenu = false },
             modifier = Modifier.align(Alignment.TopEnd)
         ) {
+            if (userRole == UserRole.PARTICIPANT) {
+                androidx.compose.material3.DropdownMenuItem(
+                    text = {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.ExitToApp,
+                                contentDescription = "Leave Study",
+                                tint = MaterialTheme.colorScheme.error
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("스터디 탈퇴")
+                        }
+                    },
+                    onClick = {
+                        onLeaveStudy()
+                        showMenu = false
+                    }
+                )
+            }
             androidx.compose.material3.DropdownMenuItem(
                 text = {
                     Row(verticalAlignment = Alignment.CenterVertically) {

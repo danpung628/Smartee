@@ -5,6 +5,7 @@ import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothDevice
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.clickable
@@ -133,6 +134,10 @@ fun StudyDetailScreen(
                 meetingForDialog = null // 다이얼로그 닫기
                 viewModel.eventConsumed()
             }
+            is StudyDetailViewModel.UserEvent.LeaveStudySuccessful -> {
+                Toast.makeText(context, "스터디에서 탈퇴했습니다.", Toast.LENGTH_SHORT).show()
+                viewModel.eventConsumed()
+            }
             is StudyDetailViewModel.UserEvent.WithdrawSuccessful -> {
                 showInfoDialog.value = "참여가 취소되었습니다."
                 meetingForDialog = null
@@ -249,9 +254,11 @@ fun StudyDetailScreen(
                 Column(modifier = Modifier.weight(1f).verticalScroll(rememberScrollState())) {
                     StudyHeader(
                         study = study,
+                        userRole = userRole,
                         onReportStudy = { studyId ->
                             navController.navigate(Screen.Report.route + "?studyID=$studyId")
-                        }
+                        },
+                        onLeaveStudy = { viewModel.leaveStudy() }
                     )
                     StudyContent(
                         study = study,
