@@ -4,20 +4,28 @@ package com.example.smartee.navigation
 
 // HostScreen import는 이제 필요 없습니다.
 //import com.example.smartee.ui.splash.SplashScreen
+import android.app.Application
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
+import com.example.smartee.ui.LocalAuthViewModel
+import com.example.smartee.ui.LocalNavGraphViewModelStoreOwner
 import com.example.smartee.ui.Map.NaverMapScreen
 import com.example.smartee.ui.admin.AdminReportScreen
 import com.example.smartee.ui.attendance.AttendanceScreen
 import com.example.smartee.ui.attendance.ParticipantScreen
 import com.example.smartee.ui.badge.BadgeScreen
+import com.example.smartee.ui.comment.CommentScreen
 import com.example.smartee.ui.login.LoginScreen
 import com.example.smartee.ui.meeting.MeetingEditScreen
 import com.example.smartee.ui.profile.ProfileEditScreen
@@ -34,11 +42,27 @@ import com.example.smartee.ui.study.editstudy.ui.StudyEditScreen
 import com.example.smartee.ui.study.studyList.main.StudyListScreen
 import com.example.smartee.ui.study.studyList.search.StudySearchScreen
 import com.example.smartee.ui.study.studyList.studydetail.StudyDetailScreen
+import com.example.smartee.viewmodel.UserViewModel
+import com.example.smartee.viewmodel.UserViewModelFactory
 
 
 @Composable
 fun SmarteeNavGraph(navController: NavHostController, modifier: Modifier = Modifier) {
     val randomCode = remember { mutableIntStateOf((100..999).random()) }
+
+    // 다른 화면들처럼 제대로 된 방법으로 사용자 정보 가져오기
+    val authViewModel = LocalAuthViewModel.current
+    val userViewModel: UserViewModel = viewModel(
+        viewModelStoreOwner = LocalNavGraphViewModelStoreOwner.current,
+        factory = UserViewModelFactory(LocalContext.current.applicationContext as Application)
+    )
+
+    // by delegate 제거하고 .value로 직접 접근
+    val currentUser = authViewModel.currentUser.collectAsState().value
+    val userData = userViewModel.userData.observeAsState().value
+
+    val currentUserId = currentUser?.uid ?: ""  // currentUser에서 uid 가져오기
+    val currentUserNickname = userData?.nickname ?: ""
 
     NavHost(
         navController = navController,
@@ -183,5 +207,17 @@ fun SmarteeNavGraph(navController: NavHostController, modifier: Modifier = Modif
             AdminReportScreen(navController = navController)
         }
 
+        composable(
+            route = "comment/{studyId}",
+            arguments = listOf(navArgument("studyId") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val studyId = backStackEntry.arguments?.getString("studyId") ?: ""
+            CommentScreen(
+                studyId = studyId,
+                currentUserId = currentUserId,
+                currentUserNickname = currentUserNickname,
+                onBackClick = { navController.popBackStack() }
+            )
+        }
     }
 }

@@ -35,7 +35,6 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -237,7 +236,11 @@ fun StudyDetailScreen(
         }
     } else if (study != null) {
         Column(modifier = Modifier.fillMaxSize()) {
-            Column(modifier = Modifier.weight(1f).verticalScroll(rememberScrollState())) {
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .verticalScroll(rememberScrollState())
+            ) {
                 StudyHeader(
                     study = study,
                     onReportStudy = { studyId ->
@@ -247,6 +250,7 @@ fun StudyDetailScreen(
                 StudyContent(
                     study = study,
                     onLikeClick = { viewModel.toggleLike(currentUserId) }, // viewModel의 toggleLike 호출
+                    onCommentClick = { navController.navigate("comment/${study.studyId}") },
                     currentUserId = currentUserId
                 )
 
@@ -531,12 +535,18 @@ fun MeetingStatusDialog(
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(100.dp), contentAlignment = Alignment.Center
+                            .height(100.dp),
+                        contentAlignment = Alignment.Center
                     ) {
                         CircularProgressIndicator()
                     }
                 } else {
-                    LazyColumn(modifier = Modifier.heightIn(max = 300.dp)) {
+                    LazyColumn(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .heightIn(max = 300.dp), // 높이 제한 추가
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
                         items(participantStatusList) { participant ->
                             ParticipantStatusCard(participant = participant)
                         }

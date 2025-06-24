@@ -25,6 +25,12 @@ android {
 
     }
 
+    packaging {
+        resources {
+            excludes += "/META-INF/gradle/incremental.annotation.processors"
+        }
+    }
+
     buildTypes {
         release {
             isMinifyEnabled = false
@@ -80,7 +86,10 @@ dependencies {
     implementation(libs.tensorflow.lite)
     implementation(libs.firebase.functions.ktx)
     implementation(libs.map.sdk)
-    implementation(libs.naver.map.compose) // 새로고침 기능
+    implementation(libs.naver.map.compose)
+    implementation(libs.androidx.hilt.navigation.compose)
+    implementation(libs.hilt.android)
+    implementation(libs.hilt.compiler) // 새로고침 기능
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)

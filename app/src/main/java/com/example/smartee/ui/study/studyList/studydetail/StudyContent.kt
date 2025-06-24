@@ -15,6 +15,7 @@ import com.example.smartee.model.StudyData
 fun StudyContent(
     study: StudyData,
     onLikeClick: () -> Unit, // [수정] 파라미터가 없는 람다로 변경
+    onCommentClick: () -> Unit,
     currentUserId: String
 ) {
     Column(
@@ -29,6 +30,7 @@ fun StudyContent(
         StudyInfoCard(
             study = study,
             onLikeClick = onLikeClick, // 그대로 전달
+            onCommentClick = onCommentClick,
             currentUserId = currentUserId
         )
 

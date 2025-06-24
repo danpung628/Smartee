@@ -38,6 +38,7 @@ import com.example.smartee.model.StudyData
 fun StudyInfoCard(
     study: StudyData,
     onLikeClick: (() -> Unit)? = null,
+    onCommentClick: (() -> Unit)? = null,
     currentUserId: String = ""
 ) {
     val isLiked = study.likedByUsers.contains(currentUserId)
@@ -80,7 +81,12 @@ fun StudyInfoCard(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 // 댓글 수
-                Row(verticalAlignment = Alignment.CenterVertically) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.clickable {
+                        onCommentClick?.invoke() // 댓글 화면으로 이동
+                    }
+                ) {
                     Icon(
                         Icons.AutoMirrored.Default.Comment,
                         contentDescription = "댓글",
