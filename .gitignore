@@ -25,3 +25,6 @@ serviceAccountKey.json
 # Claude Code: CLAUDE.md 는 추적하지 않음 (.claude/backup/CLAUDE.md 에서 restore-claude-md.sh 가 자동 복원)
 /CLAUDE.md
 
+
+# Gradle 빌드 산출물 — 모든 모듈 (루트 /build 는 모듈 build/ 를 못 잡음)
+build/

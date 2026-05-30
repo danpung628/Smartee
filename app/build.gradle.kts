@@ -1,3 +1,5 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
@@ -9,6 +11,15 @@ secrets {
     propertiesFileName = "secrets.properties"
     defaultPropertiesFileName = "local.defaults.properties"
 }
+
+// secrets.properties(gitignored) 우선, 없으면 local.defaults.properties 로 폴백해서 읽는다.
+// secrets-gradle-plugin 은 manifestPlaceholder 만 주입하므로, R.string 으로 소비되는 값은 여기서 resValue 로 생성한다.
+val localSecrets = Properties().apply {
+    rootProject.file("local.defaults.properties").takeIf { it.exists() }?.inputStream()?.use { load(it) }
+    rootProject.file("secrets.properties").takeIf { it.exists() }?.inputStream()?.use { load(it) }
+}
+fun secretOrEmpty(key: String): String = localSecrets.getProperty(key).orEmpty()
+
 android {
     namespace = "com.example.smartee"
     compileSdk = 35
@@ -22,7 +33,9 @@ android {
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
-
+        // strings.xml 하드코딩 제거 → secrets.properties / local.defaults.properties 에서 주입 (#97)
+        resValue("string", "maps_api_key", secretOrEmpty("MAPS_API_KEY"))
+        resValue("string", "default_web_client_id", secretOrEmpty("DEFAULT_WEB_CLIENT_ID"))
     }
 
     buildTypes {
