@@ -1,6 +1,6 @@
-package com.example.smartee.model
+package com.example.smartee.viewmodel
 
-import com.example.smartee.viewmodel.StudyEditViewModel
+import com.example.smartee.model.StudyData
 import com.google.firebase.Timestamp
 import java.time.LocalDate
 
