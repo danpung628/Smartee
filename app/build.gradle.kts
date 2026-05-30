@@ -44,6 +44,11 @@ android {
     buildFeatures {
         compose = true
     }
+    lint {
+        // NotificationPermission: transitive Glide(NotificationTarget) 로 인한 false positive.
+        // 앱은 알림을 게시하지 않음(이미지: Coil) → 권한 추가 대신 체크 비활성화 (#102)
+        disable += "NotificationPermission"
+    }
 }
 
 dependencies {
