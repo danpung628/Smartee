@@ -33,9 +33,9 @@ android {
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
-        // strings.xml 하드코딩 제거 → secrets.properties / local.defaults.properties 에서 주입 (#97)
+        // maps_api_key(Places): strings.xml 하드코딩 제거 → secrets.properties / local.defaults.properties 에서 주입 (#97)
+        // default_web_client_id 는 google-services 플러그인이 google-services.json 에서 자동 생성하므로 여기서 만들지 않는다(resValue ↔ google-services generated 중복 리소스 방지)
         resValue("string", "maps_api_key", secretOrEmpty("MAPS_API_KEY"))
-        resValue("string", "default_web_client_id", secretOrEmpty("DEFAULT_WEB_CLIENT_ID"))
     }
 
     buildTypes {
