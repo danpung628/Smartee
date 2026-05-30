@@ -28,3 +28,6 @@ serviceAccountKey.json
 
 # Gradle 빌드 산출물 — 모든 모듈 (루트 /build 는 모듈 build/ 를 못 잡음)
 build/
+
+# AS 가 생성하는 daemon 툴체인 설정(머신 종속) — CI 에서 JBR 다운로드 불가로 빌드 깨짐
+/gradle/gradle-daemon-jvm.properties
