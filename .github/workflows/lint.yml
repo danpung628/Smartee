@@ -1,0 +1,91 @@
+name: Static Analysis (Reviewdog)
+
+on:
+  pull_request:
+    branches: [main, dev]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  ktlint:
+    name: Check Code Quality (Ktlint)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Clone repo
+        uses: actions/checkout@v4
+
+      - name: Run Ktlint
+        uses: ScaCap/action-ktlint@master
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          reporter: github-pr-review # PR 리뷰 댓글로 표시
+          android: true # Android 스타일 가이드 준수
+          fail_on_error: false # 신규 도입 — 기존 스타일 부채로 PR 을 막지 않도록 비차단(정리 후 true 전환)
+          level: warning
+
+  android-lint:
+    name: Check Project Issues (Android Lint)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Clone repo
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17' # AGP 8.10.1 실행에 JDK 17+ 필요 (프로젝트 bytecode 타깃은 JVM 11)
+          cache: 'gradle'
+
+      # fail-fast — secret 누락 시 Gradle 까지 가지 않고 즉시 실패.
+      # google-services plugin 이 app/google-services.json 을 요구하는데 파일은 .gitignore 라 CI 엔 없음.
+      - name: Verify required secret is set
+        env:
+          GOOGLE_SERVICES_JSON_B64: ${{ secrets.GOOGLE_SERVICES_JSON_B64 }}
+        run: |
+          if [ -z "$GOOGLE_SERVICES_JSON_B64" ]; then
+            echo "::error::필수 secret 누락: GOOGLE_SERVICES_JSON_B64 — Settings → Secrets and variables → Actions 에 등록 (base64 of app/google-services.json)"
+            exit 1
+          fi
+
+      - name: Decode google-services.json
+        env:
+          GOOGLE_SERVICES_JSON_B64: ${{ secrets.GOOGLE_SERVICES_JSON_B64 }}
+        run: echo "$GOOGLE_SERVICES_JSON_B64" | base64 -d > app/google-services.json
+
+      - name: Run Android Lint
+        run: ./gradlew lintDebug --continue --parallel
+
+      - name: Report Android Lint (Reviewdog)
+        if: always()
+        uses: dvdandroid/action-android-lint@master
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          reporter: github-pr-review
+          level: warning
+          lint_xml_file: app/build/reports/lint-results-debug.xml
+
+  functions-lint:
+    name: Lint Cloud Functions (ESLint)
+    runs-on: ubuntu-latest
+    continue-on-error: true # 신규 도입 — 비차단(정리 후 제거)
+    steps:
+      - name: Clone repo
+        uses: actions/checkout@v4
+
+      - name: Set up Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: functions/package-lock.json
+
+      - name: Install deps
+        working-directory: functions
+        run: npm ci
+
+      - name: ESLint
+        working-directory: functions
+        run: npm run lint

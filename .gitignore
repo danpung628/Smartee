@@ -22,3 +22,6 @@ node_modules
 serviceAccountKey.json
 .env
 
+# Claude Code: CLAUDE.md 는 추적하지 않음 (.claude/backup/CLAUDE.md 에서 restore-claude-md.sh 가 자동 복원)
+/CLAUDE.md
+
