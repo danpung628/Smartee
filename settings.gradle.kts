@@ -1,4 +1,5 @@
 pluginManagement {
+    includeBuild("build-logic")
     repositories {
         google {
             content {
@@ -17,11 +18,9 @@ dependencyResolutionManagement {
         google()
         mavenCentral()
         maven ("https://repository.map.naver.com/archive/maven")
-
-
     }
 }
 
 rootProject.name = "Smartee"
 include(":app")
-include(":studycreationmodule")
+include(":core:model")
