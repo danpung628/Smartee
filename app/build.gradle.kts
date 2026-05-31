@@ -12,7 +12,7 @@ secrets {
     defaultPropertiesFileName = "local.defaults.properties"
 }
 
-// secrets.properties(gitignored) 우선, 없으면 local.defaults.properties 로 폴백해서 읽는다.
+// secrets.properties(gitignore 대상) 우선, 없으면 local.defaults.properties 로 폴백해서 읽는다.
 // secrets-gradle-plugin 은 manifestPlaceholder 만 주입하므로, R.string 으로 소비되는 값은 여기서 resValue 로 생성한다.
 val localSecrets = Properties().apply {
     rootProject.file("local.defaults.properties").takeIf { it.exists() }?.inputStream()?.use { load(it) }
@@ -75,7 +75,7 @@ dependencies {
     implementation(libs.androidx.ui)
     implementation(libs.androidx.ui.graphics)
     implementation(libs.androidx.ui.tooling.preview)
-    implementation(libs.androidx.material3)
+    implementation(libs.material3)
     implementation(libs.androidx.navigation.compose)
 
     implementation(libs.play.services.auth)
@@ -89,10 +89,6 @@ dependencies {
     implementation(libs.androidx.lifecycle.livedata.ktx)
     implementation(libs.androidx.runtime.livedata)
     implementation(libs.androidx.material)
-    implementation(libs.play.services.maps)
-    implementation(libs.maps.compose) // 새로고침 기능
-
-    implementation(libs.androidx.material)
     implementation(libs.firebase.common.ktx)
     implementation(libs.places)
     implementation(libs.material)
@@ -101,7 +97,17 @@ dependencies {
     implementation(libs.firebase.functions.ktx)
     implementation(libs.map.sdk)
     implementation(libs.naver.map.compose)
-    implementation(libs.material3) // 새로고침 기능
+
+    // Firebase (BOM 으로 버전 관리)
+    implementation(platform(libs.firebase.bom))
+    implementation(libs.firebase.analytics)
+    implementation(libs.firebase.auth.ktx)
+    // firestore-ktx 는 BOM 관리 — 카탈로그 alias(25.1.4)로 옮기면 버전 변동 위험이라 좌표 유지
+    implementation("com.google.firebase:firebase-firestore-ktx")
+
+    implementation(libs.play.services.location)
+    implementation(libs.gson)
+
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
@@ -109,27 +115,4 @@ dependencies {
     androidTestImplementation(libs.androidx.ui.test.junit4)
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)
-    implementation(platform("com.google.firebase:firebase-bom:33.13.0"))
-    implementation("com.google.firebase:firebase-analytics")
-    implementation("com.google.firebase:firebase-auth-ktx")             // 로그인 기능
-    implementation("com.google.firebase:firebase-firestore-ktx")       // DB 기능
-    implementation("androidx.core:core-ktx:1.12.0")
-    implementation("androidx.activity:activity-compose:1.8.0") // 이게 가장 중요!
-    implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.6.2") // ViewModel 등을 쓸 경우
-    // 아래는 Compose 쓸 때 기본적으로 같이 사용합니다
-    implementation("androidx.compose.ui:ui:1.5.4")
-    implementation("androidx.compose.material:material:1.5.4")
-    implementation("androidx.compose.ui:ui-tooling-preview:1.5.4")
-    implementation("androidx.navigation:navigation-compose:2.7.5")
-    implementation ("androidx.lifecycle:lifecycle-viewmodel-compose:2.6.1")
-    implementation ("com.google.android.gms:play-services-maps:18.1.0")
-
-    implementation ("com.google.android.gms:play-services-location:21.0.1")
-    // ✅ JSON 파싱을 위한 Gson
-    implementation("com.google.code.gson:gson:2.10.1")
-
-    implementation("com.naver.maps:map-sdk:3.21.0")
-    implementation(libs.naver.map.compose)
-    implementation("androidx.compose.material3:material3:1.2.1")
-
 }
