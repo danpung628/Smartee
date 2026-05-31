@@ -1,0 +1,56 @@
+name: Auto-merge on green CI
+
+# PR 의 CI(Unit Test / Static Analysis)가 모두 green + mergeable 이면 서버측에서 자동 squash 머지.
+# GitHub 네이티브 auto-merge 는 repo 설정(allow_auto_merge + 브랜치 보호)이 admin 권한을 요구하므로,
+# collaborator 가 워크플로로 대체한다.
+#
+# 필요한 secret: AUTOMERGE_PAT
+#   - 1hyok 의 PAT (fine-grained, repo = danpung628/Smartee, 권한: Contents=Read/Write, Pull requests=Read/Write)
+#   - Settings → Developer settings → Personal access tokens 에서 생성 후
+#     `gh secret set AUTOMERGE_PAT -R danpung628/Smartee` 또는 repo Secrets 에 추가.
+#   - GITHUB_TOKEN 으로도 가능하지만 워크플로 기본 권한이 read-only 이면 머지 불가 → PAT 사용.
+
+on:
+  workflow_run:
+    workflows: ["Unit Test", "Static Analysis (Reviewdog)"]
+    types: [completed]
+
+jobs:
+  automerge:
+    # PR 이벤트로 돈 CI 만 대상 (push 등 제외)
+    if: github.event.workflow_run.event == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Merge PR when all checks are green
+        env:
+          GH_TOKEN: ${{ secrets.AUTOMERGE_PAT }}
+          REPO: ${{ github.repository }}
+          SHA: ${{ github.event.workflow_run.head_sha }}
+        run: |
+          set -euo pipefail
+
+          # 이 CI 를 띄운 head 커밋의 열린 PR 찾기
+          pr=$(gh pr list -R "$REPO" --state open --json number,headRefOid \
+                 --jq "[.[] | select(.headRefOid==\"$SHA\")][0].number // empty")
+          if [ -z "$pr" ]; then
+            echo "head $SHA 에 열린 PR 없음 — skip"
+            exit 0
+          fi
+          echo "대상 PR: #$pr (head $SHA)"
+
+          mergeable=$(gh pr view "$pr" -R "$REPO" --json mergeable --jq '.mergeable')
+
+          # green 아닌 체크 수 (대기/실패/null 모두 카운트). 0 이면 전부 통과.
+          notgreen=$(gh pr view "$pr" -R "$REPO" --json statusCheckRollup --jq '
+            [.statusCheckRollup[] | (.conclusion // .state)]
+            | map(select(. == null or (. != "SUCCESS" and . != "NEUTRAL" and . != "SKIPPED")))
+            | length')
+
+          echo "mergeable=$mergeable, non-green checks=$notgreen"
+
+          if [ "$mergeable" = "MERGEABLE" ] && [ "$notgreen" = "0" ]; then
+            echo "→ 전부 green + mergeable → squash 머지 + 브랜치 삭제"
+            gh pr merge "$pr" -R "$REPO" --squash --delete-branch
+          else
+            echo "→ 아직 미충족(다른 체크 대기/실패 또는 conflict) — skip. 다음 CI 완료 시 재평가."
+          fi
